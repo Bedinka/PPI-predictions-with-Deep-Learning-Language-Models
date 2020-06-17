@@ -1,104 +1,53 @@
-         Role Residue  Count
- 97  activator     Asp     61,
-                       Role Residue  Count
- 200  alter redox potential     Cys      5,
-                                      Role Residue  Count
- 558  attractive charge-charge interaction     Arg     23,
-                   Role Residue  Count
- 675  charge stabiliser     Lys      3,
-                    Role Residue  Count
- 578  covalent catalysis     Cys     42,
-                      Role Residue  Count
- 1082  covalently attached     Cys     71,
-             Role Residue  Count
- 725  electrofuge     Cys     13,
-                        Role Residue  Count
- 465  electron pair acceptor     Lys     13,
-                     Role Residue  Count
- 108  electron pair donor     Lys     20,
-                     Role Residue  Count
- 431  electron pair relay     Cys      2,
-                  Role Residue  Count
- 975  electron shuttle     His      7,
-              Role Residue  Count
- 158  electrophile     Cys     11,
-                            Role Residue  Count
- 333  electrostatic destabiliser     Phe      7,
-                          Role Residue  Count
- 831  electrostatic stabiliser     Arg    324,
-                    Role Residue  Count
- 852  enhance reactivity     Arg      6,
-                           Role Residue  Count
- 543  ground state destabiliser     Phe      1,
-               Role Residue  Count
- 662  hydride donor     Cys      2,
-                        Role Residue  Count
- 916  hydrogen bond acceptor     Asp    143,
-                    Role Residue  Count
- 72  hydrogen bond donor     His    166,
-                           Role Residue  Count
- 515  hydrogen radical acceptor     Cys      3,
-                        Role Residue  Count
- 746  hydrogen radical donor     Cys      5,
-                        Role Residue  Count
- 788  hydrogen radical relay     Cys      3,
-                          Role Residue  Count
- 998  hydrogen radical shuttle     Cys      2,
-                 Role Residue  Count
- 34  increase acidity     Asp     16,
-                   Role Residue  Count
- 460  increase basicity     Glu     15,
-                           Role Residue  Count
- 810  increase electrophilicity     Arg      8,
-                          Role Residue  Count
- 418  increase nucleophilicity     Glu      4,
-                          Role Residue  Count
- 618  increase redox potential     His      1,
-               Role Residue  Count
- 893  leaving group     Cys      2,
-              Role Residue  Count
- 282  metal ligand     His    224,
-              Role Residue  Count
- 223  modifies pKa     Asp     35,
-            Role Residue  Count
- 179  nucleofuge     Cys     46,
-             Role Residue  Count
- 347  nucleophile     Cys     54,
-                    Role Residue  Count
- 1059  polar interaction     His      6,
-                             Role Residue  Count
- 396  polar/non-polar interaction     Phe     19,
-                     Role Residue  Count
- 957  promote heterolysis     Arg      9,
-                 Role Residue  Count
- 240  proton acceptor     His    148,
-            Role Residue  Count
- 9  proton donor     His    150,
-              Role Residue  Count
- 262  proton relay     Tyr     16,
-                                     Role Residue  Count
- 1038  proton shuttle (general acid/base)     His    190,
-                                Role Residue  Count
- 598  radical chemistry (deprecated)     Tyr      1,
-                   Role Residue  Count
- 767  radical combinant     Cys      2,
-                   Role Residue  Count
- 52  radical stabiliser     Tyr      5,
-                                     Role Residue  Count
- 874  repulsive charge-charge interaction     Asp      3,
-                          Role Residue  Count
- 639  single electron acceptor     His      8,
-                       Role Residue  Count
- 933  single electron donor     His      8,
-                         Role Residue  Count
- 703  single electron shuttle     Tyr      2,
-                  Role Residue  Count
- 369  steric hindrance     Arg      1,
-                 Role Residue  Count
- 1026  steric locator     Phe      4,
-             Role Residue  Count
- 138  steric role     Arg     34,
-                              Role Residue  Count
- 1104  transition state stabiliser     Arg     18,
-         Role Residue  Count
- 313  unknown     Glu      3]
+Role Residue  Count
+activator     Asp     61
+alter redox potential     Cys      5
+attractive charge-charge interaction     Arg     23,
+charge stabiliser     Lys      3,
+covalent catalysis     Cys     42,
+covalently attached     Cys     71,
+electrofuge     Cys     13,
+electron pair acceptor     Lys     13,
+electron pair donor     Lys     20,
+electron pair relay     Cys      2,
+electron shuttle     His      7,
+electrophile     Cys     11,
+electrostatic destabiliser     Phe      7,
+electrostatic stabiliser     Arg    324,
+enhance reactivity     Arg      6,
+ground state destabiliser     Phe      1,
+hydride donor     Cys      2,
+hydrogen bond acceptor     Asp    143,
+hydrogen bond donor     His    166,
+hydrogen radical acceptor     Cys      3,
+hydrogen radical donor     Cys      5,
+hydrogen radical relay     Cys      3,
+hydrogen radical shuttle     Cys      2,
+increase acidity     Asp     16,
+increase basicity     Glu     15,
+increase electrophilicity     Arg      8,
+increase nucleophilicity     Glu      4,
+increase redox potential     His      1,
+leaving group     Cys      2,
+metal ligand     His    224,
+modifies pKa     Asp     35,
+nucleofuge     Cys     46,
+nucleophile     Cys     54,
+polar interaction     His      6,
+polar/non-polar interaction     Phe     19,
+promote heterolysis     Arg      9,
+proton acceptor     His    148,
+proton donor     His    150,
+proton relay     Tyr     16,
+proton shuttle (general acid/base)     His    190,
+radical chemistry (deprecated)     Tyr      1,
+radical combinant     Cys      2,
+radical stabiliser     Tyr      5,
+repulsive charge-charge interaction     Asp      3,
+single electron acceptor     His      8,
+single electron donor     His      8,
+single electron shuttle     Tyr      2,
+steric hindrance     Arg      1,
+steric locator     Phe      4,
+steric role     Arg     34,
+transition state stabiliser     Arg     18,
+unknown     Glu      3
