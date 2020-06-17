@@ -38,3 +38,11 @@ for i in range(len(_temp2)) :
     for j in range(len(_temp1)) :
         result = "ROLE : {:50} RESIDUE : {:10} COUNT : {}".format(_temp2[i], _temp1[j], data[j][i])
         print(result)
+
+#        
+f = open("out.csv","w")
+f.write('Role'+','+'Residue'+','+'Count'+'\n')
+for i in range(len(_temp2)) :
+    for j in range(len(_temp1)) :
+        result = "ROLE : {:50} RESIDUE : {:10} COUNT : {}".format(_temp2[i], _temp1[j], data[j][i])
+        f.write(format(_temp2[i])+','+format(_temp1[j])+','+format(data[j][i])+'\n')
