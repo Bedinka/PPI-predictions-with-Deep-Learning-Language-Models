@@ -1,0 +1,1114 @@
+Role,Residue,Count
+proton donor,Met,0
+proton donor,Gln,0
+proton donor,Thr,14
+proton donor,Lys,68
+proton donor,Ala,0
+proton donor,Trp,3
+proton donor,Pro,1
+proton donor,Sec,0
+proton donor,Gly,0
+proton donor,His,150
+proton donor,Tyr,65
+proton donor,Cys,50
+proton donor,Arg,17
+proton donor,Asp,95
+proton donor,Leu,0
+proton donor,Ser,39
+proton donor,Ile,0
+proton donor,Val,0
+proton donor,Phe,0
+proton donor,Glu,108
+proton donor,Asn,1
+increase acidity,Met,0
+increase acidity,Gln,0
+increase acidity,Thr,5
+increase acidity,Lys,5
+increase acidity,Ala,0
+increase acidity,Trp,0
+increase acidity,Pro,0
+increase acidity,Sec,0
+increase acidity,Gly,0
+increase acidity,His,5
+increase acidity,Tyr,1
+increase acidity,Cys,1
+increase acidity,Arg,5
+increase acidity,Asp,16
+increase acidity,Leu,0
+increase acidity,Ser,5
+increase acidity,Ile,0
+increase acidity,Val,0
+increase acidity,Phe,1
+increase acidity,Glu,14
+increase acidity,Asn,6
+radical stabiliser,Met,1
+radical stabiliser,Gln,0
+radical stabiliser,Thr,0
+radical stabiliser,Lys,1
+radical stabiliser,Ala,0
+radical stabiliser,Trp,3
+radical stabiliser,Pro,0
+radical stabiliser,Sec,0
+radical stabiliser,Gly,0
+radical stabiliser,His,4
+radical stabiliser,Tyr,5
+radical stabiliser,Cys,0
+radical stabiliser,Arg,1
+radical stabiliser,Asp,2
+radical stabiliser,Leu,0
+radical stabiliser,Ser,2
+radical stabiliser,Ile,1
+radical stabiliser,Val,2
+radical stabiliser,Phe,4
+radical stabiliser,Glu,2
+radical stabiliser,Asn,0
+hydrogen bond donor,Met,5
+hydrogen bond donor,Gln,19
+hydrogen bond donor,Thr,43
+hydrogen bond donor,Lys,123
+hydrogen bond donor,Ala,7
+hydrogen bond donor,Trp,15
+hydrogen bond donor,Pro,1
+hydrogen bond donor,Sec,0
+hydrogen bond donor,Gly,46
+hydrogen bond donor,His,166
+hydrogen bond donor,Tyr,85
+hydrogen bond donor,Cys,51
+hydrogen bond donor,Arg,123
+hydrogen bond donor,Asp,72
+hydrogen bond donor,Leu,11
+hydrogen bond donor,Ser,70
+hydrogen bond donor,Ile,0
+hydrogen bond donor,Val,2
+hydrogen bond donor,Phe,10
+hydrogen bond donor,Glu,86
+hydrogen bond donor,Asn,48
+activator,Met,1
+activator,Gln,6
+activator,Thr,6
+activator,Lys,35
+activator,Ala,4
+activator,Trp,9
+activator,Pro,2
+activator,Sec,1
+activator,Gly,7
+activator,His,34
+activator,Tyr,22
+activator,Cys,39
+activator,Arg,31
+activator,Asp,61
+activator,Leu,0
+activator,Ser,17
+activator,Ile,3
+activator,Val,2
+activator,Phe,7
+activator,Glu,42
+activator,Asn,19
+electron pair donor,Met,0
+electron pair donor,Gln,0
+electron pair donor,Thr,1
+electron pair donor,Lys,20
+electron pair donor,Ala,0
+electron pair donor,Trp,0
+electron pair donor,Pro,0
+electron pair donor,Sec,0
+electron pair donor,Gly,0
+electron pair donor,His,0
+electron pair donor,Tyr,0
+electron pair donor,Cys,0
+electron pair donor,Arg,0
+electron pair donor,Asp,2
+electron pair donor,Leu,0
+electron pair donor,Ser,2
+electron pair donor,Ile,0
+electron pair donor,Val,0
+electron pair donor,Phe,0
+electron pair donor,Glu,0
+electron pair donor,Asn,0
+steric role,Met,5
+steric role,Gln,5
+steric role,Thr,7
+steric role,Lys,10
+steric role,Ala,5
+steric role,Trp,16
+steric role,Pro,6
+steric role,Sec,0
+steric role,Gly,8
+steric role,His,19
+steric role,Tyr,31
+steric role,Cys,3
+steric role,Arg,34
+steric role,Asp,29
+steric role,Leu,11
+steric role,Ser,13
+steric role,Ile,5
+steric role,Val,5
+steric role,Phe,30
+steric role,Glu,19
+steric role,Asn,10
+electrophile,Met,0
+electrophile,Gln,0
+electrophile,Thr,0
+electrophile,Lys,1
+electrophile,Ala,0
+electrophile,Trp,0
+electrophile,Pro,0
+electrophile,Sec,0
+electrophile,Gly,0
+electrophile,His,0
+electrophile,Tyr,0
+electrophile,Cys,11
+electrophile,Arg,0
+electrophile,Asp,3
+electrophile,Leu,0
+electrophile,Ser,2
+electrophile,Ile,0
+electrophile,Val,0
+electrophile,Phe,0
+electrophile,Glu,3
+electrophile,Asn,0
+nucleofuge,Met,0
+nucleofuge,Gln,0
+nucleofuge,Thr,4
+nucleofuge,Lys,24
+nucleofuge,Ala,0
+nucleofuge,Trp,0
+nucleofuge,Pro,0
+nucleofuge,Sec,0
+nucleofuge,Gly,0
+nucleofuge,His,5
+nucleofuge,Tyr,3
+nucleofuge,Cys,46
+nucleofuge,Arg,0
+nucleofuge,Asp,8
+nucleofuge,Leu,0
+nucleofuge,Ser,17
+nucleofuge,Ile,0
+nucleofuge,Val,0
+nucleofuge,Phe,0
+nucleofuge,Glu,5
+nucleofuge,Asn,0
+alter redox potential,Met,0
+alter redox potential,Gln,0
+alter redox potential,Thr,0
+alter redox potential,Lys,0
+alter redox potential,Ala,0
+alter redox potential,Trp,0
+alter redox potential,Pro,0
+alter redox potential,Sec,0
+alter redox potential,Gly,0
+alter redox potential,His,2
+alter redox potential,Tyr,3
+alter redox potential,Cys,5
+alter redox potential,Arg,1
+alter redox potential,Asp,1
+alter redox potential,Leu,0
+alter redox potential,Ser,0
+alter redox potential,Ile,0
+alter redox potential,Val,0
+alter redox potential,Phe,0
+alter redox potential,Glu,2
+alter redox potential,Asn,0
+modifies pKa,Met,0
+modifies pKa,Gln,4
+modifies pKa,Thr,3
+modifies pKa,Lys,8
+modifies pKa,Ala,0
+modifies pKa,Trp,3
+modifies pKa,Pro,1
+modifies pKa,Sec,0
+modifies pKa,Gly,1
+modifies pKa,His,9
+modifies pKa,Tyr,9
+modifies pKa,Cys,1
+modifies pKa,Arg,13
+modifies pKa,Asp,35
+modifies pKa,Leu,1
+modifies pKa,Ser,5
+modifies pKa,Ile,1
+modifies pKa,Val,0
+modifies pKa,Phe,1
+modifies pKa,Glu,16
+modifies pKa,Asn,12
+proton acceptor,Met,0
+proton acceptor,Gln,0
+proton acceptor,Thr,14
+proton acceptor,Lys,67
+proton acceptor,Ala,0
+proton acceptor,Trp,3
+proton acceptor,Pro,1
+proton acceptor,Sec,0
+proton acceptor,Gly,0
+proton acceptor,His,148
+proton acceptor,Tyr,63
+proton acceptor,Cys,51
+proton acceptor,Arg,17
+proton acceptor,Asp,97
+proton acceptor,Leu,0
+proton acceptor,Ser,38
+proton acceptor,Ile,0
+proton acceptor,Val,0
+proton acceptor,Phe,0
+proton acceptor,Glu,113
+proton acceptor,Asn,1
+proton relay,Met,0
+proton relay,Gln,0
+proton relay,Thr,5
+proton relay,Lys,6
+proton relay,Ala,0
+proton relay,Trp,0
+proton relay,Pro,0
+proton relay,Sec,0
+proton relay,Gly,0
+proton relay,His,13
+proton relay,Tyr,16
+proton relay,Cys,4
+proton relay,Arg,2
+proton relay,Asp,6
+proton relay,Leu,0
+proton relay,Ser,8
+proton relay,Ile,0
+proton relay,Val,0
+proton relay,Phe,0
+proton relay,Glu,11
+proton relay,Asn,0
+metal ligand,Met,5
+metal ligand,Gln,10
+metal ligand,Thr,14
+metal ligand,Lys,9
+metal ligand,Ala,3
+metal ligand,Trp,1
+metal ligand,Pro,0
+metal ligand,Sec,1
+metal ligand,Gly,5
+metal ligand,His,224
+metal ligand,Tyr,7
+metal ligand,Cys,112
+metal ligand,Arg,0
+metal ligand,Asp,211
+metal ligand,Leu,1
+metal ligand,Ser,12
+metal ligand,Ile,3
+metal ligand,Val,1
+metal ligand,Phe,2
+metal ligand,Glu,129
+metal ligand,Asn,25
+unknown,Met,0
+unknown,Gln,0
+unknown,Thr,0
+unknown,Lys,0
+unknown,Ala,0
+unknown,Trp,0
+unknown,Pro,0
+unknown,Sec,0
+unknown,Gly,0
+unknown,His,1
+unknown,Tyr,0
+unknown,Cys,0
+unknown,Arg,2
+unknown,Asp,0
+unknown,Leu,0
+unknown,Ser,0
+unknown,Ile,0
+unknown,Val,0
+unknown,Phe,0
+unknown,Glu,3
+unknown,Asn,0
+electrostatic destabiliser,Met,0
+electrostatic destabiliser,Gln,1
+electrostatic destabiliser,Thr,0
+electrostatic destabiliser,Lys,1
+electrostatic destabiliser,Ala,0
+electrostatic destabiliser,Trp,0
+electrostatic destabiliser,Pro,0
+electrostatic destabiliser,Sec,0
+electrostatic destabiliser,Gly,0
+electrostatic destabiliser,His,0
+electrostatic destabiliser,Tyr,3
+electrostatic destabiliser,Cys,0
+electrostatic destabiliser,Arg,2
+electrostatic destabiliser,Asp,2
+electrostatic destabiliser,Leu,0
+electrostatic destabiliser,Ser,0
+electrostatic destabiliser,Ile,1
+electrostatic destabiliser,Val,1
+electrostatic destabiliser,Phe,7
+electrostatic destabiliser,Glu,0
+electrostatic destabiliser,Asn,0
+nucleophile,Met,0
+nucleophile,Gln,0
+nucleophile,Thr,4
+nucleophile,Lys,24
+nucleophile,Ala,0
+nucleophile,Trp,1
+nucleophile,Pro,0
+nucleophile,Sec,0
+nucleophile,Gly,0
+nucleophile,His,6
+nucleophile,Tyr,4
+nucleophile,Cys,54
+nucleophile,Arg,0
+nucleophile,Asp,9
+nucleophile,Leu,0
+nucleophile,Ser,18
+nucleophile,Ile,0
+nucleophile,Val,0
+nucleophile,Phe,0
+nucleophile,Glu,6
+nucleophile,Asn,0
+steric hindrance,Met,0
+steric hindrance,Gln,0
+steric hindrance,Thr,0
+steric hindrance,Lys,0
+steric hindrance,Ala,0
+steric hindrance,Trp,0
+steric hindrance,Pro,0
+steric hindrance,Sec,0
+steric hindrance,Gly,0
+steric hindrance,His,0
+steric hindrance,Tyr,0
+steric hindrance,Cys,0
+steric hindrance,Arg,1
+steric hindrance,Asp,0
+steric hindrance,Leu,0
+steric hindrance,Ser,0
+steric hindrance,Ile,0
+steric hindrance,Val,0
+steric hindrance,Phe,0
+steric hindrance,Glu,0
+steric hindrance,Asn,0
+polar/non-polar interaction,Met,2
+polar/non-polar interaction,Gln,0
+polar/non-polar interaction,Thr,0
+polar/non-polar interaction,Lys,1
+polar/non-polar interaction,Ala,2
+polar/non-polar interaction,Trp,5
+polar/non-polar interaction,Pro,1
+polar/non-polar interaction,Sec,0
+polar/non-polar interaction,Gly,0
+polar/non-polar interaction,His,3
+polar/non-polar interaction,Tyr,7
+polar/non-polar interaction,Cys,1
+polar/non-polar interaction,Arg,0
+polar/non-polar interaction,Asp,2
+polar/non-polar interaction,Leu,3
+polar/non-polar interaction,Ser,1
+polar/non-polar interaction,Ile,2
+polar/non-polar interaction,Val,3
+polar/non-polar interaction,Phe,19
+polar/non-polar interaction,Glu,2
+polar/non-polar interaction,Asn,1
+increase nucleophilicity,Met,0
+increase nucleophilicity,Gln,0
+increase nucleophilicity,Thr,2
+increase nucleophilicity,Lys,3
+increase nucleophilicity,Ala,0
+increase nucleophilicity,Trp,0
+increase nucleophilicity,Pro,1
+increase nucleophilicity,Sec,0
+increase nucleophilicity,Gly,0
+increase nucleophilicity,His,3
+increase nucleophilicity,Tyr,1
+increase nucleophilicity,Cys,0
+increase nucleophilicity,Arg,3
+increase nucleophilicity,Asp,4
+increase nucleophilicity,Leu,0
+increase nucleophilicity,Ser,1
+increase nucleophilicity,Ile,0
+increase nucleophilicity,Val,0
+increase nucleophilicity,Phe,1
+increase nucleophilicity,Glu,4
+increase nucleophilicity,Asn,1
+electron pair relay,Met,1
+electron pair relay,Gln,0
+electron pair relay,Thr,0
+electron pair relay,Lys,0
+electron pair relay,Ala,1
+electron pair relay,Trp,0
+electron pair relay,Pro,0
+electron pair relay,Sec,0
+electron pair relay,Gly,0
+electron pair relay,His,2
+electron pair relay,Tyr,1
+electron pair relay,Cys,2
+electron pair relay,Arg,1
+electron pair relay,Asp,0
+electron pair relay,Leu,0
+electron pair relay,Ser,0
+electron pair relay,Ile,0
+electron pair relay,Val,0
+electron pair relay,Phe,0
+electron pair relay,Glu,0
+electron pair relay,Asn,0
+increase basicity,Met,0
+increase basicity,Gln,1
+increase basicity,Thr,4
+increase basicity,Lys,4
+increase basicity,Ala,0
+increase basicity,Trp,0
+increase basicity,Pro,0
+increase basicity,Sec,0
+increase basicity,Gly,0
+increase basicity,His,4
+increase basicity,Tyr,3
+increase basicity,Cys,0
+increase basicity,Arg,4
+increase basicity,Asp,15
+increase basicity,Leu,0
+increase basicity,Ser,6
+increase basicity,Ile,0
+increase basicity,Val,0
+increase basicity,Phe,0
+increase basicity,Glu,15
+increase basicity,Asn,3
+electron pair acceptor,Met,0
+electron pair acceptor,Gln,0
+electron pair acceptor,Thr,1
+electron pair acceptor,Lys,13
+electron pair acceptor,Ala,0
+electron pair acceptor,Trp,0
+electron pair acceptor,Pro,0
+electron pair acceptor,Sec,0
+electron pair acceptor,Gly,0
+electron pair acceptor,His,0
+electron pair acceptor,Tyr,0
+electron pair acceptor,Cys,0
+electron pair acceptor,Arg,0
+electron pair acceptor,Asp,0
+electron pair acceptor,Leu,0
+electron pair acceptor,Ser,2
+electron pair acceptor,Ile,0
+electron pair acceptor,Val,0
+electron pair acceptor,Phe,0
+electron pair acceptor,Glu,0
+electron pair acceptor,Asn,0
+van der waals interaction,Met,0
+van der waals interaction,Gln,0
+van der waals interaction,Thr,1
+van der waals interaction,Lys,0
+van der waals interaction,Ala,1
+van der waals interaction,Trp,11
+van der waals interaction,Pro,1
+van der waals interaction,Sec,0
+van der waals interaction,Gly,0
+van der waals interaction,His,2
+van der waals interaction,Tyr,8
+van der waals interaction,Cys,1
+van der waals interaction,Arg,0
+van der waals interaction,Asp,0
+van der waals interaction,Leu,2
+van der waals interaction,Ser,0
+van der waals interaction,Ile,1
+van der waals interaction,Val,2
+van der waals interaction,Phe,10
+van der waals interaction,Glu,0
+van der waals interaction,Asn,0
+hydrogen radical acceptor,Met,0
+hydrogen radical acceptor,Gln,0
+hydrogen radical acceptor,Thr,0
+hydrogen radical acceptor,Lys,0
+hydrogen radical acceptor,Ala,0
+hydrogen radical acceptor,Trp,0
+hydrogen radical acceptor,Pro,0
+hydrogen radical acceptor,Sec,0
+hydrogen radical acceptor,Gly,2
+hydrogen radical acceptor,His,0
+hydrogen radical acceptor,Tyr,2
+hydrogen radical acceptor,Cys,3
+hydrogen radical acceptor,Arg,0
+hydrogen radical acceptor,Asp,0
+hydrogen radical acceptor,Leu,0
+hydrogen radical acceptor,Ser,0
+hydrogen radical acceptor,Ile,0
+hydrogen radical acceptor,Val,0
+hydrogen radical acceptor,Phe,0
+hydrogen radical acceptor,Glu,0
+hydrogen radical acceptor,Asn,0
+ground state destabiliser,Met,0
+ground state destabiliser,Gln,0
+ground state destabiliser,Thr,1
+ground state destabiliser,Lys,0
+ground state destabiliser,Ala,1
+ground state destabiliser,Trp,0
+ground state destabiliser,Pro,0
+ground state destabiliser,Sec,0
+ground state destabiliser,Gly,0
+ground state destabiliser,His,0
+ground state destabiliser,Tyr,0
+ground state destabiliser,Cys,0
+ground state destabiliser,Arg,0
+ground state destabiliser,Asp,0
+ground state destabiliser,Leu,1
+ground state destabiliser,Ser,0
+ground state destabiliser,Ile,1
+ground state destabiliser,Val,1
+ground state destabiliser,Phe,1
+ground state destabiliser,Glu,0
+ground state destabiliser,Asn,0
+attractive charge-charge interaction,Met,0
+attractive charge-charge interaction,Gln,0
+attractive charge-charge interaction,Thr,0
+attractive charge-charge interaction,Lys,17
+attractive charge-charge interaction,Ala,0
+attractive charge-charge interaction,Trp,0
+attractive charge-charge interaction,Pro,0
+attractive charge-charge interaction,Sec,0
+attractive charge-charge interaction,Gly,0
+attractive charge-charge interaction,His,5
+attractive charge-charge interaction,Tyr,1
+attractive charge-charge interaction,Cys,5
+attractive charge-charge interaction,Arg,23
+attractive charge-charge interaction,Asp,8
+attractive charge-charge interaction,Leu,0
+attractive charge-charge interaction,Ser,1
+attractive charge-charge interaction,Ile,0
+attractive charge-charge interaction,Val,0
+attractive charge-charge interaction,Phe,0
+attractive charge-charge interaction,Glu,7
+attractive charge-charge interaction,Asn,0
+covalent catalysis,Met,0
+covalent catalysis,Gln,0
+covalent catalysis,Thr,2
+covalent catalysis,Lys,21
+covalent catalysis,Ala,0
+covalent catalysis,Trp,0
+covalent catalysis,Pro,0
+covalent catalysis,Sec,1
+covalent catalysis,Gly,0
+covalent catalysis,His,8
+covalent catalysis,Tyr,2
+covalent catalysis,Cys,42
+covalent catalysis,Arg,1
+covalent catalysis,Asp,18
+covalent catalysis,Leu,0
+covalent catalysis,Ser,31
+covalent catalysis,Ile,0
+covalent catalysis,Val,0
+covalent catalysis,Phe,0
+covalent catalysis,Glu,13
+covalent catalysis,Asn,2
+radical chemistry (deprecated),Met,0
+radical chemistry (deprecated),Gln,0
+radical chemistry (deprecated),Thr,0
+radical chemistry (deprecated),Lys,0
+radical chemistry (deprecated),Ala,0
+radical chemistry (deprecated),Trp,0
+radical chemistry (deprecated),Pro,0
+radical chemistry (deprecated),Sec,0
+radical chemistry (deprecated),Gly,0
+radical chemistry (deprecated),His,0
+radical chemistry (deprecated),Tyr,1
+radical chemistry (deprecated),Cys,0
+radical chemistry (deprecated),Arg,0
+radical chemistry (deprecated),Asp,0
+radical chemistry (deprecated),Leu,0
+radical chemistry (deprecated),Ser,0
+radical chemistry (deprecated),Ile,0
+radical chemistry (deprecated),Val,0
+radical chemistry (deprecated),Phe,0
+radical chemistry (deprecated),Glu,0
+radical chemistry (deprecated),Asn,0
+increase redox potential,Met,0
+increase redox potential,Gln,0
+increase redox potential,Thr,0
+increase redox potential,Lys,0
+increase redox potential,Ala,0
+increase redox potential,Trp,0
+increase redox potential,Pro,0
+increase redox potential,Sec,0
+increase redox potential,Gly,0
+increase redox potential,His,1
+increase redox potential,Tyr,0
+increase redox potential,Cys,0
+increase redox potential,Arg,0
+increase redox potential,Asp,0
+increase redox potential,Leu,0
+increase redox potential,Ser,0
+increase redox potential,Ile,0
+increase redox potential,Val,0
+increase redox potential,Phe,0
+increase redox potential,Glu,0
+increase redox potential,Asn,0
+single electron acceptor,Met,2
+single electron acceptor,Gln,3
+single electron acceptor,Thr,1
+single electron acceptor,Lys,1
+single electron acceptor,Ala,2
+single electron acceptor,Trp,6
+single electron acceptor,Pro,0
+single electron acceptor,Sec,0
+single electron acceptor,Gly,1
+single electron acceptor,His,8
+single electron acceptor,Tyr,2
+single electron acceptor,Cys,6
+single electron acceptor,Arg,1
+single electron acceptor,Asp,2
+single electron acceptor,Leu,0
+single electron acceptor,Ser,3
+single electron acceptor,Ile,1
+single electron acceptor,Val,1
+single electron acceptor,Phe,0
+single electron acceptor,Glu,1
+single electron acceptor,Asn,1
+hydride donor,Met,0
+hydride donor,Gln,0
+hydride donor,Thr,0
+hydride donor,Lys,0
+hydride donor,Ala,0
+hydride donor,Trp,0
+hydride donor,Pro,0
+hydride donor,Sec,0
+hydride donor,Gly,0
+hydride donor,His,0
+hydride donor,Tyr,0
+hydride donor,Cys,2
+hydride donor,Arg,0
+hydride donor,Asp,0
+hydride donor,Leu,0
+hydride donor,Ser,0
+hydride donor,Ile,0
+hydride donor,Val,0
+hydride donor,Phe,0
+hydride donor,Glu,0
+hydride donor,Asn,0
+charge stabiliser,Met,0
+charge stabiliser,Gln,0
+charge stabiliser,Thr,0
+charge stabiliser,Lys,3
+charge stabiliser,Ala,0
+charge stabiliser,Trp,0
+charge stabiliser,Pro,0
+charge stabiliser,Sec,0
+charge stabiliser,Gly,0
+charge stabiliser,His,0
+charge stabiliser,Tyr,0
+charge stabiliser,Cys,0
+charge stabiliser,Arg,0
+charge stabiliser,Asp,1
+charge stabiliser,Leu,0
+charge stabiliser,Ser,0
+charge stabiliser,Ile,0
+charge stabiliser,Val,0
+charge stabiliser,Phe,0
+charge stabiliser,Glu,0
+charge stabiliser,Asn,0
+single electron shuttle,Met,0
+single electron shuttle,Gln,0
+single electron shuttle,Thr,1
+single electron shuttle,Lys,0
+single electron shuttle,Ala,0
+single electron shuttle,Trp,0
+single electron shuttle,Pro,0
+single electron shuttle,Sec,0
+single electron shuttle,Gly,0
+single electron shuttle,His,1
+single electron shuttle,Tyr,2
+single electron shuttle,Cys,1
+single electron shuttle,Arg,0
+single electron shuttle,Asp,1
+single electron shuttle,Leu,0
+single electron shuttle,Ser,0
+single electron shuttle,Ile,0
+single electron shuttle,Val,0
+single electron shuttle,Phe,0
+single electron shuttle,Glu,0
+single electron shuttle,Asn,0
+electrofuge,Met,0
+electrofuge,Gln,0
+electrofuge,Thr,0
+electrofuge,Lys,0
+electrofuge,Ala,0
+electrofuge,Trp,0
+electrofuge,Pro,0
+electrofuge,Sec,0
+electrofuge,Gly,0
+electrofuge,His,0
+electrofuge,Tyr,0
+electrofuge,Cys,13
+electrofuge,Arg,0
+electrofuge,Asp,2
+electrofuge,Leu,0
+electrofuge,Ser,2
+electrofuge,Ile,0
+electrofuge,Val,0
+electrofuge,Phe,0
+electrofuge,Glu,2
+electrofuge,Asn,0
+hydrogen radical donor,Met,0
+hydrogen radical donor,Gln,0
+hydrogen radical donor,Thr,0
+hydrogen radical donor,Lys,0
+hydrogen radical donor,Ala,0
+hydrogen radical donor,Trp,0
+hydrogen radical donor,Pro,0
+hydrogen radical donor,Sec,0
+hydrogen radical donor,Gly,2
+hydrogen radical donor,His,0
+hydrogen radical donor,Tyr,3
+hydrogen radical donor,Cys,5
+hydrogen radical donor,Arg,0
+hydrogen radical donor,Asp,0
+hydrogen radical donor,Leu,0
+hydrogen radical donor,Ser,0
+hydrogen radical donor,Ile,0
+hydrogen radical donor,Val,0
+hydrogen radical donor,Phe,0
+hydrogen radical donor,Glu,0
+hydrogen radical donor,Asn,1
+radical combinant,Met,0
+radical combinant,Gln,0
+radical combinant,Thr,0
+radical combinant,Lys,0
+radical combinant,Ala,0
+radical combinant,Trp,0
+radical combinant,Pro,0
+radical combinant,Sec,0
+radical combinant,Gly,0
+radical combinant,His,0
+radical combinant,Tyr,0
+radical combinant,Cys,2
+radical combinant,Arg,0
+radical combinant,Asp,0
+radical combinant,Leu,0
+radical combinant,Ser,0
+radical combinant,Ile,0
+radical combinant,Val,0
+radical combinant,Phe,0
+radical combinant,Glu,0
+radical combinant,Asn,0
+hydrogen radical relay,Met,0
+hydrogen radical relay,Gln,0
+hydrogen radical relay,Thr,0
+hydrogen radical relay,Lys,0
+hydrogen radical relay,Ala,0
+hydrogen radical relay,Trp,0
+hydrogen radical relay,Pro,0
+hydrogen radical relay,Sec,0
+hydrogen radical relay,Gly,1
+hydrogen radical relay,His,0
+hydrogen radical relay,Tyr,0
+hydrogen radical relay,Cys,3
+hydrogen radical relay,Arg,0
+hydrogen radical relay,Asp,0
+hydrogen radical relay,Leu,0
+hydrogen radical relay,Ser,0
+hydrogen radical relay,Ile,0
+hydrogen radical relay,Val,0
+hydrogen radical relay,Phe,0
+hydrogen radical relay,Glu,0
+hydrogen radical relay,Asn,0
+increase electrophilicity,Met,0
+increase electrophilicity,Gln,0
+increase electrophilicity,Thr,1
+increase electrophilicity,Lys,2
+increase electrophilicity,Ala,0
+increase electrophilicity,Trp,1
+increase electrophilicity,Pro,0
+increase electrophilicity,Sec,0
+increase electrophilicity,Gly,0
+increase electrophilicity,His,5
+increase electrophilicity,Tyr,0
+increase electrophilicity,Cys,1
+increase electrophilicity,Arg,8
+increase electrophilicity,Asp,3
+increase electrophilicity,Leu,0
+increase electrophilicity,Ser,2
+increase electrophilicity,Ile,1
+increase electrophilicity,Val,0
+increase electrophilicity,Phe,0
+increase electrophilicity,Glu,2
+increase electrophilicity,Asn,2
+electrostatic stabiliser,Met,21
+electrostatic stabiliser,Gln,58
+electrostatic stabiliser,Thr,82
+electrostatic stabiliser,Lys,231
+electrostatic stabiliser,Ala,30
+electrostatic stabiliser,Trp,44
+electrostatic stabiliser,Pro,5
+electrostatic stabiliser,Sec,0
+electrostatic stabiliser,Gly,116
+electrostatic stabiliser,His,203
+electrostatic stabiliser,Tyr,137
+electrostatic stabiliser,Cys,62
+electrostatic stabiliser,Arg,324
+electrostatic stabiliser,Asp,234
+electrostatic stabiliser,Leu,21
+electrostatic stabiliser,Ser,130
+electrostatic stabiliser,Ile,11
+electrostatic stabiliser,Val,10
+electrostatic stabiliser,Phe,48
+electrostatic stabiliser,Glu,169
+electrostatic stabiliser,Asn,119
+enhance reactivity,Met,0
+enhance reactivity,Gln,0
+enhance reactivity,Thr,2
+enhance reactivity,Lys,3
+enhance reactivity,Ala,0
+enhance reactivity,Trp,0
+enhance reactivity,Pro,0
+enhance reactivity,Sec,0
+enhance reactivity,Gly,0
+enhance reactivity,His,2
+enhance reactivity,Tyr,1
+enhance reactivity,Cys,1
+enhance reactivity,Arg,6
+enhance reactivity,Asp,3
+enhance reactivity,Leu,1
+enhance reactivity,Ser,2
+enhance reactivity,Ile,0
+enhance reactivity,Val,0
+enhance reactivity,Phe,2
+enhance reactivity,Glu,1
+enhance reactivity,Asn,1
+repulsive charge-charge interaction,Met,0
+repulsive charge-charge interaction,Gln,0
+repulsive charge-charge interaction,Thr,0
+repulsive charge-charge interaction,Lys,1
+repulsive charge-charge interaction,Ala,0
+repulsive charge-charge interaction,Trp,0
+repulsive charge-charge interaction,Pro,0
+repulsive charge-charge interaction,Sec,0
+repulsive charge-charge interaction,Gly,0
+repulsive charge-charge interaction,His,0
+repulsive charge-charge interaction,Tyr,0
+repulsive charge-charge interaction,Cys,0
+repulsive charge-charge interaction,Arg,1
+repulsive charge-charge interaction,Asp,3
+repulsive charge-charge interaction,Leu,0
+repulsive charge-charge interaction,Ser,0
+repulsive charge-charge interaction,Ile,0
+repulsive charge-charge interaction,Val,0
+repulsive charge-charge interaction,Phe,0
+repulsive charge-charge interaction,Glu,2
+repulsive charge-charge interaction,Asn,0
+leaving group,Met,0
+leaving group,Gln,0
+leaving group,Thr,0
+leaving group,Lys,0
+leaving group,Ala,0
+leaving group,Trp,0
+leaving group,Pro,0
+leaving group,Sec,0
+leaving group,Gly,0
+leaving group,His,0
+leaving group,Tyr,0
+leaving group,Cys,2
+leaving group,Arg,0
+leaving group,Asp,0
+leaving group,Leu,0
+leaving group,Ser,0
+leaving group,Ile,0
+leaving group,Val,0
+leaving group,Phe,0
+leaving group,Glu,1
+leaving group,Asn,0
+hydrogen bond acceptor,Met,1
+hydrogen bond acceptor,Gln,18
+hydrogen bond acceptor,Thr,18
+hydrogen bond acceptor,Lys,34
+hydrogen bond acceptor,Ala,4
+hydrogen bond acceptor,Trp,1
+hydrogen bond acceptor,Pro,5
+hydrogen bond acceptor,Sec,0
+hydrogen bond acceptor,Gly,11
+hydrogen bond acceptor,His,128
+hydrogen bond acceptor,Tyr,54
+hydrogen bond acceptor,Cys,48
+hydrogen bond acceptor,Arg,10
+hydrogen bond acceptor,Asp,143
+hydrogen bond acceptor,Leu,2
+hydrogen bond acceptor,Ser,42
+hydrogen bond acceptor,Ile,0
+hydrogen bond acceptor,Val,1
+hydrogen bond acceptor,Phe,1
+hydrogen bond acceptor,Glu,130
+hydrogen bond acceptor,Asn,18
+single electron donor,Met,2
+single electron donor,Gln,3
+single electron donor,Thr,1
+single electron donor,Lys,1
+single electron donor,Ala,2
+single electron donor,Trp,7
+single electron donor,Pro,0
+single electron donor,Sec,0
+single electron donor,Gly,1
+single electron donor,His,8
+single electron donor,Tyr,1
+single electron donor,Cys,6
+single electron donor,Arg,1
+single electron donor,Asp,2
+single electron donor,Leu,0
+single electron donor,Ser,3
+single electron donor,Ile,1
+single electron donor,Val,1
+single electron donor,Phe,0
+single electron donor,Glu,1
+single electron donor,Asn,1
+promote heterolysis,Met,0
+promote heterolysis,Gln,2
+promote heterolysis,Thr,0
+promote heterolysis,Lys,2
+promote heterolysis,Ala,0
+promote heterolysis,Trp,0
+promote heterolysis,Pro,0
+promote heterolysis,Sec,0
+promote heterolysis,Gly,0
+promote heterolysis,His,3
+promote heterolysis,Tyr,1
+promote heterolysis,Cys,0
+promote heterolysis,Arg,9
+promote heterolysis,Asp,3
+promote heterolysis,Leu,0
+promote heterolysis,Ser,2
+promote heterolysis,Ile,1
+promote heterolysis,Val,2
+promote heterolysis,Phe,4
+promote heterolysis,Glu,1
+promote heterolysis,Asn,2
+electron shuttle,Met,1
+electron shuttle,Gln,0
+electron shuttle,Thr,0
+electron shuttle,Lys,1
+electron shuttle,Ala,0
+electron shuttle,Trp,1
+electron shuttle,Pro,0
+electron shuttle,Sec,0
+electron shuttle,Gly,0
+electron shuttle,His,7
+electron shuttle,Tyr,3
+electron shuttle,Cys,4
+electron shuttle,Arg,2
+electron shuttle,Asp,0
+electron shuttle,Leu,0
+electron shuttle,Ser,1
+electron shuttle,Ile,0
+electron shuttle,Val,0
+electron shuttle,Phe,5
+electron shuttle,Glu,0
+electron shuttle,Asn,0
+hydrogen radical shuttle,Met,0
+hydrogen radical shuttle,Gln,0
+hydrogen radical shuttle,Thr,0
+hydrogen radical shuttle,Lys,0
+hydrogen radical shuttle,Ala,0
+hydrogen radical shuttle,Trp,1
+hydrogen radical shuttle,Pro,0
+hydrogen radical shuttle,Sec,0
+hydrogen radical shuttle,Gly,0
+hydrogen radical shuttle,His,0
+hydrogen radical shuttle,Tyr,1
+hydrogen radical shuttle,Cys,2
+hydrogen radical shuttle,Arg,0
+hydrogen radical shuttle,Asp,0
+hydrogen radical shuttle,Leu,0
+hydrogen radical shuttle,Ser,0
+hydrogen radical shuttle,Ile,0
+hydrogen radical shuttle,Val,0
+hydrogen radical shuttle,Phe,0
+hydrogen radical shuttle,Glu,0
+hydrogen radical shuttle,Asn,0
+steric locator,Met,0
+steric locator,Gln,1
+steric locator,Thr,0
+steric locator,Lys,1
+steric locator,Ala,0
+steric locator,Trp,0
+steric locator,Pro,0
+steric locator,Sec,0
+steric locator,Gly,0
+steric locator,His,0
+steric locator,Tyr,3
+steric locator,Cys,0
+steric locator,Arg,1
+steric locator,Asp,2
+steric locator,Leu,2
+steric locator,Ser,1
+steric locator,Ile,0
+steric locator,Val,0
+steric locator,Phe,4
+steric locator,Glu,1
+steric locator,Asn,0
+proton shuttle (general acid/base),Met,0
+proton shuttle (general acid/base),Gln,1
+proton shuttle (general acid/base),Thr,13
+proton shuttle (general acid/base),Lys,71
+proton shuttle (general acid/base),Ala,0
+proton shuttle (general acid/base),Trp,2
+proton shuttle (general acid/base),Pro,1
+proton shuttle (general acid/base),Sec,2
+proton shuttle (general acid/base),Gly,0
+proton shuttle (general acid/base),His,190
+proton shuttle (general acid/base),Tyr,44
+proton shuttle (general acid/base),Cys,40
+proton shuttle (general acid/base),Arg,11
+proton shuttle (general acid/base),Asp,103
+proton shuttle (general acid/base),Leu,1
+proton shuttle (general acid/base),Ser,38
+proton shuttle (general acid/base),Ile,0
+proton shuttle (general acid/base),Val,0
+proton shuttle (general acid/base),Phe,0
+proton shuttle (general acid/base),Glu,136
+proton shuttle (general acid/base),Asn,3
+polar interaction,Met,3
+polar interaction,Gln,0
+polar interaction,Thr,4
+polar interaction,Lys,6
+polar interaction,Ala,1
+polar interaction,Trp,1
+polar interaction,Pro,0
+polar interaction,Sec,0
+polar interaction,Gly,0
+polar interaction,His,6
+polar interaction,Tyr,2
+polar interaction,Cys,3
+polar interaction,Arg,2
+polar interaction,Asp,1
+polar interaction,Leu,0
+polar interaction,Ser,2
+polar interaction,Ile,2
+polar interaction,Val,1
+polar interaction,Phe,0
+polar interaction,Glu,4
+polar interaction,Asn,0
+covalently attached,Met,0
+covalently attached,Gln,2
+covalently attached,Thr,5
+covalently attached,Lys,31
+covalently attached,Ala,0
+covalently attached,Trp,0
+covalently attached,Pro,1
+covalently attached,Sec,1
+covalently attached,Gly,0
+covalently attached,His,11
+covalently attached,Tyr,9
+covalently attached,Cys,71
+covalently attached,Arg,0
+covalently attached,Asp,12
+covalently attached,Leu,0
+covalently attached,Ser,37
+covalently attached,Ile,0
+covalently attached,Val,0
+covalently attached,Phe,0
+covalently attached,Glu,13
+covalently attached,Asn,0
+transition state stabiliser,Met,0
+transition state stabiliser,Gln,2
+transition state stabiliser,Thr,3
+transition state stabiliser,Lys,4
+transition state stabiliser,Ala,0
+transition state stabiliser,Trp,1
+transition state stabiliser,Pro,0
+transition state stabiliser,Sec,0
+transition state stabiliser,Gly,5
+transition state stabiliser,His,4
+transition state stabiliser,Tyr,7
+transition state stabiliser,Cys,1
+transition state stabiliser,Arg,18
+transition state stabiliser,Asp,8
+transition state stabiliser,Leu,0
+transition state stabiliser,Ser,2
+transition state stabiliser,Ile,1
+transition state stabiliser,Val,0
+transition state stabiliser,Phe,0
+transition state stabiliser,Glu,4
+transition state stabiliser,Asn,2
