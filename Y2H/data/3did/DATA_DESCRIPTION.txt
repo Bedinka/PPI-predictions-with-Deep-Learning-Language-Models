@@ -1,0 +1,42 @@
+#====================================================
+# 3DID data 
+# https://3did.irbbarcelona.org/download.php
+# 
+#====================================================
+The flat files downloadable here contain the core information of 3did:
+
+ 3did_flat.gz contains interacting domain pairs (ID) and instances of these interactions in PDB structures along with InterPreTS scores (Aloy and Russell, Bioinformatics 2003) and details on the contacts;
+ 
+ 3did_dmi_flat.gz contains domain-motif interactions, i.e. motifs with the corresponding pattern and source database as well as all 3D instances of the interaction type;
+ 
+ 3did_interface_flat.gz contains the different binding topologies (the interface numbering refers to the domain's Pfam HMM profiles);
+ 
+ 3did_global_interface_flat.gz contains the global interfaces (where the numbering again refers to the Pfam HMM profiles), and the fraction indicates how many of the binding partners use this residue.
+ 
+#====================================================
+ 
+3did_flat
+#=ID: the two interacting domains, plus their Pfam IDs
+#=3D: one structural instance of this interaction, with the following fields:
+PDB chain1:(domain1Start-domain1End) chain2:(domain2Start-domain2End) score Zscore topology
+
+Below each #=3D entry, the residue contacts are listed (residue 1 and 2, position 1 and 2, and contact type -- m = main chain, s = side chain). Please note that all positions given here refer to the numbering of residues in the original PDB file. Two slashes (//) indicate the end of a domain pair.
+
+3did_dmi_flat
+#=ID: domain (source database - currently Pfam only) motif (source database - currently PLoS_CB_2010 only)
+#=PT: the motif pattern, and the date when it was retrieved, if applicable
+#=3D: PDB domainChain:start-end motifChain:start-end motif_seq num_contextual_contacts topology
+For each interaction between this pair of domain and motif, a #=3D entry is given, again using the residue numbering of the PDB file. // indicates the end of a pair.
+
+3did_interface_flat
+#=ID <domain1> <domain2>
+#=IF <topology ID>: <contacting regions>
+There is one #=IF line for each topology determined for this pair of domain and (domain|motif). The contacting residues have been mapped to the corresponding positions in the Pfam HMM profile of the currently used version.
+
+3did_global_interface_flat
+#=ID <domain1> <domain2>
+#=BD <binding partner (domain or peptide)> (<topology ID>), [DDI|DMI]
+#=PS <HMM profile position> (<fraction of binding partners using it>)
+Please note that global interface data is only provided for those cases that involve more than one binding partner. If just one binding partner is involved in a particular interface, the <HMM profile positions> are the same as in the respective 3did_interface_flat entry, and the <fraction of binding partners using it> is always 1.
+
+#====================================================
