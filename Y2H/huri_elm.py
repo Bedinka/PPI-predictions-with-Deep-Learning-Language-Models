@@ -11,7 +11,7 @@ import pandas as pd
 
 
 df1 = pd.read_csv ("huri.csv", sep=';')
-print(df)
+print(df1)
 
 
 # In[51]:
@@ -21,12 +21,6 @@ df2 =  pd.read_csv ("elm_interaction_domains.csv", sep=';')
 print(df2)         
 
 #note that column with INTERACTION DOMAIN DESCRIPTION IS DUPLICATED WITH NAME <hmm name> in order to compare with column <hmm name> of the HuRI file 
-
-
-# In[52]:
-
-
-import numpy as np
 
 
 # In[53]:
