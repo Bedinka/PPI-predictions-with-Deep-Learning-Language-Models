@@ -26,7 +26,7 @@ print(df2)
 # In[53]:
 
 
-df_merge = pd.merge(df, df2, how='inner')   #to obtain common values between both files
+df_merge = pd.merge(df1, df2, how='inner')   #to obtain common values between both files
 
 
 # In[54]:
