@@ -4,3 +4,5 @@ common_huri_dmi.csv is the output generated with the python code : huri_dmi.py  
 common_huri_elm.csv is the output generated with the python code : huri_elm.py       (has all the computed matches between both files.)
 
 python codes were .ypynb (created with Jupyter notebook). In order to obtain the .py file type in cmd:  ipython nbconvert --to python "file".ipynb
+
+DDI_for_map.txt    DMI.csv     elm_interaction_domains.csv   are the input files for each mapping with huri.csv
