@@ -1,1 +1,5 @@
 
+mapping1.zip is the output generated with the python code : map_proteins1.py       (has all the computed matches between both files.)
+mapping2.zip is the output generated with the python code : map_proteins2.py       (has all the computed matches between both files.)
+
+all_interactions1.csv     all_interactions2.csv   are the input files for each mapping with proteins.csv
