@@ -4,6 +4,12 @@ import math
 import networkx as nx
 from pyvis.network import Network
 
+from IPython.core.display import display, HTML
+import matplotlib.pyplot as plt
+
+from Bio import SearchIO
+
+
 # PDB READER
 # https://cupnet.net/pdb-format/
 
@@ -203,14 +209,65 @@ def parsePDB( filename ):
 
     return aPDB
 
-#from IPython.core.display import display, HTML
-import matplotlib.pyplot as plt
+def overlap(a,b):
+    if a is None or b is None:
+        return False
+    return a[0] <= b[0] <= a[1] or b[0] <= a[0] <= b[1]
 
-def static_graph(nx_graph):
+def domtbl_parser(file, E = 10e-6):
+    qrdict = dict()
+    evalue_filter = lambda hsp: hsp.evalue < E
+
+    with open(file, 'r') as f:
+        # transforms to zero-based and half-open intervals
+        domtbl = SearchIO.parse(f, 'hmmscan3-domtab')
+        for qresult in domtbl:
+            for hit in qresult.hits:
+                # filter the hsp on the hit by evalue
+                filtered_hit = hit.filter(evalue_filter)
+                # if no hsps of the hit pass the threshold pop the hit from the QueryResult
+                if filtered_hit is None:
+                    qresult.pop(hit.id)
+                else:
+                    prevhsp = None
+                    index = 0
+                    for hsp in filtered_hit:
+                        # if two hsps overlap pop the worst one (they are sorted by evalue)
+                        if overlap(prevhsp, hsp.query_range):
+                            filtered_hit.pop(index)
+                        prevhsp = hsp.query_range
+                        index += 1
+                    #save the "cleaned" hit to the QueryResult
+                    qresult[hit.id] = filtered_hit
+            # Only save QueryResults that contain information
+            if len(qresult) > 0:
+                qrdict[qresult.id] = qresult
+        return qrdict
+    
+def domains(qrdict, name):
+    '''
+    returns a list with all the domains found in the protein
+    '''
+    l = []
+    for h in qrdict[name]:
+        for hsp in h:
+            l.append(hsp.query_range)
+    return l
+
+
+def static_graph(nx_graph, domains):
     pos = nx.spring_layout(nx_graph, seed=7) #, iterations =300)  # positions for all nodes - seed for reproducibility
     
+    color_map = ['blue']*(nx_graph.number_of_nodes())
+    colors = ['red', 'green', 'purple']
+    c = 0
+    for dom in domains:
+        for i in range(dom[0], dom[1]):
+            color_map[i] = colors[c]
+        c += 1
+    
     # nodes
-    nx.draw_networkx_nodes(nx_graph, pos, node_size=300)
+    nx.draw_networkx_nodes(nx_graph, pos, node_color=color_map, node_size=300)
 
     # edges
     nx.draw_networkx_edges(nx_graph, pos, width=5)
@@ -235,25 +292,30 @@ def interactive_graph(nx_graph, x_size = '1000px', y_size = '1000px', html_file 
     nt.show_buttons(filter_=['nodes', 'edges', 'physics'])
     nt.show(html_file)
 
-    #display(HTML(html_file))
+    display(HTML(html_file))
 
 if __name__ == "__main__":
     import gzip
-    filepath = "E:/AlphaFold2/UP000005640_9606_HUMAN_v2/AF-A0A024RBG1-F1-model_v2.pdb.gz"
+    wd = "/home/roger/YangLabIntern/2023_self_regulatory_motifs/"
+    protname = "AF-A0A024RBG1-F1-model_v2"
+    filepath = wd+"compressed_D/"+protname+".pdb.gz"
+
+    domdict = domtbl_parser(wd+'domtbl.out')
     
-    
+
     aPDB = parsePDB( filepath )
 
     #aPDB.get_all_ligand_contacts()
     print ( aPDB.chains )
     nx_graph = aPDB.chains['A'].get_self_contacting_residue_network()
     print ( nx_graph )
-
     
+    D = domains(domdict, protname)
 
-    static_graph(nx_graph)
+    print(domains(domdict, protname))
+    static_graph(nx_graph, D)
     interactive_graph(nx_graph)
-
+    print(domains(domdict, protname))
 
     '''
     import plotly.graph_objects as go
