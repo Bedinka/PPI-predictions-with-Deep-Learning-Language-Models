@@ -82,7 +82,7 @@ class Chain:
                 output.append( [ dist, residue1, residue2 ] )
         return output
 
-    def get_self_contacting_residue_network( self, dist_cutoff = 5.0 ):
+    def get_self_contacting_residue_network( self, domains, dist_cutoff = 5.0 ):
         # CA distance <= 5.0
         aGraph = nx.Graph()
         #print(self.residues_list)
@@ -94,6 +94,13 @@ class Chain:
                     aGraph.add_edge(residue1.pos, residue2.pos)
         for residue_pos in aGraph.nodes:
             aGraph.nodes[residue_pos]['label'] = "%d - %s" % (residue_pos, self.residues[residue_pos].resname)
+
+        colors = ['red', 'green', 'purple', 'yelow']
+        c = 0
+        for dom in domains:
+            for i in range(dom[0], dom[1]):
+                aGraph.nodes[i]['color'] = colors[c]
+            c += 1
 
         return aGraph
 
@@ -255,19 +262,11 @@ def domains(qrdict, name):
     return l
 
 
-def static_graph(nx_graph, domains):
+def static_graph(nx_graph):
     pos = nx.spring_layout(nx_graph, seed=7) #, iterations =300)  # positions for all nodes - seed for reproducibility
     
-    color_map = ['blue']*(nx_graph.number_of_nodes())
-    colors = ['red', 'green', 'purple']
-    c = 0
-    for dom in domains:
-        for i in range(dom[0], dom[1]):
-            color_map[i] = colors[c]
-        c += 1
-    
     # nodes
-    nx.draw_networkx_nodes(nx_graph, pos, node_color=color_map, node_size=300)
+    nx.draw_networkx_nodes(nx_graph, pos, node_size=300)
 
     # edges
     nx.draw_networkx_edges(nx_graph, pos, width=5)
@@ -307,13 +306,14 @@ if __name__ == "__main__":
 
     #aPDB.get_all_ligand_contacts()
     print ( aPDB.chains )
-    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network()
+    D = domains(domdict, protname)
+    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D)
     print ( nx_graph )
     
-    D = domains(domdict, protname)
+    
 
     print(domains(domdict, protname))
-    static_graph(nx_graph, D)
+    static_graph(nx_graph)
     interactive_graph(nx_graph)
     print(domains(domdict, protname))
 
