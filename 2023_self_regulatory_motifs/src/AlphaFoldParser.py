@@ -1,12 +1,13 @@
-import sys
+import os
+from multiprocessing import Pool
 import numpy
 import math
 import networkx as nx
 from pyvis.network import Network
-
+import shelve
+import gzip
 from IPython.core.display import display, HTML
 import matplotlib.pyplot as plt
-
 from Bio import SearchIO
 
 
@@ -34,6 +35,9 @@ class Residue:
         self.center = None
         self.CA = None
         self.resname = resname
+    
+    def __str__(self):
+        return self.resname+str(self.pos)
 
     def get_center( self ):
         if self.center == None:
@@ -95,12 +99,13 @@ class Chain:
         for residue_pos in aGraph.nodes:
             aGraph.nodes[residue_pos]['label'] = "%d - %s" % (residue_pos, self.residues[residue_pos].resname)
 
-        colors = ['red', 'green', 'purple', 'yelow']
+        colors = ['red', 'yellow', 'green', 'cyan', 'magenta']
         c = 0
         for dom in domains:
-            for i in range(dom[0], dom[1]):
+            for i in range(dom[0], dom[1]+1):
                 aGraph.nodes[i]['color'] = colors[c]
-            c += 1
+            if c==4: c=0
+            else: c += 1
 
         return aGraph
 
@@ -156,11 +161,18 @@ class PDB:
             for chain in self.chains.values():
                 print( name, pos, "--", chain.chain_id, ligand.get_contacting_residues( chain ) )
 
+# class Domain:
+#     def __init__(self, h):
+#         self.name = name
+#         self.id = h.id
+#         self.res_list = []
+
+
 def distance( atom1, atom2 ):
     return math.sqrt( (atom1.x-atom2.x)**2 + (atom1.y-atom2.y)**2 + (atom1.z-atom2.z)**2 )
 
 
-def parsePDB( filename ):
+def parsePDB( filepath ):
     # ATOM   2692  N   LYS G  12      55.763  32.551  37.146  1.00 55.62           N
     # ATOM   2693  CA  LYS G  12      56.776  32.217  36.152  1.00 55.72           C
     # ATOM   2694  C   LYS G  12      56.408  31.077  35.204  1.00 55.02           C
@@ -178,7 +190,7 @@ def parsePDB( filename ):
     for line in f:
         line = line.decode('ascii')
         record = line[:6]
-        print( line )
+        #print( line )
         #print (record + "#")
         if record == "ATOM  ":
             chain_id = line[21]
@@ -258,9 +270,53 @@ def domains(qrdict, name):
     l = []
     for h in qrdict[name]:
         for hsp in h:
-            l.append(hsp.query_range)
+            l.append(tuple([hsp.query_range[0]+1, hsp.query_range[1]]))
     return l
 
+def find_unknown_res(aPDB, domdict, protname):
+    # finding unknown residues
+    unknown_residues = set( range( 1, len(aPDB.chains['A'].residues_list) + 1 ) )
+    
+    for h in domdict[protname]:
+        #print('-----------------------')
+        #print(h)
+        for hsp in h:
+            #print(hsp.query_range)
+            unknown_residues = unknown_residues - set(range(hsp.query_range[0]+1, hsp.query_range[1]+1))
+    return unknown_residues
+
+
+def save_dom_info(domdict, protname):
+    filepath = wd+"compressed_D/"+protname+".pdb.gz"
+    aPDB = parsePDB( filepath )
+
+    D = domains(domdict, protname)
+    # [(105, 199), (205, 298), (128, 176), (187, 239), (253, 308), (169, 222), (236, 288), (200, 232), (488, 542)]
+    
+    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D)
+
+    unknown_residues = find_unknown_res(aPDB, domdict, protname)
+    
+    domain_unknown_residues_interactions = shelve.open("domain_interactions.db")
+
+    for h in domdict[protname]:
+        for hsp in h:
+            unique_domain_id = "%s__%s__%d__%d" % ( protname, h.accession, hsp.query_range[0]+1, hsp.query_range[1] )
+            interacting_residues = set()
+            for i in range(hsp.query_range[0]+1, hsp.query_range[1]+1):
+                if i in nx_graph:
+                    for j in nx_graph[i]:
+                        if j in unknown_residues:
+                            interacting_residues.add(j)
+            if len(interacting_residues) != 0:
+                domain_unknown_residues_interactions[unique_domain_id] = list(interacting_residues)
+                domain_unknown_residues_interactions[unique_domain_id].sort()
+    print(unique_domain_id)
+    print(interacting_residues)
+    # for k in domain_unknown_residues_interactions.keys():
+    #     print(k, domain_unknown_residues_interactions[k], sep='\t')
+
+    domain_unknown_residues_interactions.close()
 
 def static_graph(nx_graph):
     pos = nx.spring_layout(nx_graph, seed=7) #, iterations =300)  # positions for all nodes - seed for reproducibility
@@ -294,28 +350,22 @@ def interactive_graph(nx_graph, x_size = '1000px', y_size = '1000px', html_file 
     display(HTML(html_file))
 
 if __name__ == "__main__":
-    import gzip
     wd = "/home/roger/YangLabIntern/2023_self_regulatory_motifs/"
-    protname = "AF-A0A024RBG1-F1-model_v2"
-    filepath = wd+"compressed_D/"+protname+".pdb.gz"
 
     domdict = domtbl_parser(wd+'domtbl.out')
-    
+    #protname = "AF-A0A0A6YYL3-F1-model_v4"#"AF-A0A024R1R8-F1-model_v4"#"AF-A0A024RBG1-F1-model_v2"
+    c = 0
+    for f in os.listdir('./data'):
+        protname = f[:-4]
+        if protname in domdict.keys():
+            save_dom_info(domdict, protname)
+        c += 1
+        print(c)
 
-    aPDB = parsePDB( filepath )
+    #static_graph(nx_graph)
+    #interactive_graph(nx_graph)
 
-    #aPDB.get_all_ligand_contacts()
-    print ( aPDB.chains )
-    D = domains(domdict, protname)
-    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D)
-    print ( nx_graph )
-    
-    
-
-    print(domains(domdict, protname))
-    static_graph(nx_graph)
-    interactive_graph(nx_graph)
-    print(domains(domdict, protname))
+    # assert(False)
 
     '''
     import plotly.graph_objects as go
