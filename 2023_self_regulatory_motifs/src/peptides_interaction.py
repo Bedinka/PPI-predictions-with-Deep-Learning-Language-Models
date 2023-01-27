@@ -76,10 +76,6 @@ class Data:
                 self.domains[ domainID ] = [ info ]
             else:
                 self.domains[ domainID ].append( info )
-    
-
-def close_to(Pos, positions, threshold):
-    return ( max(positions) - Pos ) < threshold | ( min(positions) - Pos ) < threshold
 
 def classify_peptides(info, threshold=50):
     proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
