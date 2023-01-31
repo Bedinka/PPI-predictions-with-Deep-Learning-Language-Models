@@ -56,40 +56,43 @@ class Data:
     
     def parse_domains(self):
         for k in self.db:
-            #print(k)
             fields = k.split('__' )
             if len(fields) != 4: continue
             [ proteinName, domainID, startPos, endPos ] = fields  
-            #print(self.db[k])
             consecutive_motifs = get_consecutive_motif ( self.db[k] )
                 
             consecutive_motifs_seq = extract_seqs( self.seq_dic, proteinName, consecutive_motifs )
-            #print(consecutive_motifs_seq)
             
             info = [proteinName, int(startPos), int(endPos), self.db[k], consecutive_motifs, consecutive_motifs_seq ]
             
             if len(consecutive_motifs) == 0: continue
-            
-            #print(domainID, info)
                         
             if domainID not in self.domains:
                 self.domains[ domainID ] = [ info ]
             else:
                 self.domains[ domainID ].append( info )
-
+    
 def classify_peptides(info, threshold=50):
     proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
     index = 0
     for positions in consecutive_motifs:
-        if max(positions)-startPos | max(positions)-startPos | min(positions)-endPos | min(positions)-endPos > threshold:
+        if max(positions)-startPos | max(positions)-startPos | min(positions)-endPos | min(positions)-endPos < threshold:
             print(consecutive_motifs_seq[index], 'is close to the domain')
         else:
             print(consecutive_motifs_seq[index], 'is far from the domain')
         index += 1
-            
-            
-data = Data('domain_interactions.db')
 
+def classify_peptides_v2(info, threshold=50):
+    proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
+    for positions, seq in zip(consecutive_motifs, consecutive_motifs_seq):
+        distance = min(positions)-endPos if max(positions)>startPos else startPos-max(positions)
+        if distance < threshold:
+            print(f'{seq} is close to the domains { "C-terminal" if max(positions)>startPos else "N-terminal"}')
+        else:
+            print(f'{seq} is far from the domains { "C-terminal" if max(positions)>startPos else "N-terminal"}')
+
+
+data = Data('domain_interactions.db')
 
 for domainID in data.domains:
     if len(data.domains[ domainID ]) == 1: continue
@@ -97,7 +100,9 @@ for domainID in data.domains:
     print( domainID )
     for info in data.domains[ domainID ]:
         print( info )
-        classify_peptides(info)
+        classify_peptides_v2(info)
 
-print( "=======================" )
-classify_peptides(['', 30, 80, [], [[22, 23], [400, 415, 420, 500]], ['THISSHOULDBECLOSE', 'THISSHOULDBEFAR']])
+# print( "=======================" )
+# classify_peptides(['', 30, 80, [], [[22, 23], [400, 415, 420, 500]], ['THISSHOULDBECLOSE 22 23', 'THISSHOULDBEFAR 400 500']])
+# print( "=======================" )
+# classify_peptides_v2(['', 100, 180, [], [[22, 23], [70, 85], [200, 300], [400, 500]], ['Far from N-term 22, 23', 'Close to N-term 70, 85', 'Close to C-term 200, 300', 'Far from C-term 400, 500']])
