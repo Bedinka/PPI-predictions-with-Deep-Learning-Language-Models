@@ -41,6 +41,8 @@ def domtbl_parser(file, E = 10e-6):
 
 def best_hits(qresult):
     for h in qresult:
+        print(h.id)
+        print()
         for hsp in h:
             print(hsp)
             print()

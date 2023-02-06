@@ -2,6 +2,8 @@
 
 from Bio import SeqIO
 import shelve
+import os
+import csv
 
 def read_seq( file ):
     seq_dic = SeqIO.to_dict(SeqIO.parse(open(file), 'fasta'))
@@ -72,7 +74,7 @@ class Data:
             else:
                 self.domains[ domainID ].append( info )
     
-def classify_peptides(info, threshold=50):
+def classify_peptides(info, threshold=20):
     proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
     index = 0
     for positions in consecutive_motifs:
@@ -82,17 +84,24 @@ def classify_peptides(info, threshold=50):
             print(consecutive_motifs_seq[index], 'is far from the domain')
         index += 1
 
-def classify_peptides_v2(info, threshold=50):
+def classify_peptides_v2(info, threshold=20):
     proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
     for positions, seq in zip(consecutive_motifs, consecutive_motifs_seq):
-        distance = min(positions)-endPos if max(positions)>startPos else startPos-max(positions)
-        if distance < threshold:
+        distance = min(positions)-endPos if max(positions)>startPos else max(positions)-startPos
+        if abs(distance) < threshold:
             print(f'{seq} is close to the domains { "C-terminal" if max(positions)>startPos else "N-terminal"}')
         else:
             print(f'{seq} is far from the domains { "C-terminal" if max(positions)>startPos else "N-terminal"}')
 
 
+species = os.getcwd().split('/')[-1]
+print(species)
+
 data = Data('domain_interactions.db')
+
+table = open(species+'_results.csv', 'w')
+writer = csv.writer(table)
+writer.writerow(["Species", "PDB", "Domain", "Motif seq", "Domain N-term", "Domain C-term", "Motif N-term", "Motif C-term", "Distance Domain-Motif"])
 
 for domainID in data.domains:
     if len(data.domains[ domainID ]) == 1: continue
@@ -101,6 +110,15 @@ for domainID in data.domains:
     for info in data.domains[ domainID ]:
         print( info )
         classify_peptides_v2(info)
+        proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
+        for positions, seq in zip(consecutive_motifs, consecutive_motifs_seq):
+            # distance = peptide position - domain position
+            distance = min(positions)-endPos if max(positions)>startPos else max(positions)-startPos
+            results = [species.replace("_", " "), proteinName, domainID, seq, startPos, endPos, min(positions), max(positions), distance]
+            writer.writerow(results)
+
+table.close()
+print(species)
 
 # print( "=======================" )
 # classify_peptides(['', 30, 80, [], [[22, 23], [400, 415, 420, 500]], ['THISSHOULDBECLOSE 22 23', 'THISSHOULDBEFAR 400 500']])

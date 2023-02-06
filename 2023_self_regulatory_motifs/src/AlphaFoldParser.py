@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+
 import os
-from multiprocessing import Pool
 import numpy
 import math
 import networkx as nx
@@ -89,7 +90,7 @@ class Chain:
     def get_self_contacting_residue_network( self, domains, dist_cutoff = 5.0 ):
         # CA distance <= 5.0
         aGraph = nx.Graph()
-        #print(self.residues_list)
+        #print(len(self.residues_list))
         for residue1 in self.residues_list:
             for residue2 in self.residues_list:
                 if residue1 == residue2: continue
@@ -102,11 +103,15 @@ class Chain:
         colors = ['red', 'yellow', 'green', 'cyan', 'magenta']
         c = 0
         for dom in domains:
+            #print('dom\n', dom)
             for i in range(dom[0], dom[1]+1):
-                aGraph.nodes[i]['color'] = colors[c]
+                try:
+                    aGraph.nodes[i]['color'] = colors[c]
+                except:
+                    continue
             if c==4: c=0
             else: c += 1
-
+        
         return aGraph
 
     def add_atom( self, resname, atomname, pos, x, y, z ):
@@ -160,12 +165,6 @@ class PDB:
             ligand = self.ligands[ (name, pos) ]
             for chain in self.chains.values():
                 print( name, pos, "--", chain.chain_id, ligand.get_contacting_residues( chain ) )
-
-# class Domain:
-#     def __init__(self, h):
-#         self.name = name
-#         self.id = h.id
-#         self.res_list = []
 
 
 def distance( atom1, atom2 ):
@@ -287,18 +286,19 @@ def find_unknown_res(aPDB, domdict, protname):
 
 
 def save_dom_info(domdict, protname):
-    filepath = wd+"compressed_D/"+protname+".pdb.gz"
+    filepath = "compressed_D/"+protname+".pdb.gz"
     aPDB = parsePDB( filepath )
 
     D = domains(domdict, protname)
     # [(105, 199), (205, 298), (128, 176), (187, 239), (253, 308), (169, 222), (236, 288), (200, 232), (488, 542)]
-    
+    #print(D)
     nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D)
-
+    # interactive_graph(nx_graph)
+    
     unknown_residues = find_unknown_res(aPDB, domdict, protname)
     
     domain_unknown_residues_interactions = shelve.open("domain_interactions.db")
-
+    
     for h in domdict[protname]:
         for hsp in h:
             unique_domain_id = "%s__%s__%d__%d" % ( protname, h.accession, hsp.query_range[0]+1, hsp.query_range[1] )
@@ -313,8 +313,6 @@ def save_dom_info(domdict, protname):
                 domain_unknown_residues_interactions[unique_domain_id].sort()
     print(unique_domain_id)
     print(interacting_residues)
-    # for k in domain_unknown_residues_interactions.keys():
-    #     print(k, domain_unknown_residues_interactions[k], sep='\t')
 
     domain_unknown_residues_interactions.close()
 
@@ -330,7 +328,7 @@ def static_graph(nx_graph):
     # node labels
     nx.draw_networkx_labels(nx_graph, pos, font_size=8, font_family="sans-serif")
     # edge weight labels
-    #edge_labels = nx.get_edge_attributes(G, "weight")
+    # edge_labels = nx.get_edge_attributes(G, "weight")
     #nx.draw_networkx_edge_labels(G, pos, edge_labels)
 
     ax = plt.gca()
@@ -350,22 +348,19 @@ def interactive_graph(nx_graph, x_size = '1000px', y_size = '1000px', html_file 
     display(HTML(html_file))
 
 if __name__ == "__main__":
-    wd = "/home/roger/YangLabIntern/2023_self_regulatory_motifs/"
-
-    domdict = domtbl_parser(wd+'domtbl.out')
-    #protname = "AF-A0A0A6YYL3-F1-model_v4"#"AF-A0A024R1R8-F1-model_v4"#"AF-A0A024RBG1-F1-model_v2"
+    
+    domdict = domtbl_parser('domtbl.out')
+    
     c = 0
-    for f in os.listdir('./data'):
+    for f in os.listdir('data'):
         protname = f[:-4]
+        # protname = 'AF-Q7PC82-F1-model_v4'#'AF-Q9UL16-F1-model_v4'#'AF-Q9UJC5-F1-model_v4'
         if protname in domdict.keys():
             save_dom_info(domdict, protname)
         c += 1
         print(c)
+        break
 
-    #static_graph(nx_graph)
-    #interactive_graph(nx_graph)
-
-    # assert(False)
 
     '''
     import plotly.graph_objects as go
