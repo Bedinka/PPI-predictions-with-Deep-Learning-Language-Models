@@ -52,6 +52,8 @@ class Residue:
         if self.CA == None:
             #print ("###",self.pos, self.atoms)
             CAs = [ atom for atom in self.atoms if atom.atomname == "CA"]
+            # print(CAs)
+            # print(self.pos, self.resname)
             self.CA = CAs[0]
         return self.CA
      
@@ -170,7 +172,6 @@ class PDB:
 def distance( atom1, atom2 ):
     return math.sqrt( (atom1.x-atom2.x)**2 + (atom1.y-atom2.y)**2 + (atom1.z-atom2.z)**2 )
 
-
 def parsePDB( filepath ):
     # ATOM   2692  N   LYS G  12      55.763  32.551  37.146  1.00 55.62           N
     # ATOM   2693  CA  LYS G  12      56.776  32.217  36.152  1.00 55.72           C
@@ -181,16 +182,17 @@ def parsePDB( filepath ):
     # X1 = ( 1.000000)*Xorig + ( 0.000000)*Yorig + ( 0.000000)*Zorig + (    0.000000)
     # Y1 = (-0.000000)*Xorig + ( 1.000000)*Yorig + ( 0.000000)*Zorig + (   -0.000000)
     # Z1 = (-0.000000)*Xorig + ( 0.000000)*Yorig + ( 1.000000)*Zorig + (   -0.000000)
-
+    
+    
     aPDB = PDB()
 
-    chain = ""
+    initialPos = dict()
+    
     f = gzip.open(filepath, mode='rb')
     for line in f:
-        line = line.decode('ascii')
+        line = line.decode('utf-8')
         record = line[:6]
-        #print( line )
-        #print (record + "#")
+
         if record == "ATOM  ":
             chain_id = line[21]
             atomname = line[12:16].strip()
@@ -199,7 +201,16 @@ def parsePDB( filepath ):
             y = float( line[38:46] )
             z = float( line[46:54] )
             pos = int( line[22:26] )
-            '''
+            try:
+                pos = int( line[22:27] )
+            except:
+                return 0
+
+            if chain_id not in initialPos.keys():
+                initialPos[chain_id] = pos - 1 
+            pos -= initialPos[chain_id]
+
+            '''         
             if resname in LIGANDS:
                 if ( resname, pos ) not in aPDB.ligands:
                     aPDB.ligands[ ( resname, pos ) ] = Ligand( chain_id )
@@ -208,8 +219,9 @@ def parsePDB( filepath ):
             '''
             if chain_id not in aPDB.chains:
                 aPDB.chains[ chain_id ] = Chain( chain_id )
-            aPDB.chains[ chain_id ].add_atom( resname, atomname, pos, x, y, z )
-        '''
+            if atomname == 'CA':
+               aPDB.chains[ chain_id ].add_atom( resname, atomname, pos, x, y, z )
+        '''    
         if record == "HETATM":
             chain_id = line[21]
             resname = line[17:20] 
@@ -226,9 +238,9 @@ def parsePDB( filepath ):
             if chain_id not in aPDB.chains:
                 aPDB.chains[ chain_id ] = Chain( chain_id )
             aPDB.chains[ chain_id ].add_atom( resname, atomname, pos, x, y, z )
-        '''    
+        '''
     f.close()
-
+    
     return aPDB
 
 def domains(qrdict, name):
@@ -238,14 +250,15 @@ def domains(qrdict, name):
     l = []
     for h in qrdict[name]:
         for hsp in h:
+            # add 1 as it is a zero-based and half-open interval
             l.append(tuple([hsp.query_range[0]+1, hsp.query_range[1]]))
     return l
 
-def find_unknown_res(aPDB, domdict, protname):
+def find_unknown_res(aPDB, chainID, domdict, protname):
     # finding unknown residues
-    unknown_residues = set( range( 1, len(aPDB.chains['A'].residues_list) + 1 ) )
+    unknown_residues = set( range( 1, len(aPDB.chains[chainID].residues_list) + 1 ) )
     
-    for h in domdict[protname]:
+    for h in domdict[(protname.upper()+':'+chainID)]:
         #print('-----------------------')
         #print(h)
         for hsp in h:
@@ -255,33 +268,37 @@ def find_unknown_res(aPDB, domdict, protname):
 
 
 def save_dom_info(domdict, protname):
-    filepath = "compressed_D/"+protname+".pdb.gz"
+    filepath = "compressed_D/pdb"+protname+".ent.gz"
     aPDB = parsePDB( filepath )
-
-    D = domains(domdict, protname)
-    # [(105, 199), (205, 298), (128, 176), (187, 239), (253, 308), (169, 222), (236, 288), (200, 232), (488, 542)]
-    #print(D)
-    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D, dist_cutoff = 6.0)
-    #interactive_graph(nx_graph)
-    
-    unknown_residues = find_unknown_res(aPDB, domdict, protname)
-    
+    # if the protein redidues have insertion codes do not run the program
+    if aPDB == 0:
+        return aPDB
     domain_unknown_residues_interactions = shelve.open("domain_interactions.db")
     
-    for h in domdict[protname]:
-        for hsp in h:
-            unique_domain_id = "%s__%s__%d__%d" % ( protname, h.accession, hsp.query_range[0]+1, hsp.query_range[1] )
-            interacting_residues = set()
-            for i in range(hsp.query_range[0]+1, hsp.query_range[1]+1):
-                if i in nx_graph:
-                    for j in nx_graph[i]:
-                        if j in unknown_residues:
-                            interacting_residues.add(j)
-            if len(interacting_residues) != 0:
-                domain_unknown_residues_interactions[unique_domain_id] = list(interacting_residues)
-                domain_unknown_residues_interactions[unique_domain_id].sort()
-    print(unique_domain_id)
-    print(interacting_residues)
+    for chainID in aPDB.chains:
+        if (protname.upper()+':'+chainID) not in domdict.keys():
+            continue
+        D = domains(domdict, (protname.upper()+':'+chainID))
+        
+        nx_graph = aPDB.chains[chainID].get_self_contacting_residue_network(D)
+        #interactive_graph(nx_graph)
+        
+        unknown_residues = find_unknown_res(aPDB, chainID, domdict, protname)
+        
+        for h in domdict[(protname.upper()+':'+chainID)]:
+            for hsp in h:
+                unique_domain_id = "%s__%s__%d__%d" % ( protname+':'+chainID, h.accession, hsp.query_range[0]+1, hsp.query_range[1] )
+                interacting_residues = set()
+                for i in range(hsp.query_range[0]+1, hsp.query_range[1]+1):
+                    if i in nx_graph:
+                        for j in nx_graph[i]:
+                            if j in unknown_residues:
+                                interacting_residues.add(j)
+                if len(interacting_residues) != 0:
+                    domain_unknown_residues_interactions[unique_domain_id] = list(interacting_residues)
+                    domain_unknown_residues_interactions[unique_domain_id].sort()
+        # print(unique_domain_id)
+        # print(interacting_residues)
 
     domain_unknown_residues_interactions.close()
 
@@ -320,14 +337,15 @@ if __name__ == "__main__":
     from datetime import datetime
     init = datetime.now()
     domdict = shelve.open('domdict.shelve')
-    
+
     c = 1
-    total = len(domdict.keys())
+    protlist = [item[:-2].lower() for item in domdict.keys()]
+    total =len(set(protlist))
     for f in os.listdir('data'):
-        protname = f[:-4]
-        #protname = 'AF-A0A1D6KS71-F1-model_v4'#'AF-Q7PC82-F1-model_v4'#'AF-Q9UL16-F1-model_v4'#'AF-Q9UJC5-F1-model_v4'
+        protname = f[3:-4]
+        # protname = 'AF-Q7PC82-F1-model_v4'#'AF-Q9UL16-F1-model_v4'#'AF-Q9UJC5-F1-model_v4'
         print(protname, '\t', c, '/', total, sep='')
-        if protname in domdict.keys():
+        if protname in protlist:
             save_dom_info(domdict, protname)
         c += 1
         # break
