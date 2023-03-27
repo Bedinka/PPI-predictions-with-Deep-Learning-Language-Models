@@ -24,14 +24,6 @@ def domtbl_parser(inputfile, outputfile, E = 10e-6):
                 if filtered_hit is None:
                     qresult.pop(hit.id)
                 else:
-                    prevhsp = None
-                    index = 0
-                    for hsp in filtered_hit:
-                        # if two hsps overlap pop the worst one (they are sorted by evalue)
-                        if overlap(prevhsp, hsp.query_range):
-                            filtered_hit.pop(index)
-                        prevhsp = hsp.query_range
-                        index += 1
                     #save the "cleaned" hit to the QueryResult
                     qresult[hit.id] = filtered_hit
             # Only save QueryResults that contain information

@@ -27,12 +27,19 @@ def get_consecutive_motif(pos_list, threshold = 5):
     output = []
     consecutive_motif_list = []
     pos_list.sort()
-    
     consecutive_motif = []
-    prev_i = -1
+    prev_i = -3
     for pos in pos_list:
-        if prev_i == pos - 1:
-            consecutive_motif.append( pos )           
+        dist = (pos - prev_i)
+        if dist == 1:
+            consecutive_motif.append( pos )
+        elif dist == 2:
+            consecutive_motif.append( pos-1 )
+            consecutive_motif.append( pos )
+        elif dist == 3:
+            consecutive_motif.append( pos-2 )
+            consecutive_motif.append( pos-1 )
+            consecutive_motif.append( pos )
         else:
             if len(consecutive_motif) >= 1:
                 consecutive_motif_list.append( consecutive_motif )
@@ -40,8 +47,8 @@ def get_consecutive_motif(pos_list, threshold = 5):
         prev_i = pos
     if len(consecutive_motif) >= 1:
         consecutive_motif_list.append( consecutive_motif )
-                 
-    for consecutive_motif in consecutive_motif_list:            
+
+    for consecutive_motif in consecutive_motif_list:
         if len(consecutive_motif) >= threshold:
             output.append( consecutive_motif )
     return output
@@ -66,18 +73,18 @@ class Data:
         for k in self.db:
             print(k)
             fields = k.split('__' )
-            if len(fields) != 4: continue
+            # if len(fields) != 4: continue
             [ proteinName, domainID, startPos, endPos ] = fields
             # set the protein name to the correct one, for the pdb database (XXXX:y), and for the alphafold database (AF-XXXXXX-F1-model_v4)
             proteinName = correctPN(proteinName)
 
             consecutive_motifs = get_consecutive_motif ( self.db[k] )
             
+            # if len(consecutive_motifs) == 0: continue
+            
             consecutive_motifs_seq = extract_seqs( self.seq_dic, proteinName, consecutive_motifs )
             
             info = [proteinName, int(startPos), int(endPos), self.db[k], consecutive_motifs, consecutive_motifs_seq ]
-            
-            if len(consecutive_motifs) == 0: continue
                         
             if domainID not in self.domains:
                 self.domains[ domainID ] = [ info ]
@@ -120,7 +127,7 @@ print(folder)
 
 data = Data('domain_interactions.db')
 
-table = open(folder+'_results.csv', 'w')
+table = open(folder+'_results.csv', 'w', encoding='utf-8')
 writer = csv.writer(table)
 writer.writerow(["Species", "PDB", "Domain", "Motif seq", "Domain N-term", "Domain C-term", "Motif N-term", "Motif C-term", "Distance Domain-Motif"])
 

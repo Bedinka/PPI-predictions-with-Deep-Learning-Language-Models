@@ -1,21 +1,21 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import sys
 from Bio import SearchIO
 
-def overlap(a,b):
+def overlap(a, b):
     if a is None or b is None:
         return False
     return a[0] <= b[0] <= a[1] or b[0] <= a[0] <= b[1]
 
-def domtbl_parser(file, E = 10e-6):
-    qrdict = dict()
+def domtbl_parser(file, E=10e-6):
+    qrdict = {}
     evalue_filter = lambda hsp: hsp.evalue < E
-
+    
     with open(file, 'r') as f:
         # transforms to zero-based and half-open intervals
         domtbl = SearchIO.parse(f, 'hmmscan3-domtab')
         for qresult in domtbl:
+            print('\nPROTEIN:\t', qresult.id, '\n-------------------------\n')
             for hit in qresult.hits:
                 # filter the hsp on the hit by evalue
                 filtered_hit = hit.filter(evalue_filter)
@@ -23,37 +23,34 @@ def domtbl_parser(file, E = 10e-6):
                 if filtered_hit is None:
                     qresult.pop(hit.id)
                 else:
-                    prevhsp = None
-                    index = 0
-                    for hsp in filtered_hit:
-                        # if two hsps overlap pop the worst one (they are sorted by evalue)
-                        if overlap(prevhsp, hsp.query_range):
-                            filtered_hit.pop(index)
-                        prevhsp = hsp.query_range
-                        index += 1
+                    print(filtered_hit, '\n-----------\n', hit)
                     #save the "cleaned" hit to the QueryResult
                     qresult[hit.id] = filtered_hit
             # Only save QueryResults that contain information
             if len(qresult) > 0:
+                print('ye \t\t\t\t', qresult.id)
                 qrdict[qresult.id] = qresult
-        return qrdict
+            else:
+                print('no \t\t\t\t', qresult.id)
+    return qrdict
+
 
 
 def best_hits(qresult):
-    for h in qresult:
-        print(h.id)
+    for hit in qresult.hits:
+        print(hit.id)
         print()
-        for hsp in h:
+        for hsp in hit.hsps:
             print(hsp)
             print()
             print(hsp.evalue)
             print(hsp.query_range)
 
-file = sys.argv[1]
+
+file = 'domtbl.out'
 
 qrdict = domtbl_parser(file)
 
-best_hits(qrdict['AF-A3KMH1-F1-model_v4'])
+#best_hits(qrdict['AF-P49137-F1-model_v4'])
 print('\n----------------------------------------\n')
-best_hits(qrdict['AF-A0A024RBG1-F1-model_v2'])
-
+# best_hits(qrdict['AF-A0A024RBG1-F1-model_v2'])

@@ -9,7 +9,6 @@ import shelve
 import gzip
 from IPython.core.display import display, HTML
 import matplotlib.pyplot as plt
-from Bio import SearchIO
 
 
 # PDB READER
@@ -50,7 +49,6 @@ class Residue:
 
     def get_CA( self ):
         if self.CA == None:
-            #print ("###",self.pos, self.atoms)
             CAs = [ atom for atom in self.atoms if atom.atomname == "CA"]
             self.CA = CAs[0]
         return self.CA
@@ -87,7 +85,7 @@ class Chain:
                 output.append( [ dist, residue1, residue2 ] )
         return output
 
-    def get_self_contacting_residue_network( self, domains, dist_cutoff = 5.0 ):
+    def get_self_contacting_residue_network( self, domains, dist_cutoff = 6.0 ):
         # CA distance <= 5.0
         aGraph = nx.Graph()
         #print(len(self.residues_list))
@@ -170,27 +168,13 @@ class PDB:
 def distance( atom1, atom2 ):
     return math.sqrt( (atom1.x-atom2.x)**2 + (atom1.y-atom2.y)**2 + (atom1.z-atom2.z)**2 )
 
-
 def parsePDB( filepath ):
-    # ATOM   2692  N   LYS G  12      55.763  32.551  37.146  1.00 55.62           N
-    # ATOM   2693  CA  LYS G  12      56.776  32.217  36.152  1.00 55.72           C
-    # ATOM   2694  C   LYS G  12      56.408  31.077  35.204  1.00 55.02           C
-    # 31 - 38        Real(8.3)       Orthogonal coordinates for X in Angstroms.                       
-    # 39 - 46        Real(8.3)       Orthogonal coordinates for Y in Angstroms.                            
-    # 47 - 54        Real(8.3)       Orthogonal coordinates for Z in Angstroms.                            
-    # X1 = ( 1.000000)*Xorig + ( 0.000000)*Yorig + ( 0.000000)*Zorig + (    0.000000)
-    # Y1 = (-0.000000)*Xorig + ( 1.000000)*Yorig + ( 0.000000)*Zorig + (   -0.000000)
-    # Z1 = (-0.000000)*Xorig + ( 0.000000)*Yorig + ( 1.000000)*Zorig + (   -0.000000)
-
     aPDB = PDB()
 
-    chain = ""
     f = gzip.open(filepath, mode='rb')
     for line in f:
         line = line.decode('ascii')
         record = line[:6]
-        #print( line )
-        #print (record + "#")
         if record == "ATOM  ":
             chain_id = line[21]
             atomname = line[12:16].strip()
@@ -199,74 +183,46 @@ def parsePDB( filepath ):
             y = float( line[38:46] )
             z = float( line[46:54] )
             pos = int( line[22:26] )
-            '''
-            if resname in LIGANDS:
-                if ( resname, pos ) not in aPDB.ligands:
-                    aPDB.ligands[ ( resname, pos ) ] = Ligand( chain_id )
-                aPDB.ligands[ (resname, pos) ].add_atom( resname, atomname, pos, x, y, z )
-                continue
-            '''
             if chain_id not in aPDB.chains:
                 aPDB.chains[ chain_id ] = Chain( chain_id )
             aPDB.chains[ chain_id ].add_atom( resname, atomname, pos, x, y, z )
-        '''
-        if record == "HETATM":
-            chain_id = line[21]
-            resname = line[17:20] 
-            atomname = line[12:16].strip()
-            x = float( line[30:38] )
-            y = float( line[38:46] )
-            z = float( line[46:54] )
-            pos = int( line[22:26] )
-            if resname in LIGANDS:
-                if ( resname, pos ) not in aPDB.ligands:
-                    aPDB.ligands[ ( resname, pos ) ] = Ligand( chain_id )
-                aPDB.ligands[ (resname, pos) ].add_atom( resname, atomname, pos, x, y, z )
-                continue
-            if chain_id not in aPDB.chains:
-                aPDB.chains[ chain_id ] = Chain( chain_id )
-            aPDB.chains[ chain_id ].add_atom( resname, atomname, pos, x, y, z )
-        '''    
+
     f.close()
 
     return aPDB
 
 def domains(qrdict, name):
     '''
-    returns a list with all the domains found in the protein
+    Returns a list with all the domains found in the protein
     '''
     l = []
+    # for hit in queryresult
     for h in qrdict[name]:
+        # for hsp in hit
         for hsp in h:
+            # add 1 as it is a zero-based and half-open interval
             l.append(tuple([hsp.query_range[0]+1, hsp.query_range[1]]))
     return l
 
-def find_unknown_res(aPDB, domdict, protname):
+def find_unknown_res(aPDB, D):
     # finding unknown residues
     unknown_residues = set( range( 1, len(aPDB.chains['A'].residues_list) + 1 ) )
     
-    for h in domdict[protname]:
-        #print('-----------------------')
-        #print(h)
-        for hsp in h:
-            #print(hsp.query_range)
-            unknown_residues = unknown_residues - set(range(hsp.query_range[0]+1, hsp.query_range[1]+1))
+    for range in D:
+        unknown_residues = unknown_residues - set(range(range))
+
     return unknown_residues
 
 
 def save_dom_info(domdict, protname):
     filepath = "compressed_D/"+protname+".pdb.gz"
     aPDB = parsePDB( filepath )
-
-    D = domains(domdict, protname)
-    # [(105, 199), (205, 298), (128, 176), (187, 239), (253, 308), (169, 222), (236, 288), (200, 232), (488, 542)]
-    #print(D)
-    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D, dist_cutoff = 6.0)
-    #interactive_graph(nx_graph)
-    
-    unknown_residues = find_unknown_res(aPDB, domdict, protname)
-    
     domain_unknown_residues_interactions = shelve.open("domain_interactions.db")
+    
+    D = domains(domdict, protname)
+
+    nx_graph = aPDB.chains['A'].get_self_contacting_residue_network(D)
+    #interactive_graph(nx_graph)
     
     for h in domdict[protname]:
         for hsp in h:
@@ -275,7 +231,8 @@ def save_dom_info(domdict, protname):
             for i in range(hsp.query_range[0]+1, hsp.query_range[1]+1):
                 if i in nx_graph:
                     for j in nx_graph[i]:
-                        if j in unknown_residues:
+                        # if j is not inside the domain --> add to interacting residues
+                        if j not in range(hsp.query_range[0]+1, hsp.query_range[1]+1):
                             interacting_residues.add(j)
             if len(interacting_residues) != 0:
                 domain_unknown_residues_interactions[unique_domain_id] = list(interacting_residues)
@@ -320,99 +277,17 @@ if __name__ == "__main__":
     from datetime import datetime
     init = datetime.now()
     domdict = shelve.open('domdict.shelve')
-    
+
     c = 1
-    total = len(domdict.keys())
+    protlist = domdict.keys()
+    total = len(set(protlist))
     for f in os.listdir('data'):
         protname = f[:-4]
-        #protname = 'AF-A0A1D6KS71-F1-model_v4'#'AF-Q7PC82-F1-model_v4'#'AF-Q9UL16-F1-model_v4'#'AF-Q9UJC5-F1-model_v4'
         print(protname, '\t', c, '/', total, sep='')
-        if protname in domdict.keys():
+        if protname in protlist:
             save_dom_info(domdict, protname)
         c += 1
-        # break
+        if c == 10:
+            break
     domdict.close()
     print(init, datetime.now(), sep='\t')
-
-    '''
-    import plotly.graph_objects as go
-
-    # Create Edges
-    edge_x = []
-    edge_y = []
-    for edge in G.edges():
-        x0, y0 = G.nodes[edge[0]]['pos']
-        x1, y1 = G.nodes[edge[1]]['pos']
-        edge_x.append(x0)
-        edge_x.append(x1)
-        edge_x.append(None)
-        edge_y.append(y0)
-        edge_y.append(y1)
-        edge_y.append(None)
-
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y,
-        line=dict(width=0.5, color='#888'),
-        hoverinfo='none',
-        mode='lines')
-
-    node_x = []
-    node_y = []
-    for node in G.nodes():
-        x, y = G.nodes[node]['pos']
-        node_x.append(x)
-        node_y.append(y)
-
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers',
-        hoverinfo='text',
-        marker=dict(
-            showscale=True,
-            # colorscale options
-            #'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-            #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
-            #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-            colorscale='YlGnBu',
-            reversescale=True,
-            color=[],
-            size=10,
-            colorbar=dict(
-                thickness=15,
-                title='Node Connections',
-                xanchor='left',
-                titleside='right'
-            ),
-            line_width=2))
-
-
-
-    # Color Node Points
-    node_adjacencies = []
-    node_text = []
-    for node, adjacencies in enumerate(G.adjacency()):
-        node_adjacencies.append(len(adjacencies[1]))
-        node_text.append('# of connections: '+str(len(adjacencies[1])))
-
-    node_trace.marker.color = node_adjacencies
-    node_trace.text = node_text
-
-    # Create Network Graph
-    fig = go.Figure(data=[edge_trace, node_trace],
-             layout=go.Layout(
-                title='<br>Network graph made with Python',
-                titlefont_size=16,
-                showlegend=False,
-                hovermode='closest',
-                margin=dict(b=20,l=5,r=5,t=40),
-                annotations=[ dict(
-                    text="Python code: <a href='https://plotly.com/ipython-notebooks/network-graphs/'> https://plotly.com/ipython-notebooks/network-graphs/</a>",
-                    showarrow=False,
-                    xref="paper", yref="paper",
-                    x=0.005, y=-0.002 ) ],
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                )
-    fig.show()
-    '''
-
