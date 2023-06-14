@@ -21,39 +21,50 @@ table2 = open('autoinhibitory_sprot.csv', 'r')
 reader2 = csv.reader(table2)
 next(reader2)
 
-sprot_dic = {}
-for line in reader2:
-    if line[0] not in sprot_dic.keys():
-        sprot_dic[line[0]] = [line[1:]]
-    else:
-        sprot_dic[line[0]].append(line[1:])
+table3 = open('sprot_found.csv', 'w')
+writer1 = csv.writer(table3)
+writer1.writerow(["Species","Accession","Domain","Domain Name","Motif seq","Domain N-term","Domain C-term","Motif N-term","Motif C-term","Distance Domain-Motif", "Curated motif Position", "Curated Seq"])
 
-missing_sprot = {}
+table4 = open('sprot_not_found.csv', 'w')
+writer2 = csv.writer(table4)
+writer2.writerow(["Species","Accession","Domain","Domain Name","Motif seq","Domain N-term","Domain C-term","Motif N-term","Motif C-term","Distance Domain-Motif", "Curated motif Position", "Curated Seq"])
 
+
+motif_dic = {}
 for line in reader1:
     id = extact_uniprot_from_AF(line[1])
-    if id in sprot_dic.keys():
-        new_list = []
-        for data in sprot_dic[id]:
-            # if the positions overlap we will condsider that we found the motif/domain
-            if overlap(tuple((line[6], line[7])), data[2].strip('[]').split(':')):
-                continue
-            # if the motif found is a substring of the swissprot sequence we consider that we faound the motif/domain
-            elif line[3] in data[3]:
-                continue
-            new_list.append(data)
-        if new_list == []:
-            sprot_dic.pop(id)
-        else:
-            sprot_dic[id] = new_list
+    if id not in motif_dic.keys():
+        motif_dic[id] = [line]
+    else:
+        motif_dic[id].append(line)
 
-c=0
-for key,values in sprot_dic.items():
-    print(key)
-    c+=1
-    for value in values:
-        for i in value:
-            print('\t', i)
-        print()
-    print('-----------------')
-print(c)
+found = {}
+# not_found = {}
+
+for line in reader2:
+    if line[0] in motif_dic.keys():
+        for data in motif_dic[line[0]]:
+            # if the positions overlap we will condsider that we found the motif/domain
+            if overlap(tuple((data[7], data[8])), line[3].strip('[]').split(':')):
+                writer1.writerow(data+[line[3], line[4]])
+                print('\n', line[0], ':')
+                print(data)
+                print('-------------')
+                print(line)
+                if line[0] not in found.keys():
+                    found[line[0]] = [data]
+                else:
+                    found[line[0]].append(data)
+            # else:
+            #     writer2.writerow(data+[line[3], line[4]])
+            #     if line[0] not in not_found.keys():
+            #         not_found[line[0]] = [data]
+            #     else:
+            #         not_found[line[0]].append(data)
+
+print(len(found), 'found out of 289 (', 289-len(found), 'not found)')
+
+table1.close()
+table2.close()
+table3.close()
+table4.close()

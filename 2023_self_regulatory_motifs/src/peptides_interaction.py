@@ -125,16 +125,19 @@ def find_species(proteinName):
 folder = os.getcwd().split('/')[-1]
 print(folder)
 
+domainInfo = shelve.open('domainInfo.shelve')
+
 data = Data('domain_interactions.db')
 
 table = open(folder+'_results.csv', 'w', encoding='utf-8')
 writer = csv.writer(table)
-writer.writerow(["Species", "PDB", "Domain", "Motif seq", "Domain N-term", "Domain C-term", "Motif N-term", "Motif C-term", "Distance Domain-Motif"])
+writer.writerow(["Species", "PDB", "Domain", "Domain Name", "Motif seq", "Domain N-term", "Domain C-term", "Motif N-term", "Motif C-term", "Distance Domain-Motif"])
 
 for domainID in data.domains:
     if len(data.domains[ domainID ]) == 1: continue
     print( "=======================" )
     print( domainID )
+    domainName = domainInfo[domainID]
     for info in data.domains[ domainID ]:
         print( info )
         proteinName, startPos, endPos, interacting_residues, consecutive_motifs, consecutive_motifs_seq = info
@@ -142,7 +145,7 @@ for domainID in data.domains:
         for positions, seq in zip(consecutive_motifs, consecutive_motifs_seq):
             # distance = peptide position - domain position
             distance = min(positions)-endPos if max(positions)>startPos else max(positions)-startPos
-            results = [species, proteinName, domainID, seq, startPos, endPos, min(positions), max(positions), distance]
+            results = [species, proteinName, domainID, domainName, seq, startPos, endPos, min(positions), max(positions), distance]
             writer.writerow(results)
 
 table.close()

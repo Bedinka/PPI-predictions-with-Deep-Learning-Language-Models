@@ -287,7 +287,5 @@ if __name__ == "__main__":
         if protname in protlist:
             save_dom_info(domdict, protname)
         c += 1
-        if c == 10:
-            break
     domdict.close()
     print(init, datetime.now(), sep='\t')

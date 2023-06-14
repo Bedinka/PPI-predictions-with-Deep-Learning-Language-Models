@@ -22,7 +22,4 @@ for pdbfile in os.listdir(d):
                 seq.id = pdbfile[:-4]
             # write the sequence in the file in fasta format
             SeqIO.write(seq, outf, 'fasta')
-        #except StopIteration:
-        #    print("Error: No sequences found in file " + pdbfile)
-        #    continue
 outf.close()
