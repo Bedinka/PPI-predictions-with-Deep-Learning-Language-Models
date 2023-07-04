@@ -106,6 +106,50 @@ def optimize_max(seq):
         mRNA += aa_codon_freq_dic[aa][0][1]
     return mRNA
 
+def change_codon(aa, codon):
+    if aa == "M": return "ATG"
+    for i in range(100):
+        new_codon = codon_selection_prob(aa)
+        if new_codon != codon:
+            break
+    return new_codon
+
+
+def optimize_twist(seq):
+    #=================#
+    # NEED TO UPDATE ##
+    #=================#
+    # Avoid repeats of ≥ 20bp or Tm ≥ 60C
+    # Global GC content must be between 25% and 65%
+    # Avoid extreme differences in GC content within a gene (i.e. the difference in GC content between the highest and lowest 50bp stretch should be no greater than 52%)
+    # Minimize homopolymers
+    # Minimize the number/length of small repeats scattered throughout the sequence
+    # For HIS tags use a combination of CAC and CAT codons i.e. CACCAT…
+    
+    mRNA = ""
+    codons = []
+    for aa in seq:
+        codons.append( [aa, codon_selection_prob(aa) ] )
+    
+    for i in range(3, len(codons)):
+        if codons[i] == codons[i-1]: # and codons[i] == codons[i-2]:
+            codons[i] = [aa, change_codon(aa, codons[i][1])]
+    
+    for aa, codon in codons:
+        mRNA += codon
+
+    return mRNA
+
+
+def optimize_idt(seq):
+    #=================#
+    # NEED TO UPDATE ##
+    #=================#
+    prob_mRNA = optimize_prob(seq)
+    idt_mRNA = prob_mRNA.replace("GCCGCCGCCGCC", "GCCGCTGCCGCC")
+
+    return idt_mRNA
+
 def TestCode():
     print( codon_optimization_score("ATGGGAGGG") )
     print( codon_optimization_score("GGAATGGGG") )
@@ -384,8 +428,7 @@ else:
         assert(seq == translate(prob_mRNA))
     if sys.argv[1] == "idt":
         seq = sys.argv[2].upper()
-        prob_mRNA = optimize_prob(seq)
-        idt_mRNA = prob_mRNA.replace("GCCGCCGCCGCC", "GCCGCTGCCGCC")
+        idt_mRNA = optimize_idt(seq)
         print( "Designed mRNA =", idt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(idt_mRNA) )
         print( "GC Content =", gc_content(idt_mRNA)[0] * 100.0 )
@@ -393,8 +436,7 @@ else:
         assert(seq == translate(idt_mRNA))
     if sys.argv[1] == "twist":
         seq = sys.argv[2].upper()
-        prob_mRNA = optimize_prob(seq)
-        twist_mRNA = prob_mRNA.replace("GCCGCCGCCGCC", "GCCGCTGCCGCC")
+        twist_mRNA = optimize_twist(seq)
         print( "Designed mRNA =", twist_mRNA )
         print( "Codon optimization score =", codon_optimization_score(twist_mRNA) )
         print( "GC Content =", gc_content(twist_mRNA)[0] * 100.0 )
@@ -402,7 +444,7 @@ else:
         assert(seq == translate(twist_mRNA))
     if sys.argv[1] == "gc":
         if sys.argv[2] == "simulation":
-            print( "GC content simulation:", gc_simulation() )
+            print( "GC content simulation:", gc_simulation(codon_freq_table) )
         else:
             target_gc = float(sys.argv[2])
             adjusted_codon_table = gc_adjustment(target_gc)
