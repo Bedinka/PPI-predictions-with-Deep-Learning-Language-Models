@@ -174,6 +174,95 @@ def gc_content(mRNA):
     GC_Content = GC / float( len(mRNA) )
     return GC_Content, GC, float( len(mRNA) )
 
+def count_gc(codon):
+    return codon.count("G") + codon.count("C")
+    
+def optimize_high_gc(seq):
+    high_gc_mRNA = ""
+    for aa in seq:
+        gc_counts = [ (count_gc(x), x)for x in aa_dic[aa] ]
+        gc_counts.sort()
+        high_gc_mRNA += gc_counts[-1][1]
+    return high_gc_mRNA
+
+def optimize_low_gc(seq):
+    low_gc_mRNA = ""
+    for aa in seq:
+        gc_counts = [ (count_gc(x), x)for x in aa_dic[aa] ]
+        gc_counts.sort()
+        low_gc_mRNA += gc_counts[0][1]
+    return low_gc_mRNA
+
+def mRNA_to_codons(mRNA):
+    assert( len(mRNA) % 3 == 0 )
+    codons = []
+    for i in range(0, len(mRNA),3):
+        codons.append( mRNA[i:i+3] )
+    return codons
+    
+def codons_to_mRNA(codons):
+    mRNA = ""
+    for codon in codons:
+        mRNA += codon
+    return mRNA
+    
+def optimize_force(seq, target_gc_low, target_gc_high):
+    freq_dic = {}
+    for aa in aa_dic:
+        freqs = []
+        for codon in aa_dic[aa]:
+            freqs.append( codon_freq_table[codon] )
+        freq_dic[aa] = freqs
+
+    opt_mRNA = optimize_max(seq)
+    high_gc_mRNA = optimize_high_gc(seq)
+    low_gc_mRNA = optimize_low_gc(seq)
+    
+    opt_gc = gc_content(opt_mRNA)
+    high_gc = gc_content(high_gc_mRNA)
+    low_gc = gc_content(low_gc_mRNA)
+
+    print("GC content for optimal codons =", opt_gc[0] * 100.0)
+    print("Highest GC content =", high_gc[0] * 100.0)
+    print("Lowest GC content =", low_gc[0] * 100.0)
+
+    if target_gc_high >= opt_gc[0] >= target_gc_low:
+        return opt_mRNA
+    
+    gc_cnt = opt_gc[1]
+    total_len = len(seq)
+    codons = mRNA_to_codons(opt_mRNA)
+    
+    found = False
+    for i in range(100000):
+        gc = gc_cnt/(total_len*3)
+        #print( i, gc, gc_cnt, total_len * 3 )
+        if target_gc_high >= gc >= target_gc_low:
+            found = True
+            print("Found right GC Content = ", gc)
+            break
+        if gc > target_gc_high:
+            j = random.randrange(0, total_len)
+            cur_codon_gc_cnt = count_gc( codons[j] )
+            next_codon = random.choices( aa_dic[seq[j]], freq_dic[seq[j]] )[0]
+            next_codon_gc_cnt = count_gc(next_codon)
+            if next_codon_gc_cnt < cur_codon_gc_cnt:
+                codons[j] = next_codon
+                gc_cnt += (next_codon_gc_cnt - cur_codon_gc_cnt)
+        if gc < target_gc_low:
+            j = random.randrange(0, total_len)
+            cur_codon_gc_cnt = count_gc( codons[j] )
+            next_codon = random.choices( aa_dic[seq[j]], freq_dic[seq[j]] )[0]
+            next_codon_gc_cnt = count_gc(next_codon)
+            if next_codon_gc_cnt > cur_codon_gc_cnt:
+                codons[j] = next_codon
+                gc_cnt += (next_codon_gc_cnt - cur_codon_gc_cnt)
+
+    if found == False:
+        print("Could not find the right GC Content!")
+
+    return codons_to_mRNA( codons )
+
 def gc_adjustment(TargetGC):
     HighGC_Codons, LowGC_Codons = init_gc_codons()
 
@@ -232,16 +321,12 @@ def read_codon_table(filename):
     return codon_freq_table
 
 
-## Load table from file
-if len(sys.argv) > 3:
-    codon_freq_table = read_codon_table(sys.argv[3])
-    print("Load codon frequency table:", codon_freq_table)
-    codon_freq_table = normalize_codon_fre_table(codon_freq_table)
+
 
 if len(sys.argv) < 3:
-    mRNA = "ATGGGAGGG"
-    seq = "MGG"
-    print( "options: score, max, prob, idt, twist, gc ,compare" )
+    mRNA = "ATTCTAGTGTTTATGTGCGCAGGCCCTACTTCTTATTGGCAGAACCATGAAGACAAGCGC"
+    seq = "ILVFMCAGPTSYWQNHEDKR"
+    print( "options: score, max, prob, idt, twist, gc ,compare, force" )
     print( "example 1: python", sys.argv[0], "score", mRNA )
     print( "example 2: python", sys.argv[0], "max", seq )
     print( "example 3: python", sys.argv[0], "prob", seq )
@@ -249,43 +334,70 @@ if len(sys.argv) < 3:
     print( "example 5: python", sys.argv[0], "twist", seq )
     print( "example 6: python", sys.argv[0], "gc", "simulation" )
     print( "example 7: python", sys.argv[0], "gc", 0.6 )
-    print( "example 8: python", sys.argv[0], "compare", seq )
-    
+    print( "example 8: python", sys.argv[0], "compare", "codon_freq_filename1", "codon_freq_filename2" )
+    print( "example 9: python", sys.argv[0], "force", seq, 0.4, 0.6 )
 else:
+    if sys.argv[1] == "force":
+        seq = sys.argv[2]
+        target_gc_low = float(sys.argv[3])
+        target_gc_high = float(sys.argv[4])
+            ## Load table from file
+        if len(sys.argv) > 5:
+            codon_freq_table = read_codon_table(sys.argv[5])
+            print("Load codon frequency table:", codon_freq_table)
+            codon_freq_table = normalize_codon_fre_table(codon_freq_table)
+        final_mRNA = optimize_force(seq, target_gc_low, target_gc_high)
+        print( "Designed mRNA =", final_mRNA )
+        print( "Translated seq =", translate(final_mRNA))
+        print( "Codon optimization score =", codon_optimization_score(final_mRNA) )
+        print( "GC Content =", gc_content(final_mRNA)[0] * 100.0 )
+        print( "Number of major and minor codons =", codon_statistics(final_mRNA) )    
+        
+        exit(0)
+    ## Load table from file
+    if len(sys.argv) > 3:
+        codon_freq_table = read_codon_table(sys.argv[3])
+        print("Load codon frequency table:", codon_freq_table)
+        codon_freq_table = normalize_codon_fre_table(codon_freq_table)
     if sys.argv[1] == "score":
         mRNA = sys.argv[2].upper()
         seq = translate(mRNA)
         print( "Translated seq:", seq )
         print( "Codon optimization score =", codon_optimization_score(mRNA) )
+        print( "GC Content =", gc_content(mRNA)[0] * 100.0 )
         print( "Number of major and minor codons =", codon_statistics(mRNA) )       
     if sys.argv[1] == "max":
         seq = sys.argv[2].upper()
         opt_mRNA = optimize_max(seq)
-        print( opt_mRNA )
+        print( "Designed mRNA =", opt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(opt_mRNA) )
+        print( "GC Content =", gc_content(opt_mRNA)[0] * 100.0 )
         print( "Number of major and minor codons =", codon_statistics(opt_mRNA) )    
         assert(seq == translate(opt_mRNA))   
     if sys.argv[1] == "prob":
         seq = sys.argv[2].upper()
         prob_mRNA = optimize_prob(seq)
-        print( prob_mRNA )
+        print( "Designed mRNA =", prob_mRNA )
         print( "Codon optimization score =", codon_optimization_score(prob_mRNA) )
+        print( "GC Content =", gc_content(prob_mRNA)[0] * 100.0 )
         print( "Number of major and minor codons =", codon_statistics(prob_mRNA) )       
         assert(seq == translate(prob_mRNA))
     if sys.argv[1] == "idt":
         seq = sys.argv[2].upper()
         prob_mRNA = optimize_prob(seq)
         idt_mRNA = prob_mRNA.replace("GCCGCCGCCGCC", "GCCGCTGCCGCC")
-        print( idt_mRNA )
+        print( "Designed mRNA =", idt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(idt_mRNA) )
+        print( "GC Content =", gc_content(idt_mRNA)[0] * 100.0 )
         print( "Number of major and minor codons =", codon_statistics(idt_mRNA) )       
         assert(seq == translate(idt_mRNA))
     if sys.argv[1] == "twist":
         seq = sys.argv[2].upper()
         prob_mRNA = optimize_prob(seq)
         twist_mRNA = prob_mRNA.replace("GCCGCCGCCGCC", "GCCGCTGCCGCC")
-        print( twist_mRNA )
+        print( "Designed mRNA =", twist_mRNA )
         print( "Codon optimization score =", codon_optimization_score(twist_mRNA) )
+        print( "GC Content =", gc_content(twist_mRNA)[0] * 100.0 )
         print( "Number of major and minor codons =", codon_statistics(twist_mRNA) )       
         assert(seq == translate(twist_mRNA))
     if sys.argv[1] == "gc":
@@ -301,7 +413,8 @@ else:
 
         for codon in codon_freq_table:
             print( codon, "\t", codon_freq_table1[codon], "\t", codon_freq_table[codon] )
-        
+
+
 '''
 I 35.7 [[26.6, 'ATC'], [8.0, 'ATT'], [1.1, 'ATA']] ['ATT', 'ATC', 'ATA']
 L 89.8 [[65.2, 'CTG'], [13.0, 'CTC'], [4.4, 'CTT'], [4.0, 'TTG'], [2.6, 'CTA'], [0.6, 'TTA']] ['CTT', 'CTC', 'CTA', 'CTG', 'TTA', 'TTG']
@@ -324,3 +437,4 @@ D 48.400000000000006 [[41.7, 'GAC'], [6.7, 'GAT']] ['GAT', 'GAC']
 K 45.699999999999996 [[43.3, 'AAG'], [2.4, 'AAA']] ['AAA', 'AAG']
 R 56.400000000000006 [[34.9, 'CGC'], [11.2, 'CGG'], [4.9, 'CGT'], [2.7, 'AGG'], [2.0, 'CGA'], [0.7, 'AGA']] ['CGT', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG']
 '''
+
