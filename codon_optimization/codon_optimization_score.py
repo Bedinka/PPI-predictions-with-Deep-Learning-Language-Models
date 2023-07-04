@@ -266,9 +266,9 @@ def optimize_force(seq, target_gc_low, target_gc_high):
     high_gc = gc_content(high_gc_mRNA)
     low_gc = gc_content(low_gc_mRNA)
 
-    print("GC content for optimal codons =", opt_gc[0] * 100.0)
-    print("Highest GC content =", high_gc[0] * 100.0)
-    print("Lowest GC content =", low_gc[0] * 100.0)
+    print("GC content for optimal codons = %0.2f %%" % (opt_gc[0] * 100.0))
+    print("Highest GC content = %0.2f %%" % (high_gc[0] * 100.0))
+    print("Lowest GC content = %0.2f %%" % (low_gc[0] * 100.0))
 
     if target_gc_high >= opt_gc[0] >= target_gc_low:
         return opt_mRNA
@@ -280,10 +280,11 @@ def optimize_force(seq, target_gc_low, target_gc_high):
     found = False
     for i in range(100000):
         gc = gc_cnt/(total_len*3)
-        #print( i, gc, gc_cnt, total_len * 3 )
+        #if (i % 100 == 0):
+        #    print("Processing... GC Content = %0.2f %%" % (gc*100))
         if target_gc_high >= gc >= target_gc_low:
             found = True
-            print("Found right GC Content = ", gc)
+            print("Found right GC Content = %0.2f %%" % (gc*100))
             break
         if gc > target_gc_high:
             j = random.randrange(0, total_len)
@@ -392,9 +393,9 @@ else:
             codon_freq_table = normalize_codon_fre_table(codon_freq_table)
         final_mRNA = optimize_force(seq, target_gc_low, target_gc_high)
         print( "Designed mRNA =", final_mRNA )
-        print( "Translated seq =", translate(final_mRNA))
+        #print( "Translated seq =", translate(final_mRNA))
         print( "Codon optimization score =", codon_optimization_score(final_mRNA) )
-        print( "GC Content =", gc_content(final_mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(final_mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(final_mRNA) )    
         
         exit(0)
@@ -408,14 +409,14 @@ else:
         seq = translate(mRNA)
         print( "Translated seq:", seq )
         print( "Codon optimization score =", codon_optimization_score(mRNA) )
-        print( "GC Content =", gc_content(mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(mRNA) )       
     if sys.argv[1] == "max":
         seq = sys.argv[2].upper()
         opt_mRNA = optimize_max(seq)
         print( "Designed mRNA =", opt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(opt_mRNA) )
-        print( "GC Content =", gc_content(opt_mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(opt_mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(opt_mRNA) )    
         assert(seq == translate(opt_mRNA))   
     if sys.argv[1] == "prob":
@@ -423,7 +424,7 @@ else:
         prob_mRNA = optimize_prob(seq)
         print( "Designed mRNA =", prob_mRNA )
         print( "Codon optimization score =", codon_optimization_score(prob_mRNA) )
-        print( "GC Content =", gc_content(prob_mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(prob_mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(prob_mRNA) )       
         assert(seq == translate(prob_mRNA))
     if sys.argv[1] == "idt":
@@ -431,7 +432,7 @@ else:
         idt_mRNA = optimize_idt(seq)
         print( "Designed mRNA =", idt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(idt_mRNA) )
-        print( "GC Content =", gc_content(idt_mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(idt_mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(idt_mRNA) )       
         assert(seq == translate(idt_mRNA))
     if sys.argv[1] == "twist":
@@ -439,7 +440,7 @@ else:
         twist_mRNA = optimize_twist(seq)
         print( "Designed mRNA =", twist_mRNA )
         print( "Codon optimization score =", codon_optimization_score(twist_mRNA) )
-        print( "GC Content =", gc_content(twist_mRNA)[0] * 100.0 )
+        print( "GC Content = %0.2f %%" % ( gc_content(twist_mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(twist_mRNA) )       
         assert(seq == translate(twist_mRNA))
     if sys.argv[1] == "gc":
