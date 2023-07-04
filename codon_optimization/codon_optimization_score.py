@@ -114,6 +114,16 @@ def change_codon(aa, codon):
             break
     return new_codon
 
+def change_codons(mRNA):
+    new_mRNA = ""
+    codons = mRNA_to_codons(mRNA)
+    for codon in codons:
+        if len(codon) != 3:
+            new_mRNA += codon
+            break
+        else:
+            new_mRNA += change_codon(codon_dic[codon],codon)
+    return new_mRNA
 
 def optimize_twist(seq):
     #=================#
@@ -238,9 +248,9 @@ def optimize_low_gc(seq):
     return low_gc_mRNA
 
 def mRNA_to_codons(mRNA):
-    assert( len(mRNA) % 3 == 0 )
+    #assert( len(mRNA) % 3 == 0 )
     codons = []
-    for i in range(0, len(mRNA),3):
+    for i in range(0, len(mRNA), 3):
         codons.append( mRNA[i:i+3] )
     return codons
     
@@ -340,10 +350,7 @@ def gc_adjustment(TargetGC):
         codon = random.choices( population, weights )[0] 
         #print(codon)
         if TargetGC >= GC_Content:
-            if codon in LowGC_Codons: 
-                #print("1")
-                continue
-            #print("2")
+            if codon in LowGC_Codons: continue
             codon_usage_dic[codon] = codon_usage_dic.get(codon, 0) + 1
             pass
         if TargetGC < GC_Content:
@@ -365,13 +372,53 @@ def read_codon_table(filename):
     f.close()
     return codon_freq_table
 
+def find_repeat(mRNA, token_len):
+    token_dic = {}
+    for i in range(0, len(mRNA)-token_len):
+        token = mRNA[i:i+token_len]
+        token_dic[token] = token_dic.get(token,0) + 1
+    repeats = []
+    for token in token_dic:
+        if token_dic[token] > 1:
+            repeats.append( (token_dic[token], token) )
+    repeats.sort(reverse = True)
+    return repeats
 
+def remove_repeat(mRNA, token_len):
+    new_mRNA = ""
+    repeats = find_repeat(mRNA, token_len)
+    import re
+    for cnt, token in repeats:
+        for m in re.finditer(token, mRNA):
+            frame = m.start() % 3 
+            inframe_seq = mRNA[m.start()-frame:m.end()]
+            
+            new_mRNA = mRNA[:m.start()-frame] + change_codons(inframe_seq) + mRNA[m.end():]
+            mRNA = new_mRNA
+
+            #print('%02d-%02d: %s' % (m.start(), m.end(), m.group(0)))
+        pass
+    return mRNA
+    pass
+
+def remove_repeats(mRNA, token_len):
+    repeats_cnt = 100000000000
+    final_mRNA = ""
+    for i in range(1000):
+        norepeat_mRNA = remove_repeat(mRNA, token_len)
+        repeats = find_repeat(norepeat_mRNA, token_len)
+        if len(repeats) == 0:
+            return norepeat_mRNA
+        if len(repeats) < repeats_cnt:
+            final_mRNA = norepeat_mRNA
+            repeats_cnt = len(repeats)
+    return final_mRNA
 
 
 if len(sys.argv) < 3:
     mRNA = "ATTCTAGTGTTTATGTGCGCAGGCCCTACTTCTTATTGGCAGAACCATGAAGACAAGCGC"
     seq = "ILVFMCAGPTSYWQNHEDKR"
-    print( "options: score, max, prob, idt, twist, gc ,compare, force" )
+    print( "options: score, max, prob, idt, twist, gc ,compare, force, repeat, norepeat" )
     print( "example 1: python", sys.argv[0], "score", mRNA )
     print( "example 2: python", sys.argv[0], "max", seq )
     print( "example 3: python", sys.argv[0], "prob", seq )
@@ -381,6 +428,8 @@ if len(sys.argv) < 3:
     print( "example 7: python", sys.argv[0], "gc", 0.6 )
     print( "example 8: python", sys.argv[0], "compare", "codon_freq_filename1", "codon_freq_filename2" )
     print( "example 9: python", sys.argv[0], "force", seq, 0.4, 0.6 )
+    print( "example 10: python", sys.argv[0], "repeat", mRNA, 4 )
+    print( "example 11: python", sys.argv[0], "norepeat", mRNA, 4 )
 else:
     if sys.argv[1] == "force":
         seq = sys.argv[2]
@@ -399,6 +448,37 @@ else:
         print( "Number of major and minor codons =", codon_statistics(final_mRNA) )    
         
         exit(0)
+
+    if sys.argv[1] == "repeat":
+        mRNA = sys.argv[2]
+        token_len = int(sys.argv[3])
+        repeats = find_repeat(mRNA, token_len)
+        print("Repeated sequences =", repeats)
+        seq = translate(mRNA)
+        print( "Translated seq:", seq )
+        print( "Codon optimization score =", codon_optimization_score(mRNA) )
+        print( "GC Content = %0.2f %%" % ( gc_content(mRNA)[0] * 100.0 ))
+        print( "Number of major and minor codons =", codon_statistics(mRNA) ) 
+        exit(0)
+
+    if sys.argv[1] == "norepeat":
+        mRNA = sys.argv[2]
+        token_len = int(sys.argv[3])
+        if len(sys.argv) > 4:
+            codon_freq_table = read_codon_table(sys.argv[4])
+            print("Load codon frequency table:", codon_freq_table)
+            codon_freq_table = normalize_codon_fre_table(codon_freq_table)
+        norepeat_mRNA = remove_repeats(mRNA, token_len)
+        repeats = find_repeat(norepeat_mRNA, token_len)
+        print("Repeated sequences =", repeats)
+        print("Designed mRNA =", norepeat_mRNA)
+        seq = translate(norepeat_mRNA)
+        print( "Translated seq:", seq )
+        print( "Codon optimization score =", codon_optimization_score(norepeat_mRNA) )
+        print( "GC Content = %0.2f %%" % ( gc_content(norepeat_mRNA)[0] * 100.0 ))
+        print( "Number of major and minor codons =", codon_statistics(norepeat_mRNA) ) 
+        exit(0)
+
     ## Load table from file
     if len(sys.argv) > 3:
         codon_freq_table = read_codon_table(sys.argv[3])
@@ -457,6 +537,7 @@ else:
         for codon in codon_freq_table:
             print( codon, "\t", codon_freq_table1[codon], "\t", codon_freq_table[codon] )
 
+        
 
 '''
 I 35.7 [[26.6, 'ATC'], [8.0, 'ATT'], [1.1, 'ATA']] ['ATT', 'ATC', 'ATA']
