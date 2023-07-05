@@ -36,7 +36,7 @@ codon_freq_table = {
     "GGT": 9.5, "GGC": 62.0, "GGA": 5.0, "GGG": 9.7
 }
 
-codon_dic = {"GCT":"A","GCC":"A","GCA":"A","GCG":"A","TGT":"C","TGC":"C","GAA":"E","GAG":"E","GAT":"D","GAC":"D","GGT":"G","GGC":"G","GGA":"G","GGG":"G","TTT":"F","TTC":"F","ATT":"I","ATC":"I","ATA":"I","CAT":"H","CAC":"H","AAA":"K","AAG":"K","ATG":"M","CTT":"L","CTC":"L","CTA":"L","CTG":"L","TTA":"L","TTG":"L","AAT":"N","AAC":"N","CAA":"Q","CAG":"Q","CCT":"P","CCC":"P","CCA":"P","CCG":"P","TCT":"S","TCC":"S","TCA":"S","TCG":"S","AGT":"S","AGC":"S","CGT":"R","CGC":"R","CGA":"R","CGG":"R","AGA":"R","AGG":"R","ACT":"T","ACC":"T","ACA":"T","ACG":"T","TGG":"W","GTT":"V","GTC":"V","GTA":"V","GTG":"V","TAT":"Y","TAC":"Y"}
+codon_dic = {"TGA":"*", "GCT":"A","GCC":"A","GCA":"A","GCG":"A","TGT":"C","TGC":"C","GAA":"E","GAG":"E","GAT":"D","GAC":"D","GGT":"G","GGC":"G","GGA":"G","GGG":"G","TTT":"F","TTC":"F","ATT":"I","ATC":"I","ATA":"I","CAT":"H","CAC":"H","AAA":"K","AAG":"K","ATG":"M","CTT":"L","CTC":"L","CTA":"L","CTG":"L","TTA":"L","TTG":"L","AAT":"N","AAC":"N","CAA":"Q","CAG":"Q","CCT":"P","CCC":"P","CCA":"P","CCG":"P","TCT":"S","TCC":"S","TCA":"S","TCG":"S","AGT":"S","AGC":"S","CGT":"R","CGC":"R","CGA":"R","CGG":"R","AGA":"R","AGG":"R","ACT":"T","ACC":"T","ACA":"T","ACG":"T","TGG":"W","GTT":"V","GTC":"V","GTA":"V","GTG":"V","TAT":"Y","TAC":"Y"}
 
 aa_dic = { "I" : ["ATT", "ATC", "ATA"], "L" : ["CTT", "CTC", "CTA", "CTG", "TTA", "TTG"], "V" : ["GTT", "GTC", "GTA", "GTG"], "F" : ["TTT", "TTC"], "M" : ["ATG"], "C" : ["TGT", "TGC"], "A" : ["GCT", "GCC", "GCA", "GCG"], "G" : ["GGT", "GGC", "GGA", "GGG"], "P" : ["CCT", "CCC", "CCA", "CCG"], "T" : ["ACT", "ACC", "ACA", "ACG"], "S" : ["TCT", "TCC", "TCA", "TCG", "AGT", "AGC"], "Y" : ["TAT", "TAC"], "W" : ["TGG"], "Q" : ["CAA", "CAG"], "N" : ["AAT", "AAC"], "H" : ["CAT", "CAC"], "E" : ["GAA", "GAG"], "D" : ["GAT", "GAC"], "K" : ["AAA", "AAG"], "R" : ["CGT", "CGC", "CGA", "CGG", "AGA", "AGG"] }
 
@@ -120,6 +120,8 @@ def change_codons(mRNA):
     for codon in codons:
         if len(codon) != 3:
             new_mRNA += codon
+            break
+        if codon in ["TGA", "TAG", "TGG"]:
             break
         else:
             new_mRNA += change_codon(codon_dic[codon],codon)
@@ -432,7 +434,8 @@ if len(sys.argv) < 3:
     print( "example 11: python", sys.argv[0], "norepeat", mRNA, 4 )
 else:
     if sys.argv[1] == "force":
-        seq = sys.argv[2]
+        with open(sys.argv[2]) as h:
+            seq = "".join(h.readlines()).upper()
         target_gc_low = float(sys.argv[3])
         target_gc_high = float(sys.argv[4])
             ## Load table from file
@@ -450,7 +453,8 @@ else:
         exit(0)
 
     if sys.argv[1] == "repeat":
-        mRNA = sys.argv[2]
+        with open(sys.argv[2]) as h:
+            mRNA = "".join(h.readlines()).upper()
         token_len = int(sys.argv[3])
         repeats = find_repeat(mRNA, token_len)
         print("Repeated sequences =", repeats)
@@ -462,7 +466,8 @@ else:
         exit(0)
 
     if sys.argv[1] == "norepeat":
-        mRNA = sys.argv[2]
+        with open(sys.argv[2]) as h:
+            mRNA = "".join(h.readlines()).replace("\n", "").upper()
         token_len = int(sys.argv[3])
         if len(sys.argv) > 4:
             codon_freq_table = read_codon_table(sys.argv[4])
@@ -485,14 +490,16 @@ else:
         print("Load codon frequency table:", codon_freq_table)
         codon_freq_table = normalize_codon_fre_table(codon_freq_table)
     if sys.argv[1] == "score":
-        mRNA = sys.argv[2].upper()
+        with open(sys.argv[2]) as h:
+            mRNA = "".join(h.readlines()).upper()
         seq = translate(mRNA)
         print( "Translated seq:", seq )
         print( "Codon optimization score =", codon_optimization_score(mRNA) )
         print( "GC Content = %0.2f %%" % ( gc_content(mRNA)[0] * 100.0 ))
         print( "Number of major and minor codons =", codon_statistics(mRNA) )       
     if sys.argv[1] == "max":
-        seq = sys.argv[2].upper()
+        with open(sys.argv[2]) as h:
+            seq = "".join(h.readlines()).upper()
         opt_mRNA = optimize_max(seq)
         print( "Designed mRNA =", opt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(opt_mRNA) )
@@ -500,7 +507,8 @@ else:
         print( "Number of major and minor codons =", codon_statistics(opt_mRNA) )    
         assert(seq == translate(opt_mRNA))   
     if sys.argv[1] == "prob":
-        seq = sys.argv[2].upper()
+        with open(sys.argv[2]) as h:
+            seq = "".join(h.readlines()).upper()
         prob_mRNA = optimize_prob(seq)
         print( "Designed mRNA =", prob_mRNA )
         print( "Codon optimization score =", codon_optimization_score(prob_mRNA) )
@@ -508,7 +516,8 @@ else:
         print( "Number of major and minor codons =", codon_statistics(prob_mRNA) )       
         assert(seq == translate(prob_mRNA))
     if sys.argv[1] == "idt":
-        seq = sys.argv[2].upper()
+        with open(sys.argv[2]) as h:
+            seq = "".join(h.readlines()).upper()
         idt_mRNA = optimize_idt(seq)
         print( "Designed mRNA =", idt_mRNA )
         print( "Codon optimization score =", codon_optimization_score(idt_mRNA) )
@@ -516,7 +525,8 @@ else:
         print( "Number of major and minor codons =", codon_statistics(idt_mRNA) )       
         assert(seq == translate(idt_mRNA))
     if sys.argv[1] == "twist":
-        seq = sys.argv[2].upper()
+        with open(sys.argv[2]) as h:
+            seq = "".join(h.readlines()).upper()
         twist_mRNA = optimize_twist(seq)
         print( "Designed mRNA =", twist_mRNA )
         print( "Codon optimization score =", codon_optimization_score(twist_mRNA) )
