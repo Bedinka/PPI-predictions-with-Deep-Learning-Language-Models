@@ -85,13 +85,24 @@ def codon_selection_prob(aa):
 
     return random.choices(population, weights)[0]
     
-def codon_optimization_score(mRNA):
+def codon_score(mRNA):
     score = 0.0
     for i in range(0, len(mRNA),3):
         codon = mRNA[i:i+3]
         freq = codon_freq_table[codon]
         score += math.log10(freq)
     return score
+
+def codon_optimization_score(mRNA):
+    seq = translate(mRNA)
+    max_mRNA = optimize_max(seq)
+    min_mRNA = optimize_min(seq)
+
+    max_mRNA_codon_score = codon_score(max_mRNA)
+    min_mRNA_codon_score = codon_score(min_mRNA)
+    mRNA_codon_score = codon_score(mRNA)
+
+    return (mRNA_codon_score - min_mRNA_codon_score) / (max_mRNA_codon_score - min_mRNA_codon_score)
 
 
 def optimize_prob(seq):
@@ -104,6 +115,12 @@ def optimize_max(seq):
     mRNA = ""
     for aa in seq:
         mRNA += aa_codon_freq_dic[aa][0][1]
+    return mRNA
+
+def optimize_min(seq):
+    mRNA = ""
+    for aa in seq:
+        mRNA += aa_codon_freq_dic[aa][-1][1]
     return mRNA
 
 def change_codon(aa, codon):
