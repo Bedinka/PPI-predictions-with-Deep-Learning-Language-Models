@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "[UNK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "[SOS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "[EOS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "Whitespace"
+  },
+  "post_processor": null,
+  "decoder": null,
+  "model": {
+    "type": "WordLevel",
+    "vocab": {
+      "[UNK]": 0,
+      "[PAD]": 1,
+      "[SOS]": 2,
+      "[EOS]": 3,
+      "A": 4,
+      "G": 5,
+      "L": 6,
+      "S": 7,
+      "P": 8,
+      "R": 9,
+      "V": 10,
+      "E": 11,
+      "T": 12,
+      "Q": 13,
+      "D": 14,
+      "K": 15,
+      "H": 16,
+      "F": 17,
+      "N": 18,
+      "I": 19,
+      "M": 20,
+      "Y": 21,
+      "C": 22,
+      "W": 23,
+      "*": 24
+    },
+    "unk_token": "[UNK]"
+  }
+}
