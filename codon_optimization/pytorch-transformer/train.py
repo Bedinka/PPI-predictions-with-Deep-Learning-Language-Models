@@ -77,6 +77,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
         console_width = 80
 
     with torch.no_grad():
+
         for batch in validation_ds:
             count += 1
             encoder_input = batch["encoder_input"].to(device) # (b, seq_len)
@@ -110,7 +111,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             print_msg(f"{f'TARGET AAs: ':>12}{aa_original}")
             print_msg(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print_msg(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
-            
+
             if count == num_examples:
                 print_msg('-'*console_width)
                 break
@@ -238,8 +239,8 @@ def save_mRNA_AA( mRNA_dic, aa_filepath, mRNA_filepath ):
     fo2.close()
 
 def load_aminoacid_mRNA_data(aa_input_filepath, mRNA_input_filepath):
-    aa_data = load_amino_acid_data(aa_input_filepath)
-    mRNA_data = load_mRNA_data(mRNA_input_filepath)
+    aa_data = load_amino_acid_data(aa_input_filepath) # "A G S T ..."
+    mRNA_data = load_mRNA_data(mRNA_input_filepath) # "ATG GTC GTT GGA ..."
     from datasets import Dataset
     my_list = []
     for i in range(len(aa_data)):
@@ -377,7 +378,10 @@ def train_model(config):
     # Make sure the weights folder exists
     Path(config['model_folder']).mkdir(parents=True, exist_ok=True)
 
-    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config)
+    # READ DATA!!!
+    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config)  
+    
+    
     model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size()).to(device)
     # Tensorboard
     writer = SummaryWriter(config['experiment_name'])
@@ -395,6 +399,7 @@ def train_model(config):
         initial_epoch = state['epoch'] + 1
         optimizer.load_state_dict(state['optimizer_state_dict'])
         global_step = state['global_step']
+        if 'config' in state: config = state['config']
 
         # Run validation at the end of every epoch
         batch_iterator = tqdm(train_dataloader, desc=f"Preload Validation")
@@ -446,7 +451,8 @@ def train_model(config):
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'global_step': global_step
+            'global_step': global_step,
+            'global_step': config, #
         }, model_filename)
 
 
