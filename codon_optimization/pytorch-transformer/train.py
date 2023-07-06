@@ -1,5 +1,7 @@
 from model import build_transformer
 from dataset import BilingualDataset, causal_mask
+from datasets import Dataset
+    
 from config import get_config, get_weights_file_path
 
 import torchtext.datasets as datasets
@@ -77,7 +79,6 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
         console_width = 80
 
     with torch.no_grad():
-
         for batch in validation_ds:
             count += 1
             encoder_input = batch["encoder_input"].to(device) # (b, seq_len)
@@ -111,7 +112,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             print_msg(f"{f'TARGET AAs: ':>12}{aa_original}")
             print_msg(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print_msg(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
-
+            
             if count == num_examples:
                 print_msg('-'*console_width)
                 break
@@ -165,13 +166,19 @@ def build_tokenizer_from_data(data, tokenizer_path):
 
 MAX_SEQ_LEN = 100 # temporary
 
+def split_word_amino_acid_seq(seq):
+    return " ".join(seq)
+
+def split_word_mRNA(mRNA):
+    return " ".join( [ mRNA[i:i+3] for i in range(0, len(mRNA), 3) ] )
+
 def load_amino_acid_data(input_filepath):
     data = []
     f = open( input_filepath )
     for line in f.readlines():
         if line[0] == ">": continue
-        line = line.strip()
-        data.append( " ".join(line[:MAX_SEQ_LEN]) ) # "A G S T ..."
+        seq = line.strip()
+        data.append( split_word_amino_acid_seq(seq[:MAX_SEQ_LEN]) ) # "A G S T ..."
     f.close()
     return data
 
@@ -184,8 +191,8 @@ def load_mRNA_data(input_filepath):
     f = open( input_filepath )
     for line in f.readlines():
         if line[0] == ">": continue
-        line = line.strip()[:(MAX_SEQ_LEN*3)]
-        data.append( " ".join( [ line[i:i+3] for i in range(0, len(line), 3) ] )) # "ATG GTC GTT GGA ..."
+        mRNA = line.strip()[:(MAX_SEQ_LEN*3)]
+        data.append( split_word_mRNA(mRNA) ) # "ATG GTC GTT GGA ..."
     f.close()
     return data
 
@@ -239,14 +246,81 @@ def save_mRNA_AA( mRNA_dic, aa_filepath, mRNA_filepath ):
     fo2.close()
 
 def load_aminoacid_mRNA_data(aa_input_filepath, mRNA_input_filepath):
-    aa_data = load_amino_acid_data(aa_input_filepath) # "A G S T ..."
-    mRNA_data = load_mRNA_data(mRNA_input_filepath) # "ATG GTC GTT GGA ..."
-    from datasets import Dataset
+    aa_data = load_amino_acid_data(aa_input_filepath)
+    mRNA_data = load_mRNA_data(mRNA_input_filepath)
     my_list = []
     for i in range(len(aa_data)):
         my_list.append( {"translation":{"aa":aa_data[i],"mRNA":mRNA_data[i]}} )
     dataset = Dataset.from_list(my_list, split='train')
     return dataset
+
+def single_prediction(config, seq, mRNA):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+
+    my_list = []
+
+    words_seq = split_word_amino_acid_seq( seq )
+    words_mRNA = split_word_amino_acid_seq( mRNA )
+    my_list.append( {"translation":{"aa":words_seq,"mRNA":words_mRNA}} )
+    my_list.append( {"translation":{"aa":words_seq,"mRNA":words_mRNA}} )
+    from datasets import Dataset
+    
+    dataset = Dataset.from_list(my_list)
+
+    ## In case tokenizer_src is not ready
+    #src_tokenizer_path = Path(config['tokenizer_file'].format("aa"))
+    #tokenizer_src = Tokenizer.from_file(str(src_tokenizer_path))
+    #trg_tokenizer_path = Path(config['tokenizer_file'].format("mRNA"))
+    #tokenizer_tgt = Tokenizer.from_file(str(trg_tokenizer_path))
+
+    model, tokenizer_src, tokenizer_tgt = load_model()
+
+    val_ds = BilingualDataset(dataset, tokenizer_src, tokenizer_tgt, config['lang_src'], config['lang_tgt'], config['seq_len'])
+    val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=True)
+
+
+    if True:
+        count = 0
+        source_texts = []
+        expected = []
+        predicted = []
+        for batch in val_dataloader:
+            print(batch)
+            count += 1
+            print("ITERATION COUNT =", count)
+            encoder_input = batch["encoder_input"].to(device) # (b, seq_len)
+            encoder_mask = batch["encoder_mask"].to(device) # (b, 1, 1, seq_len)
+
+            # check that the batch size is 1
+            assert encoder_input.size(
+                0) == 1, "Batch size must be 1 for validation"
+
+            model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
+
+            source_text = batch["src_text"][0]
+            target_text = batch["tgt_text"][0]
+            model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
+
+
+            source_texts.append(source_text)
+            expected.append(target_text)
+            predicted.append(model_out_text)
+            
+            # Print the source, target and model output
+            print(f"{f'SOURCE: ':>12}{source_text}")
+            print(f"{f'TARGET: ':>12}{target_text}")
+            print(f"{f'PREDICTED: ':>12}{model_out_text}")
+
+            mRNA_original = target_text.replace(" ", "")
+            mRNA_predicted = model_out_text.replace(" ", "")
+            aa_original = translate( mRNA_original )
+            aa_predicted = translate( mRNA_predicted )    
+            
+            print(f"{f'TARGET AAs: ':>12}{aa_original}")
+            print(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
+            print(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
+            
 
 
 def get_ds(config):
@@ -370,6 +444,32 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
     model = build_transformer(vocab_src_len, vocab_tgt_len, config["seq_len"], config['seq_len'], d_model=config['d_model'], N=config['N'], d_ff=config['d_ff'])
     return model
 
+
+def load_model():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
+
+    ## In case tokenizer_src is not ready
+    src_tokenizer_path = Path(config['tokenizer_file'].format("aa"))
+    tokenizer_src = Tokenizer.from_file(str(src_tokenizer_path))
+    trg_tokenizer_path = Path(config['tokenizer_file'].format("mRNA"))
+    tokenizer_tgt = Tokenizer.from_file(str(trg_tokenizer_path))
+
+    model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size()).to(device)
+
+    model_number = 19
+    model_filename = get_weights_file_path(config, model_number)
+    print(f'Preloading model {model_filename}')
+    state = torch.load(model_filename)
+    model.load_state_dict(state['model_state_dict'])
+    initial_epoch = state['epoch'] + 1
+    optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], eps=1e-9) ## Not used
+    optimizer.load_state_dict(state['optimizer_state_dict']) ## Not used
+    global_step = state['global_step'] ## Not used
+
+    return model, tokenizer_src, tokenizer_tgt
+
+
 def train_model(config):
     # Define the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -378,10 +478,7 @@ def train_model(config):
     # Make sure the weights folder exists
     Path(config['model_folder']).mkdir(parents=True, exist_ok=True)
 
-    # READ DATA!!!
-    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config)  
-    
-    
+    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config)
     model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size()).to(device)
     # Tensorboard
     writer = SummaryWriter(config['experiment_name'])
@@ -399,7 +496,6 @@ def train_model(config):
         initial_epoch = state['epoch'] + 1
         optimizer.load_state_dict(state['optimizer_state_dict'])
         global_step = state['global_step']
-        if 'config' in state: config = state['config']
 
         # Run validation at the end of every epoch
         batch_iterator = tqdm(train_dataloader, desc=f"Preload Validation")
@@ -451,8 +547,7 @@ def train_model(config):
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'global_step': global_step,
-            'global_step': config, #
+            'global_step': global_step
         }, model_filename)
 
 
@@ -469,4 +564,9 @@ if __name__ == "__main__":
     if not Path.exists(Path("tokenizer_aa.json")):    # to make tokenizer, etc..
         generate_mRNA_AA_data()
     
-    train_model(config)
+    if False:
+        train_model(config)
+    else:
+        seq = "MVNVPKTKRAFCKGCKKHMMMKVTQYKTGKASLYAQGKRRYDRKQSGYGGQTKPVFHKKAKTTKKIVLRMQCQECKQTCMKGLKRCKHFEIGGDKKKGN*"
+        mRNA = "ATGGTGAACGTTCCTAAGACCAAGCGGGCGTTCTGCAAGGGGTGCAAGAAGCACATGATGATGAAGGTCACCCAGTACAAGACTGGCAAGGCCTCCCTCTACGCGCAGGGCAAGCGCCGCTACGACCGCAAGCAGTCGGGTTACGGTGGTCAGACCAAGCCCGTCTTCCACAAGAAGGCCAAGACCACCAAGAAGATCGTGCTGCGCATGCAGTGCCAAGAGTGCAAGCAGACCTGCATGAAGGGCCTGAAGCGCTGCAAGCACTTCGAGATCGGTGGTGACAAGAAGAAGGGCAACTAA"
+        single_prediction(config, seq[:40], mRNA[:120])
