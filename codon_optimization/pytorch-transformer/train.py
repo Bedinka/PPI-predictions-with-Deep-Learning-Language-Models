@@ -93,6 +93,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             source_text = batch["src_text"][0]
             target_text = batch["tgt_text"][0]
             model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
+            print_msg(f"pred_length: {len(model_out_text)}; target_length:{len(target_text)}")
             model_out_text += " [EOS]"
 
             source_texts.append(source_text)
@@ -114,11 +115,13 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             print_msg(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print_msg(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
 
-            
-            
+            with open('sim_scores.txt', 'a') as f:
+                f.write(str(similarity( aa_original, aa_predicted )) + '\n')
+
             if count == num_examples:
                 print_msg('-'*console_width)
                 break
+        
     
     if writer:
         # Evaluate the character error rate
@@ -305,7 +308,7 @@ def single_prediction(config, seq, mRNA):
             source_text = batch["src_text"][0]
             target_text = batch["tgt_text"][0]
             model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
-
+            model_out_text += "[EOS]"
 
             source_texts.append(source_text)
             expected.append(target_text)
