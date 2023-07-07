@@ -2,18 +2,18 @@ from pathlib import Path
 
 def get_config():
     return {
-        "batch_size": 4, #8,
-        "num_epochs": 20,
+        "batch_size": 8,
+        "num_epochs": 7,
         "lr": 10**-4,
         "seq_len": 150,
-        "d_model": 32, #64, #128, #256, #512,
+        "d_model": 128,#32, #64, #128, #256, #512,
         "d_ff": 512, #1024, #2048,
         "N": 4, #6, 
         "lang_src": "aa", #"en",
         "lang_tgt": "mRNA", #"it",
         "model_folder": "weights",
         "model_basename": "tmodel_",
-        "preload": 19, #None,
+        "preload": None,
         "tokenizer_file": "tokenizer_{0}.json",
         "experiment_name": "runs/tmodel"
     }

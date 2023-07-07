@@ -112,6 +112,8 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             print_msg(f"{f'TARGET AAs: ':>12}{aa_original}")
             print_msg(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print_msg(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
+
+            
             
             if count == num_examples:
                 print_msg('-'*console_width)
@@ -246,6 +248,7 @@ def save_mRNA_AA( mRNA_dic, aa_filepath, mRNA_filepath ):
     fo2.close()
 
 def load_aminoacid_mRNA_data(aa_input_filepath, mRNA_input_filepath):
+    from datasets import Dataset
     aa_data = load_amino_acid_data(aa_input_filepath)
     mRNA_data = load_mRNA_data(mRNA_input_filepath)
     my_list = []
@@ -444,7 +447,6 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
     model = build_transformer(vocab_src_len, vocab_tgt_len, config["seq_len"], config['seq_len'], d_model=config['d_model'], N=config['N'], d_ff=config['d_ff'])
     return model
 
-
 def load_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -564,7 +566,8 @@ if __name__ == "__main__":
     if not Path.exists(Path("tokenizer_aa.json")):    # to make tokenizer, etc..
         generate_mRNA_AA_data()
     
-    if False:
+    
+    if True:
         train_model(config)
     else:
         seq = "MVNVPKTKRAFCKGCKKHMMMKVTQYKTGKASLYAQGKRRYDRKQSGYGGQTKPVFHKKAKTTKKIVLRMQCQECKQTCMKGLKRCKHFEIGGDKKKGN*"
