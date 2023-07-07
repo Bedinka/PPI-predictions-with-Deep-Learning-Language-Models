@@ -115,8 +115,22 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             print_msg(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print_msg(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
 
-            with open('sim_scores.txt', 'a') as f:
+            import os
+
+            filename = "sim_scores.txt"
+            counter = 1
+
+            while os.path.exists(filename):
+                name, ext = os.path.splitext(filename)
+                
+                new_filename = f"{name}_{counter}{ext}"
+                counter += 1
+                
+                filename = new_filename
+
+            with open(filename, "w") as f:
                 f.write(str(similarity( aa_original, aa_predicted )) + '\n')
+
 
             if count == num_examples:
                 print_msg('-'*console_width)
