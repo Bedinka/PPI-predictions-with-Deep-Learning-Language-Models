@@ -10,7 +10,9 @@ writer.writerow(["Accession", "Organism", "Type", "Location", "Sequence", "Note"
 c=0
 k=0
 for record in SwissProt.parse(open('uniprot_sprot.dat')):
+    if c==10: break
     for i in record.features:
+        # if i.type == 'DOMAIN': print(i)
         if i.type == 'MUTAGEN': continue
         if 'note' in i.qualifiers.keys():
             if i.qualifiers['note'].lower().find('autoinhibitory') != -1:
@@ -29,6 +31,9 @@ for record in SwissProt.parse(open('uniprot_sprot.dat')):
                 print(i.location)
                 print(i.qualifiers['note'])
                 print(i.location.extract(record.sequence))
+                
+                for d in record.features:
+                    if d.type == 'DOMAIN': print(d)
                 print('--------------\n')
             elif i.qualifiers['note'].lower().find('autoregulatory') != -1:
                 writer.writerow([

@@ -106,8 +106,6 @@ c=0
 # Process directories one by one
 for entry in os.scandir(pdbdir):
    if entry.is_dir():
-# for i in range(1000):
-        # entrypath ='/home/roger/2023_self_regulatory_motifs/SwissProt/domainStructures/PF01620.19'
         process_directory(entry.path, n=30)
         c+=1
         print('c:', c)
