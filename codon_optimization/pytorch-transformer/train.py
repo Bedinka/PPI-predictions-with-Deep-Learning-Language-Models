@@ -1,3 +1,4 @@
+import re
 from model import build_transformer
 from dataset import BilingualDataset, causal_mask
 from datasets import Dataset
@@ -59,7 +60,6 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
             break
 
     return decoder_input.squeeze(0)
-
 
 def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_step, writer, num_examples=2):
     model.eval()
@@ -186,6 +186,38 @@ def build_tokenizer_from_data(data, tokenizer_path):
 
 MAX_SEQ_LEN = 100 # temporary
 
+def trans_inititation_split(seq):
+    m = re.search('(.*)ATG(.{39})', seq, re.IGNORECASE)
+
+    if m.group(1) == None:
+        pre = "N" * 39
+
+    while m.group(1) != None:
+        pre = m.group(1)
+        while len(pre) < 39:
+            pre = "N" + m.group(1)
+        while len(pre) > 39:
+            pre = pre[len(pre)-39:]
+
+    trans_init_seq = "ATG".join(pre, m.group(2))
+
+    rest = seq[m.pos+39:]
+    return trans_init_seq, rest
+
+def trans_termination_split(seq):
+    m = re.search('(.{39})[TGA,TGG,TAA](.{39})', seq, re.IGNORECASE)
+    trans_term_seq = "TAA".join(m.group(1,2))
+    rest = seq[:m.pos-39]
+    return trans_term_seq, rest
+
+def middle_split(seq):
+    middlepos = len(seq)//2
+    middle = seq[middlepos-39:middlepos+39]
+    return middle
+
+def aa_start(aa):
+    return aa[:13]
+
 def split_word_amino_acid_seq(seq):
     return " ".join(seq)
 
@@ -220,7 +252,7 @@ def build_mRNA_tokenizer(input_filepath, tokenizer_path):
     data = load_mRNA_data(input_filepath)
     build_tokenizer_from_data(data, tokenizer_path)
 
-def read_mRNA(filepath = "./data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa"):
+def read_mRNA(filepath):
     fa_dic = {}
     f = open( filepath )
     id = ""
@@ -345,28 +377,8 @@ def single_prediction(config, seq, mRNA):
 
 
 def get_ds(config):
-    # It only has the train split, so we divide it overselves
-    #ds_raw = load_dataset('opus_books', f"{config['lang_src']}-{config['lang_tgt']}", split='train')
-    ds_raw_en_it = load_dataset('opus_books', f"en-it", split='train')
-    #print(ds_raw_en_it.info)
-    '''DatasetInfo(description='This is a collection of copyright free books aligned by Andras Farkas, which are available from http://www.farkastranslations.com/bilingual_books.php\nNote that the texts are rather dated due to copyright issues and that some of them are manually reviewed (check the meta-data at the top of the corpus files in XML). The source is multilingually aligned, which is available from http://www.farkastranslations.com/bilingual_books.php. In OPUS, the alignment is formally bilingual but the multilingual alignment can be recovered from the XCES sentence alignment files. Note also that the alignment units from the original source may include multi-sentence paragraphs, which are split and sentence-aligned in OPUS.\nAll texts are freely available for personal, educational and research use. Commercial use (e.g. reselling as parallel books) and mass redistribution without explicit permission are not granted. Please acknowledge the source when using the data!\n\n16 languages, 64 bitexts\ntotal number of files: 158\ntotal number of tokens: 19.50M\ntotal number of sentence fragments: 0.91M\n', citation="@InProceedings{TIEDEMANN12.463,\n  author = {J�rg Tiedemann},\n  title = {Parallel Data, Tools and Interfaces in OPUS},\n  
-    booktitle = {Proceedings of the Eight International Conference on Language Resources and Evaluation (LREC'12)},\n  year = {2012},\n  month = {may},\n  date = {23-25},\n  address = {Istanbul, Turkey},\n  editor = {Nicoletta Calzolari (Conference Chair) and Khalid Choukri and Thierry Declerck and Mehmet Ugur Dogan and Bente Maegaard and Joseph Mariani and Jan Odijk and Stelios Piperidis},\n  publisher = {European Language Resources Association (ELRA)},\n  isbn = {978-2-9517408-7-7},\n  language = {english}\n }\n", 
-    homepage='http://opus.nlpl.eu/Books.php', license='', 
-    features={'id': Value(dtype='string', id=None), 'translation': Translation(languages=['en', 'it'], id=None)}, 
-    post_processed=None, supervised_keys=None, task_templates=None, builder_name='opus_books', config_name='en-it', version=1.0.0, 
-    splits={'train': SplitInfo(name='train', num_bytes=8993755, num_examples=32332, shard_lengths=None, dataset_name='opus_books')}, 
-    download_checksums={'https://object.pouta.csc.fi/OPUS-Books/v1/moses/en-it.txt.zip': {'num_bytes': 3295251, 'checksum': None}},
-    download_size=3295251, post_processing_size=None, dataset_size=8993755, size_in_bytes=12289006)
-    '''
 
     ds_raw = load_aminoacid_mRNA_data("data/chlamydomonas_aa.fa", "data/chlamydomonas_mRNA.fa")
-    #print(ds_raw.info)
-    '''DatasetInfo(description='', citation='', homepage='', license='', 
-    features={'translation': {'aa': Value(dtype='string', id=None), 'mRNA': Value(dtype='string', id=None)}}, 
-    post_processed=None, supervised_keys=None, task_templates=None, builder_name=None, config_name=None, version=None, 
-    splits=None, 
-    download_checksums=None, download_size=None, post_processing_size=None, dataset_size=None, size_in_bytes=None)
-    '''
 
     # Build tokenizers
     tokenizer_src = get_or_build_tokenizer(config, ds_raw, config['lang_src'])
@@ -378,29 +390,6 @@ def get_ds(config):
     #    if ( i > 5 ): break
     #    print( item['translation'][config['lang_src']] )
     #    i += 1
-    '''
-    Source: Project Gutenberg
-    Jane Eyre
-    Charlotte Bronte
-    CHAPTER I
-    There was no possibility of taking a walk that day.
-    We had been wandering, indeed, in the leafless shrubbery an hour in the morning; but since dinner (Mrs. Reed, when there was no company, dined early) the cold winter wind had brought with it clouds so sombre, and a rain so penetrating, that further out-door exercise was now out of the question.
-    I was glad of it: I never liked long walks, especially on chilly afternoons: dreadful to me was the coming home in the raw twilight, with nipped fingers and toes, and a heart saddened by the chidings of Bessie, the nurse, and humbled by the consciousness of my physical inferiority to Eliza, John, and Georgiana Reed.
-    The said Eliza, John, and Georgiana were now clustered round their mama in the drawing-room: she lay reclined on a sofa by the fireside, and with her darlings about her (for the time neither quarrelling nor crying) looked perfectly happy.
-    Me, she had dispensed from joining the group; saying, "She regretted to be under the necessity of keeping me at a distance; but that until she heard from Bessie, and could discover by her own observation, that I was endeavouring in good earnest to acquire a more sociable and childlike disposition, a more attractive and sprightly manner--something lighter, franker, more natural, as it were--she really must exclude me from privileges intended only for contented, happy, little children."
-    "What does Bessie say I have done?" I asked.
-    "Jane, I don't like cavillers or questioners; besides, there is something truly forbidding in a child taking up her elders in that manner.
-    Be seated somewhere; and until you can speak pleasantly, remain silent."
-    A breakfast-room adjoined the drawing-room, I slipped in there.
-    It contained a bookcase: I soon possessed myself of a volume, taking care that it should be one stored with pictures.
-    I mounted into the window- seat: gathering up my feet, I sat cross-legged, like a Turk; and, having drawn the red moreen curtain nearly close, I was shrined in double retirement.
-    Folds of scarlet drapery shut in my view to the right hand; to the left were the clear panes of glass, protecting, but not separating me from the drear November day.
-    At intervals, while turning over the leaves of my book, I studied the aspect of that winter afternoon. Afar, it offered a pale blank of mist and cloud; near a scene of wet lawn and storm-beat shrub, with ceaseless rain sweeping away wildly before a long and lamentable blast.
-    I returned to my book--Bewick's History of British Birds: the letterpress thereof I cared little for, generally speaking; and yet there were certain introductory pages that, child as I was, I could not pass quite as a blank.
-    They were those which treat of the haunts of sea-fowl; of "the solitary rocks and promontories" by them only inhabited; of the coast of Norway, studded with isles from its southern extremity, the Lindeness, or Naze, to the North Cape-- "Where the Northern Ocean, in vast whirls, Boils round the naked, melancholy isles Of farthest Thule; and the Atlantic surge Pours in among the stormy Hebrides."
-    Nor could I pass unnoticed the suggestion of the bleak shores of Lapland, Siberia, Spitzbergen, Nova Zembla, Iceland, Greenland, with "the vast sweep of the Arctic Zone, and those forlorn regions of dreary space,--that reservoir of frost and snow, where firm fields of ice, the accumulation of centuries of winters, glazed in Alpine heights above heights, surround the pole, and concentre the multiplied rigours of extreme cold."
-    Of these death-white realms I formed an idea of my own: shadowy, like all the half-comprehended notions that float dim through children's brains, but strangely impressive.
-    '''
     tokenizer_tgt = get_or_build_tokenizer(config, ds_raw, config['lang_tgt'])
 
     # test
@@ -410,29 +399,7 @@ def get_ds(config):
     #    if ( i > 5 ): break
     #    print( item['translation'][config['lang_tgt']] )
     #    i += 1
-    '''
-    Source: www.liberliber.it/Audiobook available here
-    Jane Eyre
-    Charlotte Brontë
-    PARTE PRIMA
-    I. In quel giorno era impossibile passeggiare.
-    La mattina avevamo errato per un'ora nel boschetto spogliato di foglie, ma dopo pranzo (quando non vi erano invitati, la signora Reed desinava presto), il vento gelato d'inverno aveva portato seco nubi così scure e una pioggia così penetrante, che non si poteva pensare a nessuna escursione.
-    Ne ero contenta. Non mi sono mai piaciute le lunghe passeggiate, sopra tutto col freddo, ed era cosa penosa per me di tornar di notte con le mani e i piedi gelati, col cuore amareggiato dalle sgridate di Bessie, la bambinaia, e con lo spirito abbattuto dalla coscienza della mia inferiorità fisica di fronte a Eliza, a John e a Georgiana Reed.
-    Eliza, John e Georgiana erano aggruppati in salotto attorno alla loro mamma; questa, sdraiata sul sofà accanto al fuoco e circondata dai suoi bambini, che in quel momento non questionavano fra loro né piangevano, pareva perfettamente felice.
-    Ella mi aveva proibito di unirmi al loro gruppo, dicendo che deplorava la necessità in cui trovavasi di tenermi così lontana, ma che fino al momento in cui Bessie non guarentirebbe che mi studiavo di acquistare un carattere più socievole e più infantile, maniere più cortesi e qualcosa di più radioso, di più aperto, di più sincero, non poteva concedermi gli stessi privilegi che ai bambini allegri e soddisfatti.
-    — Che cosa vi ha detto Bessie di nuovo sul conto mio? — domandai.
-    — Jane, non mi piace di essere interrogata. Sta male, del resto, che una bimba tratti così i suoi superiori.
-    Sedetevi in qualche posto e state buona fino a quando non saprete parlare ragionevolmente.
-    Una piccola sala da pranzo metteva nel salotto, andai in quella pian piano.
-    Vi era una biblioteca e io m'impossessai di un libro, cercando che fosse ornato d'incisioni.
-    Mi collocai allora nel vano di una finestra, sedendomi sui piedi come i turchi, e tirando la tenda di damasco rosso, mi trovai rinchiusa in un doppio ritiro.
-    Le larghe pieghe della cortina scarlatta mi nascondevano tutto ciò che era alla mia destra: alla mia sinistra una invetriata mi proteggeva, ma non mi separava da una triste giornata di novembre.   
-    Di tanto in tanto, sfogliando il libro, gettavo un'occhiata al difuori e studiavo l'aspetto di quella serata d'inverno; in lontananza si scorgeva una pallida striscia di nebbia con nuvole, più vicino alberi bagnati, piante sradicate dal temporale e, infine, una pioggia incessante, che lunghe e lamentevoli ventate respingevano sibilando.
-    Tornavo allora al mio libro; era La storia degli uccelli dell'Inghilterra, scritta da Berwich. In generale non mi occupavo del testo, nondimeno c'erano delle pagine d'introduzione che non potevo lasciar passare inosservate, malgrado la mia gioventù.
-    Esse parlavano di quei rifugi degli uccelli marini, di quei promontori, di quelle rocce deserte abitate da essi soli, di quelle coste della Norvegia sparse d'isole dalla più meridionale punta al capo più nordico, là dove "l'Oceano Polare mugge in vasti turbini attorno all'isola arida e malinconica di Tule, là ove il mare Atlantico si precipita in mezzo alle Ebridi tempestose."
-    Non potevo neppure saltare la descrizione di quei pallidi paesaggi della Siberia, dello Spitzberg, della Nuova-Zembla, dell'Islanda, della verde Finlandia! Ero assorta nel pensiero di quella solitudine della zona artica, di quelle immense regioni abbandonate, di quei serbatoi di ghiaccio, ove i campi di neve accumulati durante gli inverni di molti secoli, ammucchiano montagne su montagne per circondare il polo e vi concentrano tutti i rigori del freddo più intenso.
-    Mi ero formata un'idea tutta mia di quei regni pallidi come la morte, idea vaga, come sono tutte le cose capite per metà, che fluttuano nella testa dei bimbi; ma quella che mi figuravo produceva in me uno strano effetto.
-    '''
+    
     # Keep 90% for training, 10% for validation
     train_ds_size = int(0.9 * len(ds_raw))
     val_ds_size = len(ds_raw) - train_ds_size
@@ -572,7 +539,7 @@ def train_model(config):
 
 
 def generate_mRNA_AA_data():
-    mRNA_dic = read_mRNA()
+    mRNA_dic = read_mRNA(filepath = "./data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa")
     save_mRNA_AA( mRNA_dic, "data/chlamydomonas_aa.fa", "data/chlamydomonas_mRNA.fa" )
     build_amino_acid_tokenizer("data/chlamydomonas_aa.fa", "tokenizer_aa.json")
     build_mRNA_tokenizer("data/chlamydomonas_mRNA.fa", "tokenizer_mRNA.json")
@@ -585,7 +552,7 @@ if __name__ == "__main__":
         generate_mRNA_AA_data()
     
     
-    if True:
+    if True: #manual switch for train or single_pred
         train_model(config)
     else:
         seq = "MVNVPKTKRAFCKGCKKHMMMKVTQYKTGKASLYAQGKRRYDRKQSGYGGQTKPVFHKKAKTTKKIVLRMQCQECKQTCMKGLKRCKHFEIGGDKKKGN*"
