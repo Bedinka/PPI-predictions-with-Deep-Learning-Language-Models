@@ -2,11 +2,10 @@
 
 import numpy as np
 import os, csv
-from Bio.PDB import PDBParser, Select
+from Bio.PDB import PDBParser, Select, PDBIO
 from Bio.PDB.ccealign import run_cealign
 from Bio.PDB.PDBExceptions import PDBException
 from Bio.PDB.qcprot import QCPSuperimposer
-import Bio.PDB.PDBIO as io
 
 
 _RESID_SORTER = lambda r: r.id[1]  # noqa: E731
@@ -157,7 +156,7 @@ pdb2 = "/home/roger/2023_self_regulatory_motifs/SwissProt/domainStructures/PF188
 pdb3 = "/home/roger/2023_self_regulatory_motifs/SwissProt/data/AF-P39180-F1-model_v4.pdb"
 
 
-def AlignPDBWithDomain( srcDomain, srcPDB, trgDomain ):
+def AlignPDBWithDomain( srcDomain, srcPDB, trgDomain, motifPosList, dir ):
     reference_structure = PDBParser().get_structure( "reference", trgDomain )
     structure = PDBParser().get_structure("structure", srcDomain )
     structure2 = PDBParser().get_structure("structure", srcPDB )
@@ -166,25 +165,25 @@ def AlignPDBWithDomain( srcDomain, srcPDB, trgDomain ):
     aligner1.set_reference(reference_structure)
     aligner1.align(structure) 
     aligner1.align_from_best_u(structure2)
+
+    io = PDBIO()
+    io.set_structure(structure2)
     
-    # io.set_structure(reference_structure)
-    # io.save("/home/roger/2023_self_regulatory_motifs/trgDomain2.pdb")
-    # io.set_structure(structure)
-    # io.save("/home/roger/2023_self_regulatory_motifs/srcDomain2.pdb")
-    # io.set_structure(structure2)
-    # io.save("/home/roger/2023_self_regulatory_motifs/srcPDB2.pdb")
+    for motifPos in motifPosList:
+        motifStart, motifEnd = motifPos
+        select = CustomSelect(start_index=int(motifStart), end_index=int(motifEnd))
+        io.save(os.path.join(dir, f'motif_{protein}_{motifPos[0]}-{motifPos[1]}.pdb'), select=select)
+            
     return structure2
 # AlignPDBWithDomain( pdb2, pdb3, trgDomain )
 
-
-
 motifData = dict()
-table1 = open('SwissProt/SwissProt_results.csv', 'r')
+table1 = open('SwissProt_results.csv', 'r')
 reader1 = csv.reader(table1)
 next(reader1)
 for line in reader1:
-    Species, PDB, Domain, domainName, motifSeq, domainStrart, domainEnd, motifStart, motifEnd, distanceDM = line
-    domainPos = domainEnd+'-'+domainStrart
+    Species, PDB, Domain, domainName, motifSeq, domainStart, domainEnd, motifStart, motifEnd, distanceDM = line
+    domainPos = domainStart+'-'+domainEnd
     if Domain not in motifData.keys():
         motifData[Domain] = dict()
     if PDB not in motifData[Domain].keys():
@@ -193,7 +192,7 @@ for line in reader1:
         motifData[Domain][PDB][domainPos] = [(motifStart, motifEnd)]
     else:
         motifData[Domain][PDB][domainPos].append((motifStart, motifEnd))
-
+print('SwissProt_results parsed')
 
 pdbdir = '/home/roger/2023_self_regulatory_motifs/SwissProt'
 c = 0
@@ -203,51 +202,18 @@ for entry in os.scandir(os.path.join(pdbdir, 'domainStructures')):
         domain = entry.path.split('/')[-1]
         for section in os.scandir(entry.path):
             s = section.path.split('/')[-1]
-            if s=='best_model.pdb': continue
+            if s[:5]=='motif' or s=='best_model.pdb': continue
             protein = s.split('v4_')[0]+'v4'
             domainPos = s.split(protein)[-1].split('_')[1]
             if (domain not in motifData) or (protein not in motifData[domain]) or (domainPos not in motifData[domain][protein]):
                 continue
-            motifStart, motifEnd = motifData[domain][protein][domainPos]
-            print(motifStart, motifEnd)
-            print(motifData[domain][protein][domainPos])
-            
+
             srcDomain = section.path
             srcPDB = pdbdir+'/data/'+protein+'.pdb'
             trgDomain = os.path.join(entry.path, "best_model.pdb")
-            wholeProt = AlignPDBWithDomain(srcDomain, srcPDB, trgDomain)
+            motifPosList = motifData[domain][protein][domainPos]
+
+            wholeProt = AlignPDBWithDomain(srcDomain, srcPDB, trgDomain, motifPosList, entry.path)
+
+        print(domain, 'parsed')
             
-            # select = CustomSelect(start_index=motifStart, end_index=motifEnd)
-            
-        # continue
-        # # Load the reference structure
-        # reference_structure = PDBParser().get_structure("reference", os.path.join(entry.path, "best_model.pdb"))
-        # # for loop that saves the positions of the motifs after alignment
-        # for idx, motif in enumerate(motifDict[entry.name]):
-        #     print(motif)
-        #     # AF-Q9ZW31-F1-model_v4_49-152_PF00011.24.pdb
-        #     structure_entry= motif[1] +'_'+ motif[5] +'-'+ motif[6] +'_'+ motif[2] + '.pdb'
-        #     print(structure_entry)
-        #     # Load the structure to align
-        #     structure = PDBParser().get_structure("structure", os.path.join(entry.path, structure_entry))
-            
-        #     # Align structure to the reference
-        #     aligner1 = CEAligner()
-        #     aligner1.set_reference(reference_structure)
-        #     aligner1.align(structure)
-        #     # Save the translation and rotation (code line is missing, add appropriate code here)
-        #     moves = aligner1.get_guide_coord_from_structure(structure)
-        #     print(moves)
-        #     # Align full structure to moved structure
-        #     # full_structure = PDBParser().get_structure("full_structure", os.path.join('/home/roger/2023_self_regulatory_motifs/SwissProt/data/', structure_entry.split('_')[0]+'_'+structure_entry.split('_')[1]+'.pdb'))
-        #     # aligner2 = CEAligner()
-        #     # aligner2.set_reference(structure)
-        #     # aligner2.align(full_structure)
-        #     # should_be_moves = aligner2.refcoord
-        #     # assert(should_be_moves==moves)
-        #     # motifStart = int(motif[7])
-        #     # motifEnd = int(motif[8])
-        #     # motifPosition = aligner2.get_guide_coord_from_structure(full_structure)[motifStart:motifEnd]
-        #     # motifDict[entry.name][idx].append(motifPosition)
-        #     print('\n----------------------------')
-        # break

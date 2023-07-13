@@ -86,7 +86,7 @@ class Chain:
         return output
 
     def get_self_contacting_residue_network( self, domains, dist_cutoff = 6.0 ):
-        # CA distance <= 5.0
+        # CA distance <= 6.0
         aGraph = nx.Graph()
         #print(len(self.residues_list))
         for residue1 in self.residues_list:
