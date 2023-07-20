@@ -234,6 +234,15 @@ def load_amino_acid_data(input_filepath):
     f.close()
     return data
 
+def load_abundance(input_filepath):
+    data = []
+    f = open( input_filepath )
+    for line in f.readlines():
+        data.append( line )
+    f.close()
+    return data
+
+
 def build_amino_acid_tokenizer(input_filepath, tokenizer_path):
     data = load_amino_acid_data(input_filepath)
     build_tokenizer_from_data(data, tokenizer_path)
