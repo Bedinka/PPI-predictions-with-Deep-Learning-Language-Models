@@ -352,27 +352,26 @@ def single_prediction(config, seq, mRNA):
             model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
 
             source_text = batch["src_text"][0]
-            target_text = batch["tgt_text"][0]
+            #target_text = batch["tgt_text"][0]
             model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
             model_out_text += "[EOS]"
 
             source_texts.append(source_text)
-            expected.append(target_text)
+            #expected.append(target_text)
             predicted.append(model_out_text)
             
             # Print the source, target and model output
             print(f"{f'SOURCE: ':>12}{source_text}")
-            print(f"{f'TARGET: ':>12}{target_text}")
+            #print(f"{f'TARGET: ':>12}{target_text}")
             print(f"{f'PREDICTED: ':>12}{model_out_text}")
 
-            mRNA_original = target_text.replace(" ", "")
+            #mRNA_original = target_text.replace(" ", "")
             mRNA_predicted = model_out_text.replace(" ", "")
-            aa_original = translate( mRNA_original )
             aa_predicted = translate( mRNA_predicted )    
             
-            print(f"{f'TARGET AAs: ':>12}{aa_original}")
+            print(f"{f'TARGET AAs: ':>12}{seq}")
             print(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
-            print(f"{f'SIMILARITY SCORE: ':>12}{similarity( aa_original, aa_predicted )}")
+            print(f"{f'SIMILARITY SCORE: ':>12}{similarity( seq, aa_predicted )}")
             
 
 
@@ -552,9 +551,10 @@ if __name__ == "__main__":
         generate_mRNA_AA_data()
     
     
-    if True: #manual switch for train or single_pred
+    if False: #manual switch for train or single_pred
         train_model(config)
     else:
-        seq = "MVNVPKTKRAFCKGCKKHMMMKVTQYKTGKASLYAQGKRRYDRKQSGYGGQTKPVFHKKAKTTKKIVLRMQCQECKQTCMKGLKRCKHFEIGGDKKKGN*"
-        mRNA = "ATGGTGAACGTTCCTAAGACCAAGCGGGCGTTCTGCAAGGGGTGCAAGAAGCACATGATGATGAAGGTCACCCAGTACAAGACTGGCAAGGCCTCCCTCTACGCGCAGGGCAAGCGCCGCTACGACCGCAAGCAGTCGGGTTACGGTGGTCAGACCAAGCCCGTCTTCCACAAGAAGGCCAAGACCACCAAGAAGATCGTGCTGCGCATGCAGTGCCAAGAGTGCAAGCAGACCTGCATGAAGGGCCTGAAGCGCTGCAAGCACTTCGAGATCGGTGGTGACAAGAAGAAGGGCAACTAA"
+        #random sequence for test
+        seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYGVSPNYDKWEMERTDITMKHKLGGGQYGEVYEGVWKKYSLTVAVKTLKEDTMEVEEFLKEAAVMKEIKHPNLVQLLGVCTREPPFYIITEFMTYGNLLDYLRECNRQEVNAVVLLYMATQISSAMEYLEKKNFIHRNLAARNCLVGENHLVKVADFGLSRLMTGDTYTAHAGAKFPIKWTAPESLAYNKFSIKSDVWAFGVLLWEIATYGMSPYPGIDLSQVYELLEKDYRMERPEGCPEKVYELMRACWQWNPSDRPSFAEIHQAFETMFQESSISDEVEKELGKENLYFQ*"
+        mRNA = ""
         single_prediction(config, seq[:40], mRNA[:120])
