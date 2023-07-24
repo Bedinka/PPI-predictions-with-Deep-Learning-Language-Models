@@ -32,6 +32,7 @@ aa_dic = { "I" : ["ATT", "ATC", "ATA"], "L" : ["CTT", "CTC", "CTA", "CTG", "TTA"
 
 
 def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_len, device):
+    prob_list = []
     sos_idx = tokenizer_tgt.token_to_id('[SOS]')
     eos_idx = tokenizer_tgt.token_to_id('[EOS]')
 
@@ -55,11 +56,12 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
         decoder_input = torch.cat(
             [decoder_input, torch.empty(1, 1).type_as(source).fill_(next_word.item()).to(device)], dim=1
         )
+        prob_list.append(prob)
 
         if next_word == eos_idx:
             break
 
-    return decoder_input.squeeze(0)
+    return decoder_input.squeeze(0), prob_list
 
 def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_step, writer, num_examples=2):
     model.eval()
@@ -88,7 +90,7 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
             assert encoder_input.size(
                 0) == 1, "Batch size must be 1 for validation"
 
-            model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
+            model_out, prob_list = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
 
             source_text = batch["src_text"][0]
             target_text = batch["tgt_text"][0]
@@ -358,7 +360,7 @@ def single_prediction(config, seq, mRNA):
             assert encoder_input.size(
                 0) == 1, "Batch size must be 1 for validation"
 
-            model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
+            model_out, prob_list = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
 
             source_text = batch["src_text"][0]
             #target_text = batch["tgt_text"][0]
@@ -381,6 +383,8 @@ def single_prediction(config, seq, mRNA):
             print(f"{f'TARGET AAs: ':>12}{seq}")
             print(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print(f"{f'SIMILARITY SCORE: ':>12}{similarity( seq, aa_predicted )}")
+
+
             
 
 
@@ -564,6 +568,7 @@ if __name__ == "__main__":
         train_model(config)
     else:
         #random sequence for test
-        seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYGVSPNYDKWEMERTDITMKHKLGGGQYGEVYEGVWKKYSLTVAVKTLKEDTMEVEEFLKEAAVMKEIKHPNLVQLLGVCTREPPFYIITEFMTYGNLLDYLRECNRQEVNAVVLLYMATQISSAMEYLEKKNFIHRNLAARNCLVGENHLVKVADFGLSRLMTGDTYTAHAGAKFPIKWTAPESLAYNKFSIKSDVWAFGVLLWEIATYGMSPYPGIDLSQVYELLEKDYRMERPEGCPEKVYELMRACWQWNPSDRPSFAEIHQAFETMFQESSISDEVEKELGKENLYFQ*"
+        seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYG*"
+        #seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYGVSPNYDKWEMERTDITMKHKLGGGQYGEVYEGVWKKYSLTVAVKTLKEDTMEVEEFLKEAAVMKEIKHPNLVQLLGVCTREPPFYIITEFMTYGNLLDYLRECNRQEVNAVVLLYMATQISSAMEYLEKKNFIHRNLAARNCLVGENHLVKVADFGLSRLMTGDTYTAHAGAKFPIKWTAPESLAYNKFSIKSDVWAFGVLLWEIATYGMSPYPGIDLSQVYELLEKDYRMERPEGCPEKVYELMRACWQWNPSDRPSFAEIHQAFETMFQESSISDEVEKELGKENLYFQ*"
         mRNA = ""
         single_prediction(config, seq[:40], mRNA[:120])
