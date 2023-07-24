@@ -1,6 +1,5 @@
 import re
 from model import build_transformer
-from dataset import BilingualDataset, causal_mask
 from datasets import Dataset
     
 from config import get_config, get_weights_file_path
@@ -23,8 +22,15 @@ from tokenizers.models import WordLevel
 from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
-import torchmetrics
-from torch.utils.tensorboard import SummaryWriter
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+from transformers import BertTokenizer, BertModel
+
+from dataset import AbundanceDataset, causal_mask
+
+#import torchmetrics
+#from torch.utils.tensorboard import SummaryWriter
 
 codon_dic = {"GCT":"A","GCC":"A","GCA":"A","GCG":"A","TGT":"C","TGC":"C","GAA":"E","GAG":"E","GAT":"D","GAC":"D","GGT":"G","GGC":"G","GGA":"G","GGG":"G","TTT":"F","TTC":"F","ATT":"I","ATC":"I","ATA":"I","CAT":"H","CAC":"H","AAA":"K","AAG":"K","ATG":"M","CTT":"L","CTC":"L","CTA":"L","CTG":"L","TTA":"L","TTG":"L","AAT":"N","AAC":"N","CAA":"Q","CAG":"Q","CCT":"P","CCC":"P","CCA":"P","CCG":"P","TCT":"S","TCC":"S","TCA":"S","TCG":"S","AGT":"S","AGC":"S","CGT":"R","CGC":"R","CGA":"R","CGG":"R","AGA":"R","AGG":"R","ACT":"T","ACC":"T","ACA":"T","ACG":"T","TGG":"W","GTT":"V","GTC":"V","GTA":"V","GTG":"V","TAT":"Y","TAC":"Y"}
 
@@ -244,7 +250,6 @@ def load_abundance(input_filepath):
     f.close()
     return data
 
-
 def build_amino_acid_tokenizer(input_filepath, tokenizer_path):
     data = load_amino_acid_data(input_filepath)
     build_tokenizer_from_data(data, tokenizer_path)
@@ -318,6 +323,23 @@ def load_aminoacid_mRNA_data(aa_input_filepath, mRNA_input_filepath):
     dataset = Dataset.from_list(my_list, split='train')
     return dataset
 
+def load_abundance_data(input_filepath):
+    data = []
+    with open(input_filepath) as h:
+        for i in h.readlines():
+            data.append(float(i))
+    return data
+        
+def load_mRNA_abundance_data(mRNA_path, abundance_path):
+    mRNA_data = load_mRNA_data(mRNA_path)
+    abundance_data = load_abundance_data(abundance_path)
+    my_list = []
+    for i in range(len(abundance_data)):
+        my_list.append({"translation":{"mRNA":mRNA_data[i]}, "abundance":abundance_data[i]})
+    dataset = Dataset.from_list(my_list, split='train')
+    return dataset
+    
+    
 def single_prediction(config, seq, mRNA):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -384,9 +406,55 @@ def single_prediction(config, seq, mRNA):
             print(f"{f'PREDICTED AAs: ':>12}{aa_predicted}")
             print(f"{f'SIMILARITY SCORE: ':>12}{similarity( seq, aa_predicted )}")
 
+def get_ds_2(config):
 
-            
+    ds_raw = load_mRNA_abundance_data("codon_optimization/pytorch-transformer/data/abundance_implement/mrna_list.txt", "codon_optimization/pytorch-transformer/data/abundance_implement/abundance_list.txt")
 
+    # Build tokenizers
+    tokenizer_src = get_or_build_tokenizer(config, ds_raw, config['lang_src'])
+
+    # test
+    #print( config['lang_src'] )
+    #i = 0
+    #for item in ds_raw:
+    #    if ( i > 5 ): break
+    #    print( item['translation'][config['lang_src']] )
+    #    i += 1
+    tokenizer_tgt = get_or_build_tokenizer(config, ds_raw, config['lang_tgt'])
+
+    # test
+    #print( config['lang_tgt'] )
+    #i = 0
+    #for item in ds_raw:
+    #    if ( i > 5 ): break
+    #    print( item['translation'][config['lang_tgt']] )
+    #    i += 1
+    
+    # Keep 90% for training, 10% for validation
+    train_ds_size = int(0.9 * len(ds_raw))
+    val_ds_size = len(ds_raw) - train_ds_size
+    train_ds_raw, val_ds_raw = random_split(ds_raw, [train_ds_size, val_ds_size])
+
+    train_ds = AbundanceDataset(train_ds_raw, tokenizer_src, tokenizer_tgt, config['lang_src'], config['lang_tgt'], config['seq_len'])
+    val_ds = AbundanceDataset(val_ds_raw, tokenizer_src, tokenizer_tgt, config['lang_src'], config['lang_tgt'], config['seq_len'])
+
+    # Find the maximum length of each sentence in the source and target sentence
+    max_len_src = 0
+    max_len_tgt = 0
+
+    for item in ds_raw:
+        src_ids = tokenizer_src.encode(item['translation'][config['lang_src']]).ids
+        tgt_ids = tokenizer_tgt.encode(item['translation'][config['lang_tgt']]).ids
+        max_len_src = max(max_len_src, len(src_ids))
+        max_len_tgt = max(max_len_tgt, len(tgt_ids))
+
+    print(f'Max length of source sentence: {max_len_src}')
+    print(f'Max length of target sentence: {max_len_tgt}')
+    
+    train_dataloader = DataLoader(train_ds, batch_size=config['batch_size'], shuffle=True)
+    val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=True)
+
+    return train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt
 
 def get_ds(config):
 
@@ -468,7 +536,6 @@ def load_model():
 
     return model, tokenizer_src, tokenizer_tgt
 
-
 def train_model(config):
     # Define the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -477,8 +544,8 @@ def train_model(config):
     # Make sure the weights folder exists
     Path(config['model_folder']).mkdir(parents=True, exist_ok=True)
 
-    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds(config)
-    model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size()).to(device)
+    train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_ds_2(config)
+    model = TransformerRegressionModel(transformer_model, input_size=transformer_model.config.hidden_size) #get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size()).to(device)
     # Tensorboard
     writer = SummaryWriter(config['experiment_name'])
 
@@ -549,12 +616,11 @@ def train_model(config):
             'global_step': global_step
         }, model_filename)
 
-
 def generate_mRNA_AA_data():
-    mRNA_dic = read_mRNA(filepath = "./codon_optimization/pytorch-transformer/data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa")
-    save_mRNA_AA( mRNA_dic, "./codon_optimization/pytorch-transformer/data/chlamydomonas_aa.fa", "./codon_optimization/pytorch-transformer/data/chlamydomonas_mRNA.fa" )
-    build_amino_acid_tokenizer("./codon_optimization/pytorch-transformer/data/chlamydomonas_aa.fa", "./codon_optimization/pytorch-transformer/tokenizer_aa.json")
-    build_mRNA_tokenizer("./codon_optimization/pytorch-transformer/data/chlamydomonas_mRNA.fa", "./codon_optimization/pytorch-transformer/tokenizer_mRNA.json")
+    mRNA_dic = read_mRNA(filepath = "./data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa")
+    save_mRNA_AA( mRNA_dic, "data/chlamydomonas_aa.fa", "data/chlamydomonas_mRNA.fa" )
+    build_amino_acid_tokenizer("data/chlamydomonas_aa.fa", "tokenizer_aa.json")
+    build_mRNA_tokenizer("data/chlamydomonas_mRNA.fa", "tokenizer_mRNA.json")
     
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
@@ -564,8 +630,8 @@ if __name__ == "__main__":
         generate_mRNA_AA_data()
     
     
-    if False: #manual switch for train or single_pred
-        train_model(config)
+    if True: #manual switch for train or single_pred
+        train(model, dataloader, optimizer, num_epochs)
     else:
         #random sequence for test
         seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGSTVADGLITTLHYPAPKRNKPTVYG*"
