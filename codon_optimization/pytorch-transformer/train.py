@@ -551,10 +551,10 @@ def train_model(config):
 
 
 def generate_mRNA_AA_data():
-    mRNA_dic = read_mRNA(filepath = "./data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa")
-    save_mRNA_AA( mRNA_dic, "data/chlamydomonas_aa.fa", "data/chlamydomonas_mRNA.fa" )
-    build_amino_acid_tokenizer("data/chlamydomonas_aa.fa", "tokenizer_aa.json")
-    build_mRNA_tokenizer("data/chlamydomonas_mRNA.fa", "tokenizer_mRNA.json")
+    mRNA_dic = read_mRNA(filepath = "./codon_optimization/pytorch-transformer/data/Chlamydomonas_reinhardtii.Chlamydomonas_reinhardtii_v5.5.cds.all.fa")
+    save_mRNA_AA( mRNA_dic, "./codon_optimization/pytorch-transformer/data/chlamydomonas_aa.fa", "./codon_optimization/pytorch-transformer/data/chlamydomonas_mRNA.fa" )
+    build_amino_acid_tokenizer("./codon_optimization/pytorch-transformer/data/chlamydomonas_aa.fa", "./codon_optimization/pytorch-transformer/tokenizer_aa.json")
+    build_mRNA_tokenizer("./codon_optimization/pytorch-transformer/data/chlamydomonas_mRNA.fa", "./codon_optimization/pytorch-transformer/tokenizer_mRNA.json")
     
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
@@ -568,7 +568,7 @@ if __name__ == "__main__":
         train_model(config)
     else:
         #random sequence for test
-        seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYG*"
+        seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGSTVADGLITTLHYPAPKRNKPTVYG*"
         #seq = "MGQQPGKVLGDQRRPSLPALHFIKGAGKRDSSRHGGPHCNVFVEHEALQRPVASDFEPQGLSEAARWNSKENLLAGPSENDPNLFVALYDFVASGDNTLSITKGEKLRVLGYNHNGEWCEAQTKNGQGWVPSNYITPVNSLEKHSWYHGPVSRNAAEYLLSSGINGSFLVRESESSPGQRSISLRYEGRVYHYRINTASDGKLYVSSESRFNTLAELVHHHSTVADGLITTLHYPAPKRNKPTVYGVSPNYDKWEMERTDITMKHKLGGGQYGEVYEGVWKKYSLTVAVKTLKEDTMEVEEFLKEAAVMKEIKHPNLVQLLGVCTREPPFYIITEFMTYGNLLDYLRECNRQEVNAVVLLYMATQISSAMEYLEKKNFIHRNLAARNCLVGENHLVKVADFGLSRLMTGDTYTAHAGAKFPIKWTAPESLAYNKFSIKSDVWAFGVLLWEIATYGMSPYPGIDLSQVYELLEKDYRMERPEGCPEKVYELMRACWQWNPSDRPSFAEIHQAFETMFQESSISDEVEKELGKENLYFQ*"
         mRNA = ""
         single_prediction(config, seq[:40], mRNA[:120])
