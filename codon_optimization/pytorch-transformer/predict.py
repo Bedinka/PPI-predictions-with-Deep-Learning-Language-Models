@@ -39,10 +39,11 @@ def predict_sequence(config, seq, model_number, weights="", basename=""):
         pred = []
         split_list = textwrap.wrap(seq, 100)
         for i in split_list:
-            pred.append(single_prediction(config, i, model_number, weights=weights, basename=basename))
+            mRNA_predicted, prob_list = single_prediction(config, i, model_number, weights=weights, basename=basename)
+            pred.append(mRNA_predicted)
         mRNA_predicted = "".join(pred)
     else:
-        mRNA_predicted = single_prediction(config, seq, model_number, weights=weights, basename=basename)
+        mRNA_predicted, prob_list = single_prediction(config, seq, model_number, weights=weights, basename=basename)
 
     """ model = load_model(model_number)[0]
     # Compute SHAP values
@@ -50,7 +51,7 @@ def predict_sequence(config, seq, model_number, weights="", basename=""):
     shap_values = explainer.shap_values(seq)
     shap.summary_plot(shap_values, seq) """  # Example: create a summary plot
     
-    return mRNA_predicted
+    return mRNA_predicted, prob_list
 
 def single_prediction(config, seq, model_number, weights = "", basename = ""):
 
@@ -108,8 +109,8 @@ def single_prediction(config, seq, model_number, weights = "", basename = ""):
         # check that the batch size is 1
         assert encoder_input.size(
             0) == 1, "Batch size must be 1 for validation"
-
-        model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
+        model_out, prob_list = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, config['seq_len'], device)
+        prob_list = [i.tolist() for i in prob_list]
 
         source_text = batch["src_text"][0]
         
@@ -121,9 +122,8 @@ def single_prediction(config, seq, model_number, weights = "", basename = ""):
         predicted.append(model_out_text)
 
         mRNA_predicted = model_out_text.replace(" ", "")
-        
 
-        return mRNA_predicted
+        return mRNA_predicted, prob_list
         
 def gc_content(mRNA):
     GC = 0.0
@@ -175,11 +175,24 @@ if __name__ == "__main__":
         out = "".join([out_start, out_mid, out_end])
         out2 = predict_sequence(config, seq, 19, weights="weights", basename="tmodel_")
         print('NOsplit mRNA: ' + out2)
+
+    elif len(sys.argv) > 2 and sys.argv[2] == "r": #reverse behavior for check
+        print("invert start and termination for backward check")
+        seq3ws = threeway_split(seq, "aa", 26) # threeway split output the list with the three partitions
+
+
+        out_start = predict_sequence(config, seq3ws[0], "04", weights = "weights_end", basename = "tmodel_end")
+        out_mid = predict_sequence(config, seq3ws[1], "09", weights = "weights_middle", basename = "tmodel_middle")
+        out_end = predict_sequence(config, seq3ws[2], "04", weights = "weights_start", basename = "tmodel_start")
+
+        out = "".join([out_start, out_mid, out_end])
+        out2 = predict_sequence(config, seq, 19, weights="weights", basename="tmodel_")
+        print('NOsplit mRNA: ' + out2)
             
     
 
     else:
-        out = predict_sequence(config, seq, 19, weights = "weights", basename = "tmodel")
+        out, p_list = predict_sequence(config, seq, 19, weights = "weights", basename = "tmodel")
     
     aa_out = cs.translate(out)
     opt_mRNA = cs.optimize_max(aa_out)
@@ -193,3 +206,17 @@ if __name__ == "__main__":
     print("GC content: " + str(gc_content(out)))
     print("mRNA similarity score : " + str(similarity(out, opt_mRNA)))
     print("AA similarity score : " + str(similarity(seq, aa_out)))
+    print(p_list)
+
+
+    mRNA_eval, p_list_eval = predict_sequence(config, aa_out, 19, weights="weights", basename="tmodel_")
+
+    error = []
+    for i in p_list:
+        for j in i:
+            error.append(i[j] - p_list_eval[i])
+
+    error = sum(error)/len(error)
+    print(error)
+
+    # convert tensor to list
