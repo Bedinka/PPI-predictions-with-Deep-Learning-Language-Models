@@ -1,5 +1,5 @@
 ---
-name: 'Issue: Bacterial transformation template'
+name: Bacterial transformation template
 about: Describe this issue template's purpose here.
 title: ''
 labels: ''
