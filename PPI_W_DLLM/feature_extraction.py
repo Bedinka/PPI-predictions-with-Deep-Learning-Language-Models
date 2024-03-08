@@ -146,7 +146,6 @@ def calculating_aa_mean(pdb):
     return chains_mean_points
 """
 
-
 def calculate_distance(p1, p2):
     dx = p1[0] - p2[0]
     dy = p1[1] - p2[1]
@@ -206,14 +205,15 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
             distance_matrix[i,j] = distance
     return distance_matrix
 
+#Dina version
 def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     sub_mat = []
     rows, cols = distmat_AB.shape  
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
-               sub_mat.append(distmat_AB[i:i+sub_size,j:j+sub_size])
+            sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            sub_mat.append((sub_matrix, i, j))
     return sub_mat
-
 
     '''
     unique_residues = {residue for interaction in interactions for residue in interaction[:2]}
@@ -229,6 +229,49 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     '''
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
+
+"""
+# getting bost library issue : 
+/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/PDBParser.py:395: PDBConstructionWarning: Ignoring unrecognized record 'END' at line 1085
+  warnings.warn(
+/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py:250: UserWarning: mkdssp: error while loading shared libraries: libboost_filesystem.so.1.73.0: cannot open shared object file: No such file or directory
+
+  warnings.warn(err)
+Traceback (most recent call last):
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 339, in <module>
+    main()
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 273, in main
+    rsa_data = calculate_rsa(pdb_file)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 243, in calculate_rsa
+    dssp = DSSP(model, pdb_file)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py", line 429, in __init__
+    dssp_dict, dssp_keys = dssp_dict_from_pdb_file(in_file, dssp)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py", line 252, in dssp_dict_from_pdb_file
+    raise Exception("DSSP failed to produce an output")
+Exception: DSSP failed to produce an output
+"""
+
+"""
+def calculate_rsa(pdb_file):
+    parser = PDBParser()
+    structure = parser.get_structure("protein", pdb_file)
+    model = structure[0]
+    chains = []
+    for chain in model:
+        chains.append(chain)
+    rsa_data = {}
+    for chain in chains:
+        dssp = DSSP(model, pdb_file)
+        rsa_data[chain.id] = {}
+        for residue in chain:
+            res_id = residue.id[1]
+            rsa = dssp[(chain.id, res_id)]['RSA'] 
+            rsa_data[chain.id][res_id] = rsa
+    return rsa_data
+"""
 
 def main():
     # Work directory
@@ -250,24 +293,17 @@ def main():
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
         print(IM_CA__A_B)
+
+        """
+        rsa_data = calculate_rsa(pdb_file)
+        print(rsa_data)
         """
         #data1.append(chains_CA)
         #distance_matrix = create_distance_matrix(interactions_CA)
         #print(distance_matrix)
-        """
+        
 
-        size = 7 
-        overlap = 1 
-
-        submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
-
-        for idx, submatrix in enumerate(submatrices):
-            print(f"Submatrix {idx+1}:")
-            print(submatrix)
-            print()
-
-
-        """ JS sub m,atrix creation
+        """ JS sub matrix creation
         [ row, col ] = IM_CA__A_B.shape
         
         for i in range(row-size):
@@ -298,6 +334,21 @@ def main():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
+        size = 7 
+        overlap = 1 
+
+        submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
+
+        for idx, submatrix in enumerate(submatrices):
+            print(f"Submatrix {idx+1}:")
+            print(submatrix)
+            """
+            # SPEARMAN NOT WORKING CAUSE NOT THE RIGHT SIZE EVEN IF ITS VECTORIZED
+            reshaped_submatrices = [submatrix.flatten() for submatrix in submatrices]
+            stats.spearmanr(np.concatenate(reshaped_submatrices), distance_matrix_mean__A_B.flatten())
+            print(np.mean(submatrices-distance_matrix_CA__A_B))
+            """
+    
         """ 
         chains_mean = calculating_aa_mean(pdb_file)
         distance_matrix_mean = create_distance_matrix(chains_mean, chainID2, chainID2)
@@ -306,8 +357,6 @@ def main():
         """
 
         break
-
-    
 
 if __name__ == "__main__":
     main()
