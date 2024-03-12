@@ -92,8 +92,45 @@ class Matrix:
         self.j=0
         self.residues = []
 
-    def sub(self)
+    def submatrixes(self, distance_matrix_CA__A_B , size, overlap ): 
+        self.submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
+        return self.submatrices
+
+    def sub_residuses(self, chains_CA, chainID1, chainID2, submatrices):
+
+        self.sub_res_a = []
+        self.sub_res_b = []
+        Chain_A = chains_CA[chainID1]
+        Chain_B = chains_CA[chainID2]
+
+        """ getting parsepdb chains keys as dictionary keys 
+        self.sub_res_a = {}
+        self.sub_res_b = {}
+        for chain_id in chains_CA.keys():
+        if chain_id == chainID1:
+            self.sub_res_a[chain_id] = []
+        elif chain_id == chainID2:
+            self.sub_res_b[chain_id] = []
+        """
+        for idx, submatrix in enumerate(submatrices):
+            print(f"Submatrix {idx+1}:")
+            print(submatrix)
+
+            # matrix, i, j
+            print(submatrix[0]) #matrix
+            print(submatrix[1]) #i
+            print(submatrix[2]) #j
+            
+            i = submatrix[1]
+            j = submatrix[2]
+            
+            start_a = Chain_A.residue_indexes[i]
+            start_b = Chain_B.residue_indexes[j]
+            sub_res_a = Chain_A.residues[start_a]
+            sub_res_b = Chain_A.residues[start_b]
     
+        return  sub_res_a, sub_res_b
+
     def __getitem__(self, key):
         return self.matrix[key]
         
@@ -127,7 +164,6 @@ def calculate_distance(p1, p2):
     distsq = pow(dx, 2) + pow(dy, 2) + pow(dz, 2)
     distance = np.sqrt(distsq)
     return distance
-
 
 def findInteractingFragments(chains):
     [_chainA, _chainB] = chains.keys()
@@ -185,15 +221,13 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     rows, cols = distmat_AB.shape  
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
-            sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            #sub_matrix = Matrix(distmat_AB[i:i+sub_size, j:j+sub_size], i +1, j+1)
+            #sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            sub_matrix = Matrix(distmat_AB[i:i+sub_size, j:j+sub_size], i +1, j+1)
             sub_mat.append((sub_matrix, i, j)) # residue_indexes
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
-
-
 
 def main():
     # Work directory
@@ -248,34 +282,9 @@ def main():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
-        size = 7 
-        overlap = 1 
-
-        submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
-
-
-        Chain_A = chains_CA[chainID1]
-        Chain_B = chains_CA[chainID2]
-
-        for idx, submatrix in enumerate(submatrices):
-            print(f"Submatrix {idx+1}:")
-            print(submatrix)
-
-            # matrix, i, j
-            print(submatrix[0]) #matrix
-            print(submatrix[1]) #i
-            print(submatrix[2]) #j
-            
-            i = submatrix[1]
-            j = submatrix[2]
-            
-            start = (Chain_A.residue_indexes[i])
-            print(Chain_B.residue_indexes[j])
-
-            print(Chain_A.residues[start])
-            
-            
-            
+        fixed_sub_mat = Matrix.submatrixes(distance_matrix_CA__A_B, 7, 1)
+        print(fixed_sub_mat)
+        
 
         break
 
