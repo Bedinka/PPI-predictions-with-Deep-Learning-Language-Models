@@ -37,6 +37,29 @@ def process_tgz_files_in_directory(work_dir):
             
     return processed_pdb_files
 
+def splitPDBbyChain(filename, output_dir):
+    chains = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            if line[:4] != "ATOM":
+                continue
+            chainID = line[21]
+            if chainID not in chains:
+                chains[chainID] = []
+            chains[chainID].append(line)
+
+    basename_ext = os.path.basename(filename)
+    basename = os.path.splitext(basename_ext)[0]  
+    output_subdir = os.path.join(output_dir, f"{basename}_splitted")
+    os.makedirs(output_subdir, exist_ok=True)
+
+    for chainID in chains:
+        chain_filename = os.path.join(output_subdir, f"{basename}-{chainID}.pdb")
+        with open(chain_filename, "w") as fout:
+            for line in chains[chainID]:
+                fout.write(line)
+    print(f"Processed {basename}")
+
 class Chain:
     def __init__(self, chainID):
         self.chainID = chainID
@@ -92,9 +115,9 @@ class Matrix:
         self.j=0
         self.residues = []
 
-    def submatrixes(self, distance_matrix_CA__A_B , size, overlap ): 
-        self.submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
-        return self.submatrices
+    def submatrixes( dist_mat , size, overlap ): 
+        submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
+        return submatrices
 
     def sub_residuses(self, chains_CA, chainID1, chainID2, submatrices):
 
@@ -222,8 +245,11 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
             #sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            sub_matrix = Matrix(distmat_AB[i:i+sub_size, j:j+sub_size], i +1, j+1)
-            sub_mat.append((sub_matrix, i, j)) # residue_indexes
+            sub_matrix = Matrix(sub_size, sub_size)
+            sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            sub_matrix.i = i + 1  
+            sub_matrix.j = j + 1  
+            sub_mat.append(sub_matrix) # residue_indexes
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
@@ -232,10 +258,12 @@ def get_submatrix(distance_matrix,i,j, size):
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
-
-    # Reading in the coordinates of each .pdb
+    
     processed_pdb_files = process_tgz_files_in_directory(work_dir)
-
+    for pdb_file in processed_pdb_files:
+        dir_name = os.path.dirname(pdb_file)
+        splitPDBbyChain(pdb_file, dir_name)
+            
     #JS
     data1 = []
     data2 = []
@@ -282,8 +310,8 @@ def main():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
-        fixed_sub_mat = Matrix.submatrixes(distance_matrix_CA__A_B, 7, 1)
-        print(fixed_sub_mat)
+        fixed_sub_mat = Matrix.submatrixes( dist_mat = distance_matrix_CA__A_B,  size = 7, overlap = 1 )
+        #print(fixed_sub_mat)
         
 
         break
