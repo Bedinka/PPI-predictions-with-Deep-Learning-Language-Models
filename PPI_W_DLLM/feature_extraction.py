@@ -2,10 +2,10 @@ from Bio.PDB import PDBParser
 from Bio.PDB.DSSP import DSSP
 import tarfile
 import os
-import pickle
 import numpy as np
 import pandas as pd
 from scipy import stats
+import freesasa
 
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -106,6 +106,15 @@ class Residue:
     def __str__(self):
         return self.aa + " - " + str(self.resnum) 
     
+    def calculate_RSA(self, structure):
+        residue_structure = freesasa.Structure()
+        for atom_name, (x, y, z) in self.atoms.items():
+            residue_structure.addAtom(atom_name, x, y, z)
+        result = freesasa.calc(residue_structure)
+        rsa = result.totalArea()
+        return rsa
+
+    
 class Matrix:
     def __init__(self, row, col):
         self.matrix = []
@@ -135,6 +144,7 @@ class Matrix:
         elif chain_id == chainID2:
             self.sub_res_b[chain_id] = []
         """
+
         for idx, submatrix in enumerate(submatrices):
             print(f"Submatrix {idx+1}:")
             print(submatrix)
@@ -254,7 +264,19 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
-
+"""
+def rsa(pdb_file, chain, chainID1): #, chains, chainID1, chainID2, 
+    structure = freesasa.Structure(pdb_file)
+    result = freesasa.calc(structure)
+    area_classes = freesasa.classifyResults(result, structure)
+    print( "Total : %.2f A2" % result.totalArea())
+    result.totalArea()
+    AA = result.residueAreas()
+    
+    for x in AA['A']:
+        chain[chainID1].aR
+       (AA['A'][x].total)
+"""
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
@@ -263,6 +285,8 @@ def main():
     for pdb_file in processed_pdb_files:
         dir_name = os.path.dirname(pdb_file)
         splitPDBbyChain(pdb_file, dir_name)
+        structure = freesasa.Structure(pdb_file)
+        rsa_value = Residue.calculate_RSA(structure)
             
     #JS
     data1 = []
@@ -277,7 +301,6 @@ def main():
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
         print(IM_CA__A_B)
-        
 
         """ JS sub matrix creation
         [ row, col ] = IM_CA__A_B.shape
@@ -294,7 +317,6 @@ def main():
         for i in range(row-size):
             for j in range(col-size):
                 print(get_submatrix(distance_matrix_CA__A_A, i, j, size))
-        
         """
 
         print("AA'S ATOMS DISTANCE CALCULATION")
@@ -311,8 +333,6 @@ def main():
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
         fixed_sub_mat = Matrix.submatrixes( dist_mat = distance_matrix_CA__A_B,  size = 7, overlap = 1 )
-        #print(fixed_sub_mat)
-        
 
         break
 
