@@ -83,7 +83,21 @@ class Residue:
     def __str__(self):
         return self.aa + " - " + str(self.resnum) 
     
+class Matrix:
+    def __init__(self, row, col):
+        self.matrix = []
+        self.row =row
+        self.col = col
+        self.i=0 
+        self.j=0
+        self.residues = []
+
+    def sub(self)
     
+    def __getitem__(self, key):
+        return self.matrix[key]
+        
+
 def parsePDB(pdb_file):
     chains = {}
     with open(pdb_file, 'r') as f:
@@ -105,46 +119,6 @@ def parsePDB(pdb_file):
                 chains[chainID].addResidue( aa, resnum )
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
     return chains
-"""
-# Calculating each AA mean 
-def calculating_aa_mean(pdb):
-    chains_mean_points = {}
-    with open(pdb, 'r') as f:
-            current_chain = None
-            current_residue = None
-            residue_coordinates = []
-            for line in f:
-                if line.startswith("ATOM"):
-                    aa = line[17:20]
-                    resnum = int(line[22:26])
-                    chainID = line[21]
-                    if current_chain != chainID or current_residue != resnum:
-                        if residue_coordinates:  
-                            mean_x = sum(coord[0] for coord in residue_coordinates) / len(residue_coordinates)
-                            mean_y = sum(coord[1] for coord in residue_coordinates) / len(residue_coordinates)
-                            mean_z = sum(coord[2] for coord in residue_coordinates) / len(residue_coordinates)
-                            mean_point = [mean_x, mean_y, mean_z]
-                            if current_chain not in chains_mean_points:
-                                chains_mean_points[current_chain] = Chain(current_chain)
-                            chains_mean_points[current_chain].addCA(aa, current_residue, *mean_point)
-                            residue_coordinates = []
-                        current_chain = chainID
-                        current_residue = resnum
-                    x = float(line[30:38])
-                    y = float(line[38:46])
-                    z = float(line[46:54])
-                    residue_coordinates.append([x, y, z])
-            if residue_coordinates:
-                mean_x = sum(coord[0] for coord in residue_coordinates) / len(residue_coordinates)
-                mean_y = sum(coord[1] for coord in residue_coordinates) / len(residue_coordinates)
-                mean_z = sum(coord[2] for coord in residue_coordinates) / len(residue_coordinates)
-                mean_point = [mean_x, mean_y, mean_z]
-                if current_chain not in chains_mean_points:
-                    chains_mean_points[current_chain] = Chain(current_chain)
-                chains_mean_points[current_chain].addCA(aa, resnum, *mean_point)
-
-    return chains_mean_points
-"""
 
 def calculate_distance(p1, p2):
     dx = p1[0] - p2[0]
@@ -212,66 +186,14 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
             sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            sub_mat.append((sub_matrix, i, j))
+            #sub_matrix = Matrix(distmat_AB[i:i+sub_size, j:j+sub_size], i +1, j+1)
+            sub_mat.append((sub_matrix, i, j)) # residue_indexes
     return sub_mat
 
-    '''
-    unique_residues = {residue for interaction in interactions for residue in interaction[:2]}
-    residue_to_index = {residue: i for i, residue in enumerate(unique_residues)}
-    num_residues = len(unique_residues)
-    distance_matrix = np.full((num_residues, num_residues), np.nan)
-    for residueA, residueB, distance in interactions:
-        indexA, indexB = residue_to_index[residueA], residue_to_index[residueB]
-        distance_matrix[indexA, indexB] = distance
-        distance_matrix[indexB, indexA] = distance  # Symmetric
-        
-    return distance_matrix
-    '''
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
 
-"""
-# getting bost library issue : 
-/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/PDBParser.py:395: PDBConstructionWarning: Ignoring unrecognized record 'END' at line 1085
-  warnings.warn(
-/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py:250: UserWarning: mkdssp: error while loading shared libraries: libboost_filesystem.so.1.73.0: cannot open shared object file: No such file or directory
 
-  warnings.warn(err)
-Traceback (most recent call last):
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 339, in <module>
-    main()
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 273, in main
-    rsa_data = calculate_rsa(pdb_file)
-               ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 243, in calculate_rsa
-    dssp = DSSP(model, pdb_file)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py", line 429, in __init__
-    dssp_dict, dssp_keys = dssp_dict_from_pdb_file(in_file, dssp)
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/pc550/miniconda3/lib/python3.12/site-packages/Bio/PDB/DSSP.py", line 252, in dssp_dict_from_pdb_file
-    raise Exception("DSSP failed to produce an output")
-Exception: DSSP failed to produce an output
-"""
-
-"""
-def calculate_rsa(pdb_file):
-    parser = PDBParser()
-    structure = parser.get_structure("protein", pdb_file)
-    model = structure[0]
-    chains = []
-    for chain in model:
-        chains.append(chain)
-    rsa_data = {}
-    for chain in chains:
-        dssp = DSSP(model, pdb_file)
-        rsa_data[chain.id] = {}
-        for residue in chain:
-            res_id = residue.id[1]
-            rsa = dssp[(chain.id, res_id)]['RSA'] 
-            rsa_data[chain.id][res_id] = rsa
-    return rsa_data
-"""
 
 def main():
     # Work directory
@@ -293,14 +215,6 @@ def main():
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
         print(IM_CA__A_B)
-
-        """
-        rsa_data = calculate_rsa(pdb_file)
-        print(rsa_data)
-        """
-        #data1.append(chains_CA)
-        #distance_matrix = create_distance_matrix(interactions_CA)
-        #print(distance_matrix)
         
 
         """ JS sub matrix creation
@@ -339,22 +253,29 @@ def main():
 
         submatrices = create_fixedsize_submatrix(distance_matrix_CA__A_B, size, overlap)
 
+
+        Chain_A = chains_CA[chainID1]
+        Chain_B = chains_CA[chainID2]
+
         for idx, submatrix in enumerate(submatrices):
             print(f"Submatrix {idx+1}:")
             print(submatrix)
-            """
-            # SPEARMAN NOT WORKING CAUSE NOT THE RIGHT SIZE EVEN IF ITS VECTORIZED
-            reshaped_submatrices = [submatrix.flatten() for submatrix in submatrices]
-            stats.spearmanr(np.concatenate(reshaped_submatrices), distance_matrix_mean__A_B.flatten())
-            print(np.mean(submatrices-distance_matrix_CA__A_B))
-            """
-    
-        """ 
-        chains_mean = calculating_aa_mean(pdb_file)
-        distance_matrix_mean = create_distance_matrix(chains_mean, chainID2, chainID2)
-        interactions_mean = findInteractingResidues(chains_mean, chainID2, chainID2, distance_matrix_mean) # chains_CA)  findInteractingFragments(chains_mean)
-        data2.append(chains_mean)
-        """
+
+            # matrix, i, j
+            print(submatrix[0]) #matrix
+            print(submatrix[1]) #i
+            print(submatrix[2]) #j
+            
+            i = submatrix[1]
+            j = submatrix[2]
+            
+            start = (Chain_A.residue_indexes[i])
+            print(Chain_B.residue_indexes[j])
+
+            print(Chain_A.residues[start])
+            
+            
+            
 
         break
 
