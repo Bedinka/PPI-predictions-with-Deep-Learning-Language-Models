@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import freesasa
+import torch
+import pydssp
 
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -262,7 +264,7 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
             distance_matrix[i,j] = distance
     return distance_matrix
 
-# SUb Matrix creation , Dina version
+# Sub Matrix creation , Dina version
 def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     sub_mat = []
     rows, cols = distmat_AB.shape  
@@ -279,6 +281,8 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
 
+
+        #sasa_pdb = result.write_pdb('2.pdb')       
 def rsa(pdb_file, chains_CA): 
     structure = freesasa.Structure(pdb_file)
     result = freesasa.calc(structure)
@@ -289,15 +293,32 @@ def rsa(pdb_file, chains_CA):
             all = result.residueAreas()
             residue_sasa = all[residue.chain][str(residue.resnum)].total
             residue.addRSA(residue_sasa)
-        
-        #sasa_pdb = result.write_pdb('2.pdb')       
-    
+            break  
+
+def dssp( batch, length, atoms, coordinates):
+       # Sample coordinates
+    batch, length, atoms, xyz = 10, 100, 4, 3
+    ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
+    coord = torch.randn([batch, length, atom, xyz]) # batch-dim is optional
+    # hydrogene bond matrix
+    hbond_matrix = pydssp.get_hbond_map(coord)
+    print(hbond_matrix.shape) # should be (batch, length, length)
+    # getting scondary struct 
+    dssp = pydssp.assign(coord, out_type='c3')
+    ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
+
+    # To get secondary str. as index
+    dssp = pydssp.assign(coord, out_type='index')
+    ## 0: loop,  1: alpha-helix,  2: beta-strand
+
+    # To get secondary str. as onehot representation
+    dssp = pydssp.assign(coord, out_type='onehot')
+    ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
+
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
-    data1 = []
-    data2 = []
     chain_split_files = []
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
@@ -352,7 +373,8 @@ def main():
         print(splitted_files)
         for s in splitted_files:
             rsa(pdb_file, chains_CA)
-            
+    
+        break
 
 if __name__ == "__main__":
     main()
