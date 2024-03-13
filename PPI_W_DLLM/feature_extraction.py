@@ -37,9 +37,12 @@ def process_tgz_files_in_directory(work_dir):
             
     return processed_pdb_files
 
+# Splitting PDB files by chains 
 def splitPDBbyChain(filename, output_dir):
     chains = {}
+    splitted_files = []    
     with open(filename, 'r') as f:
+        first_three_lines = [next(f) for _ in range(3)]
         for line in f:
             if line[:4] != "ATOM":
                 continue
@@ -56,15 +59,20 @@ def splitPDBbyChain(filename, output_dir):
     for chainID in chains:
         chain_filename = os.path.join(output_subdir, f"{basename}-{chainID}.pdb")
         with open(chain_filename, "w") as fout:
+            fout.writelines(first_three_lines)
             for line in chains[chainID]:
                 fout.write(line)
+        splitted_files.append(chain_filename)
+
+    return splitted_files 
     
 
 class Chain:
     def __init__(self, chainID):
         self.chainID = chainID
         self.residues = {}
-        self.residue_indexes = []       
+        self.residue_indexes = []    
+        self.prot_id = 0   
 
     def addResidue(self, aa, resnum, chainID):
         aResidue = Residue( aa, resnum, chainID )
@@ -113,15 +121,6 @@ class Residue:
         print(f"Added one rsa to {self.resnum}")
         print(self.rsa_value)
         
-
-        """"
-        residue_structure = freesasa.Structure(pdb_file)
-        for atom_name, (x, y, z) in self.atoms.items():
-            residue_structure.addAtom(atom_name, x, y, z)
-        result = freesasa.calc(residue_structure)
-        self.rsa_value = result.totalArea()
-        return rsa
-        """
     
     
 class Matrix:
@@ -176,7 +175,7 @@ class Matrix:
     def __getitem__(self, key):
         return self.matrix[key]
         
-
+# Parsing the PDB files 
 def parsePDB(pdb_file):
     chains = {}
     with open(pdb_file, 'r') as f:
@@ -199,6 +198,7 @@ def parsePDB(pdb_file):
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
     return chains
 
+# Calculating distance 
 def calculate_distance(p1, p2):
     dx = p1[0] - p2[0]
     dy = p1[1] - p2[1]
@@ -207,6 +207,7 @@ def calculate_distance(p1, p2):
     distance = np.sqrt(distsq)
     return distance
 
+# Finding iteracting fragments by given distance
 def findInteractingFragments(chains):
     [_chainA, _chainB] = chains.keys()
     chainA = chains[_chainA]
@@ -222,6 +223,7 @@ def findInteractingFragments(chains):
                 interactions.append((residueA, residueB, distance))
     return interactions
 
+# Finding iteracting residues by given distance
 def findInteractingResidues(chains, chainID1, chainID2, distance_matrix_CA):
     interactions = []
     chainA = chains[chainID1]
@@ -238,12 +240,15 @@ def findInteractingResidues(chains, chainID1, chainID2, distance_matrix_CA):
                 interaction_matrix[i,j] = 1.0
     return interactions, interaction_matrix
 
+# CA distance calculation 
 def get_CA_distance(residueA, residueB):
     return calculate_distance(residueA.atoms["CA"], residueB.atoms["CA"])
 
+# Geting mean distance 
 def get_mean_distance(residueA, residueB):
     return calculate_distance(residueA.get_mean_coordinate(), residueB.get_mean_coordinate())
 
+# Creating distance matrixes 
 def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
     chainA = chains[_chainA]
     chainB = chains[_chainB]
@@ -257,7 +262,7 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
             distance_matrix[i,j] = distance
     return distance_matrix
 
-#Dina version
+# SUb Matrix creation , Dina version
 def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     sub_mat = []
     rows, cols = distmat_AB.shape  
@@ -274,63 +279,27 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
 
-def rsa(pdb_files, chains_CA): 
-    for pdb_file in pdb_files:
-        structure = freesasa.Structure(pdb_file)
-        result = freesasa.calc(structure)
-        area_classes = freesasa.classifyResults(result, structure)
-        for chain in chains_CA.values():
-            for residue in chain.residues.values():
-                print(chain.residue_indexes)
-                all = result.residueAreas()
-                residue_sasa = all[residue.chain][str(residue.resnum)].total
-                for x in all[residue.chain]:
-                    print(all[residue.chain][x].total)
-                residue.addRSA(residue_sasa)
-        break
+def rsa(pdb_file, chains_CA): 
+    structure = freesasa.Structure(pdb_file)
+    result = freesasa.calc(structure)
+    area_classes = freesasa.classifyResults(result, structure)
+    for chain in chains_CA.values():
+        for residue in chain.residues.values():
+            print(chain.residue_indexes)
+            all = result.residueAreas()
+            residue_sasa = all[residue.chain][str(residue.resnum)].total
+            residue.addRSA(residue_sasa)
+        
         #sasa_pdb = result.write_pdb('2.pdb')       
     
-
-    """ 
-    Added one rsa to 14
-140.62440188087328
-[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
-115.51167668357688
-113.77586293720269
-130.8781912231541
-53.48222976061239
-24.55479769595844
-47.312985416460144
-137.25484826705383
-16.212368839951854
-44.8651779151281
-90.81730768696035
-100.90717367016215
-34.291503137962266
-118.94719638011956
-140.62440188087328
-164.45513059610005
-Added one rsa to 15
-164.45513059610005
-[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
-Traceback (most recent call last):
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 370, in <module>
-    main()
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 364, in main
-    rsa(chain_split_files, chains_CA)    
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 285, in rsa
-    residue_sasa = all[residue.chain][str(residue.resnum)].total
-                   ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
-    """
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
-    
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
-    #JS
     data1 = []
     data2 = []
+    chain_split_files = []
+    # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         print("CA DISTANCE CALCULATION")
         print(pdb_file)
@@ -373,19 +342,17 @@ def main():
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
         # splitting chains and calculating the rsa on them 
-        #residue = Residue(aa,resnum)
-        #rsa_value = residue.calculate_RSA(pdb_file)   
-        chain_split_files = []
-        for pdb_file in processed_pdb_files:
-            dir_name = os.path.dirname(pdb_file)
-            splitPDBbyChain(pdb_file, dir_name)
-            dir_name = os.path.dirname(pdb_file)
-            chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
         
-        rsa(chain_split_files, chains_CA)    
+        dir_name = os.path.dirname(pdb_file)
+        splitted_files = splitPDBbyChain(pdb_file, dir_name)
+        dir_name = os.path.dirname(pdb_file)
+        chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
         
+        # splitted files RSA calculation 
+        print(splitted_files)
+        for s in splitted_files:
+            rsa(pdb_file, chains_CA)
             
-        break
 
 if __name__ == "__main__":
     main()
