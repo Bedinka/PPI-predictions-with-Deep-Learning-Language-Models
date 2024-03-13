@@ -58,7 +58,7 @@ def splitPDBbyChain(filename, output_dir):
         with open(chain_filename, "w") as fout:
             for line in chains[chainID]:
                 fout.write(line)
-    print(f"Processed {basename}")
+    
 
 class Chain:
     def __init__(self, chainID):
@@ -66,8 +66,8 @@ class Chain:
         self.residues = {}
         self.residue_indexes = []       
 
-    def addResidue(self, aa, resnum):
-        aResidue = Residue( aa, resnum )
+    def addResidue(self, aa, resnum, chainID):
+        aResidue = Residue( aa, resnum, chainID )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
         #print(aResidue)
@@ -81,10 +81,12 @@ class Chain:
         pass
     
 class Residue:
-    def __init__(self, aa, resnum):
+    def __init__(self, aa, resnum , chaiID ):
         self.aa = aa
         self.resnum = resnum
+        self.chain = chaiID
         self.atoms = {}
+        self.rsa_value = None
         pass
 
     def addAtom(self, atom_name, x, y, z):
@@ -106,14 +108,21 @@ class Residue:
     def __str__(self):
         return self.aa + " - " + str(self.resnum) 
     
-    def calculate_RSA(self, structure):
-        residue_structure = freesasa.Structure()
+    def addRSA(self, sasa_all):
+        self.rsa_value = sasa_all
+        print(f"Added one rsa to {self.resnum}")
+        print(self.rsa_value)
+        
+
+        """"
+        residue_structure = freesasa.Structure(pdb_file)
         for atom_name, (x, y, z) in self.atoms.items():
             residue_structure.addAtom(atom_name, x, y, z)
         result = freesasa.calc(residue_structure)
-        rsa = result.totalArea()
+        self.rsa_value = result.totalArea()
         return rsa
-
+        """
+    
     
 class Matrix:
     def __init__(self, row, col):
@@ -186,7 +195,7 @@ def parsePDB(pdb_file):
             if chainID not in chains:
                 chains[chainID] = Chain(chainID)
             if resnum not in chains[chainID].residues:
-                chains[chainID].addResidue( aa, resnum )
+                chains[chainID].addResidue( aa, resnum , chainID)
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
     return chains
 
@@ -264,30 +273,61 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
-"""
-def rsa(pdb_file, chain, chainID1): #, chains, chainID1, chainID2, 
-    structure = freesasa.Structure(pdb_file)
-    result = freesasa.calc(structure)
-    area_classes = freesasa.classifyResults(result, structure)
-    print( "Total : %.2f A2" % result.totalArea())
-    result.totalArea()
-    AA = result.residueAreas()
+
+def rsa(pdb_files, chains_CA): 
+    for pdb_file in pdb_files:
+        structure = freesasa.Structure(pdb_file)
+        result = freesasa.calc(structure)
+        area_classes = freesasa.classifyResults(result, structure)
+        for chain in chains_CA.values():
+            for residue in chain.residues.values():
+                print(chain.residue_indexes)
+                all = result.residueAreas()
+                residue_sasa = all[residue.chain][str(residue.resnum)].total
+                for x in all[residue.chain]:
+                    print(all[residue.chain][x].total)
+                residue.addRSA(residue_sasa)
+        break
+        #sasa_pdb = result.write_pdb('2.pdb')       
     
-    for x in AA['A']:
-        chain[chainID1].aR
-       (AA['A'][x].total)
-"""
+
+    """ 
+    Added one rsa to 14
+140.62440188087328
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+115.51167668357688
+113.77586293720269
+130.8781912231541
+53.48222976061239
+24.55479769595844
+47.312985416460144
+137.25484826705383
+16.212368839951854
+44.8651779151281
+90.81730768696035
+100.90717367016215
+34.291503137962266
+118.94719638011956
+140.62440188087328
+164.45513059610005
+Added one rsa to 15
+164.45513059610005
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+Traceback (most recent call last):
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 370, in <module>
+    main()
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 364, in main
+    rsa(chain_split_files, chains_CA)    
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pc550/Documents/PPI_W_DLLM/YangLabIntern/PPI_W_DLLM/feature_extraction.py", line 285, in rsa
+    residue_sasa = all[residue.chain][str(residue.resnum)].total
+                   ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+    """
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     
-    processed_pdb_files = process_tgz_files_in_directory(work_dir)
-    for pdb_file in processed_pdb_files:
-        dir_name = os.path.dirname(pdb_file)
-        splitPDBbyChain(pdb_file, dir_name)
-        structure = freesasa.Structure(pdb_file)
-        rsa_value = Residue.calculate_RSA(structure)
-            
+    processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     #JS
     data1 = []
     data2 = []
@@ -326,14 +366,25 @@ def main():
         distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
         interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) # chains_CA)
 
-
+        print("SPEARMANR")
         print(stats.spearmanr(distance_matrix_CA__A_A.flatten(), distance_matrix_mean__A_A.flatten()))
         print(stats.spearmanr(distance_matrix_CA__B_B.flatten(), distance_matrix_mean__B_B.flatten()))
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
 
-        fixed_sub_mat = Matrix.submatrixes( dist_mat = distance_matrix_CA__A_B,  size = 7, overlap = 1 )
-
+        # splitting chains and calculating the rsa on them 
+        #residue = Residue(aa,resnum)
+        #rsa_value = residue.calculate_RSA(pdb_file)   
+        chain_split_files = []
+        for pdb_file in processed_pdb_files:
+            dir_name = os.path.dirname(pdb_file)
+            splitPDBbyChain(pdb_file, dir_name)
+            dir_name = os.path.dirname(pdb_file)
+            chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
+        
+        rsa(chain_split_files, chains_CA)    
+        
+            
         break
 
 if __name__ == "__main__":
