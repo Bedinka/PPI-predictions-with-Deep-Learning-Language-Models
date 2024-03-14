@@ -321,7 +321,7 @@ def rsa(pdb_file, chains_CA):
 c3_convert = {' ':0, 'S':0, 'T':0, 'H':1, 'G':1, 'I':1, 'E':2, 'B':2}
 
 
-def dssp(chain_CA):
+def dssp(chain_CA,pdb):
        # Sample coordinates
     
     for chain in chain_CA.values():
@@ -330,22 +330,21 @@ def dssp(chain_CA):
         atom = 5
         xyz = 4
     ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
-        coord = torch.randn([length, atom, xyz]) # batch-dim is optional
+        coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
     # hydrogene bond matrix
         hbond_matrix = pydssp.get_hbond_map(coord)
         print(hbond_matrix.shape) # should be (batch, length, length)
     # getting scondary struct 
-        dssp = pydssp.assign(coord, out_type='c3')
+        dssp_struct = pydssp.assign(coord, out_type='c3')
     ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
-
     # To get secondary str. as index
-        dssp = pydssp.assign(coord, out_type='index')
+        dssp_index = pydssp.assign(coord, out_type='index')
     ## 0: loop,  1: alpha-helix,  2: beta-strand
-
     # To get secondary str. as onehot representation
-        dssp = pydssp.assign(coord, out_type='onehot')
+        dssp_onhot = pydssp.assign(coord, out_type='onehot')
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        print(dssp)
+        print(dssp_struct)
+        print(hbond_matrix)
 
 
 protein_data= {}
@@ -410,7 +409,7 @@ def main():
         
         for s in chain_split_files:
             rsa(s, chains_CA)
-            dssp(chains_CA)
+            dssp(chains_CA, s)
             break
         break         
 if __name__ == "__main__":
