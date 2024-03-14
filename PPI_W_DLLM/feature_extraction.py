@@ -8,8 +8,7 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
-import tqdm
-import sys
+
 
 
 # Extracting protein IDs to a txt file 
@@ -71,12 +70,16 @@ def splitPDBbyChain(filename, output_dir):
 
     return splitted_files, 
 
+
 class Chain:
     def __init__(self, chainID):
         self.chainID = chainID
         self.residues = {}
         self.residue_indexes = []    
         self.prot_id = []
+        self.dssp_struct = []
+        self.dssp_index = []
+        self.dssp_onehot = []
           
 
     def addResidue(self, aa, resnum):
@@ -302,9 +305,7 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
-
-
-        #sasa_pdb = result.write_pdb('2.pdb')       
+    
 def rsa(pdb_file, chains_CA): 
     structure = freesasa.Structure(pdb_file)
     result = freesasa.calc(structure)
@@ -318,17 +319,8 @@ def rsa(pdb_file, chains_CA):
                 residue.addRSA(residue_sasa)
                 break  
 
-c3_convert = {' ':0, 'S':0, 'T':0, 'H':1, 'G':1, 'I':1, 'E':2, 'B':2}
-
-
-def dssp(chain_CA,pdb):
-       # Sample coordinates
-    
+def dssp(chain_CA, pdb):
     for chain in chain_CA.values():
-        length = len(chain.residues)
-        all_atoms, all_coords = chain.get_all_atoms()
-        atom = 5
-        xyz = 4
     ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
         coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
     # hydrogene bond matrix
@@ -336,28 +328,28 @@ def dssp(chain_CA,pdb):
         print(hbond_matrix.shape) # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
+        chain.dssp_struct = dssp_struct
+
     ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
     # To get secondary str. as index
         dssp_index = pydssp.assign(coord, out_type='index')
+        chain.dssp_indes = dssp_index
     ## 0: loop,  1: alpha-helix,  2: beta-strand
     # To get secondary str. as onehot representation
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
+        chain.dssp_onehot = dssp_onhot
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
         print(dssp_struct)
         print(hbond_matrix)
-
-
-protein_data= {}
-protein_sequences = []  
-distance_matrices = []  
-submatrices = []      
-rsa_values = []  
-
+ 
+ 
+ 
 def main():
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     chain_split_files = []
+    protein_data = {}
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         print("CA DISTANCE CALCULATION")
@@ -411,6 +403,13 @@ def main():
             rsa(s, chains_CA)
             dssp(chains_CA, s)
             break
-        break         
+        break
+        
+         
+
+
+
+
+
 if __name__ == "__main__":
     main()
