@@ -6,8 +6,11 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import freesasa
-import torch
+import torch 
 import pydssp
+import tqdm
+import sys
+
 
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -66,18 +69,18 @@ def splitPDBbyChain(filename, output_dir):
                 fout.write(line)
         splitted_files.append(chain_filename)
 
-    return splitted_files 
-    
+    return splitted_files, 
 
 class Chain:
     def __init__(self, chainID):
         self.chainID = chainID
         self.residues = {}
         self.residue_indexes = []    
-        self.prot_id = 0   
+        self.prot_id = []
+          
 
-    def addResidue(self, aa, resnum, chainID):
-        aResidue = Residue( aa, resnum, chainID )
+    def addResidue(self, aa, resnum):
+        aResidue = Residue( aa, resnum )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
         #print(aResidue)
@@ -90,11 +93,20 @@ class Chain:
         #print(aResidue)
         pass
     
+    def get_all_atoms(self):
+        all_atoms = []
+        all_coords = []
+        for resnum in self.residue_indexes:
+            residue = self.residues[resnum]
+            for atom_name, coordinates in residue.atoms.items():
+                all_atoms.append(atom_name)
+                all_coords.append(coordinates)
+        return all_atoms, all_coords
+    
 class Residue:
-    def __init__(self, aa, resnum , chaiID ):
+    def __init__(self, aa, resnum  ):
         self.aa = aa
         self.resnum = resnum
-        self.chain = chaiID
         self.atoms = {}
         self.rsa_value = None
         pass
@@ -180,6 +192,11 @@ class Matrix:
 # Parsing the PDB files 
 def parsePDB(pdb_file):
     chains = {}
+    parts = pdb_file.split('/')
+    filename = parts[-1]
+    filename_parts = filename.split('-')
+    first_part = filename_parts[0]
+    second_part = filename_parts[1]
     with open(pdb_file, 'r') as f:
         for line in f:
             if line.startswith("ATOM") == False:
@@ -195,8 +212,13 @@ def parsePDB(pdb_file):
             chainID = line[21]
             if chainID not in chains:
                 chains[chainID] = Chain(chainID)
+                if chainID == 'A':
+                    chains[chainID].prot_id = first_part
+                    print(chains[chainID].prot_id)
+                else :
+                    chains[chainID].prot_id = second_part
             if resnum not in chains[chainID].residues:
-                chains[chainID].addResidue( aa, resnum , chainID)
+                chains[chainID].addResidue( aa, resnum)
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
     return chains
 
@@ -288,32 +310,49 @@ def rsa(pdb_file, chains_CA):
     result = freesasa.calc(structure)
     area_classes = freesasa.classifyResults(result, structure)
     for chain in chains_CA.values():
-        for residue in chain.residues.values():
-            print(chain.residue_indexes)
-            all = result.residueAreas()
-            residue_sasa = all[residue.chain][str(residue.resnum)].total
-            residue.addRSA(residue_sasa)
-            break  
+        if str(pdb_file).endswith(chain.chainID):
+            for residue in chain.residues.values():
+                print(chain.residue_indexes)
+                all = result.residueAreas()               
+                residue_sasa = all[chain.chainID][str(residue.resnum)].total
+                residue.addRSA(residue_sasa)
+                break  
 
-def dssp( batch, length, atoms, coordinates):
+c3_convert = {' ':0, 'S':0, 'T':0, 'H':1, 'G':1, 'I':1, 'E':2, 'B':2}
+
+
+def dssp(chain_CA):
        # Sample coordinates
-    batch, length, atoms, xyz = 10, 100, 4, 3
+    
+    for chain in chain_CA.values():
+        length = len(chain.residues)
+        all_atoms, all_coords = chain.get_all_atoms()
+        atom = 5
+        xyz = 4
     ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
-    coord = torch.randn([batch, length, atom, xyz]) # batch-dim is optional
+        coord = torch.randn([length, atom, xyz]) # batch-dim is optional
     # hydrogene bond matrix
-    hbond_matrix = pydssp.get_hbond_map(coord)
-    print(hbond_matrix.shape) # should be (batch, length, length)
+        hbond_matrix = pydssp.get_hbond_map(coord)
+        print(hbond_matrix.shape) # should be (batch, length, length)
     # getting scondary struct 
-    dssp = pydssp.assign(coord, out_type='c3')
+        dssp = pydssp.assign(coord, out_type='c3')
     ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
 
     # To get secondary str. as index
-    dssp = pydssp.assign(coord, out_type='index')
+        dssp = pydssp.assign(coord, out_type='index')
     ## 0: loop,  1: alpha-helix,  2: beta-strand
 
     # To get secondary str. as onehot representation
-    dssp = pydssp.assign(coord, out_type='onehot')
+        dssp = pydssp.assign(coord, out_type='onehot')
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
+        print(dssp)
+
+
+protein_data= {}
+protein_sequences = []  
+distance_matrices = []  
+submatrices = []      
+rsa_values = []  
 
 def main():
     # Work directory
@@ -369,12 +408,10 @@ def main():
         dir_name = os.path.dirname(pdb_file)
         chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
         
-        # splitted files RSA calculation 
-        print(splitted_files)
-        for s in splitted_files:
-            rsa(pdb_file, chains_CA)
-    
-        break
-
+        for s in chain_split_files:
+            rsa(s, chains_CA)
+            dssp(chains_CA)
+            break
+        break         
 if __name__ == "__main__":
     main()
