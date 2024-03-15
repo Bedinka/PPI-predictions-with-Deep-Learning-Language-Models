@@ -1,7 +1,7 @@
 ---
 name: 'Coding Support Template '
 about: Task description, Solution, Code snippets, taks in check lists
-title: ISSUE
+title: ''
 labels: issue
 assignees: ''
 
@@ -57,9 +57,9 @@ assignees: ''
 ---
 ### Checklist for coding 
 - [ ] Modul configuration.
-- [ ] Seperate the interacting protein chains from each file. 
-- [ ] Calculation of each AA in each chain seperatelly.
-- [ ] Overall surface of each chain.
+- [ ] Seperate file. 
+- [ ] Calculation of .
+- [ ] Outcome .
 
 ### Checklist for tasks 
 - [ ] Reviewed the problem statement and proposed solution.
