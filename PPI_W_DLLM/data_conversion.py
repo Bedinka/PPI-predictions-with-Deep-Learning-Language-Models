@@ -6,10 +6,8 @@ import torch
 feature_extraction.main()
 
 # Extract the required data from feature_extraction.py or load from file if available
-protein_sequences = feature_extraction.protein_sequences
-distance_matrices = feature_extraction.distance_matrices
-submatrices = feature_extraction.submatrices
-rsa_values = feature_extraction.rsa_values
+protein_sequences = feature_extraction.protein_data
+
 
 # Convert protein sequences to one-hot encoding
 amino_acids = 'ACDEFGHIKLMNPQRSTVWY'

@@ -8,9 +8,6 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
-import subprocess
-
-
 
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -71,7 +68,6 @@ def splitPDBbyChain(filename, output_dir):
 
     return splitted_files 
 
-
 class Chain:
     def __init__(self, chainID):
         self.chainID = chainID
@@ -81,6 +77,15 @@ class Chain:
         self.dssp_struct = []
         self.dssp_index = []
         self.dssp_onehot = []
+        self.distance_matrices_CA = []
+        self.distance_matrices_mean = []
+        self.distance_matrices_CA_AB = []
+        self.distance_matrices_mean_AB = []
+        self.submatrices = []
+        self.interactions_CA =[]
+        self.interactions_m_CA =[]
+        self.interactions_mean =[]
+        self.interactions_m_mean =[]
           
 
     def addResidue(self, aa, resnum):
@@ -142,7 +147,8 @@ class Residue:
     
     
 class Matrix:
-    def __init__(self, row, col):
+    def __init__(self, row, col, prot_id):
+        self.name = prot_id
         self.matrix = []
         self.row =row
         self.col = col
@@ -317,8 +323,7 @@ def rsa(pdb_file, chains_CA):
                 print(chain.residue_indexes)
                 all = result.residueAreas()               
                 residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                residue.addRSA(residue_sasa)
-                 
+                residue.addRSA(residue_sasa)                 
 
 def dssp(chain_CA, pdb):
     for chain in chain_CA.values():
@@ -342,18 +347,20 @@ def dssp(chain_CA, pdb):
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
         #print(len(dssp_struct))
         #print(hbond_matrix)
-        output_file = " ./" + str(chain.prot_id) + ".dssp.txt"
+        output_file = "./" + str(chain.prot_id) + ".dssp.txt"
         with open(output_file, 'w') as f:
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
+
+
 
  
 def main():
  
-    # Work directory
+    # Work directory ands storing values
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     chain_split_files = []
-    
+    protein_data = []
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         print("CA DISTANCE CALCULATION")
@@ -361,10 +368,15 @@ def main():
         chains_CA = parsePDB(pdb_file)
         [chainID1, chainID2] = chains_CA.keys()
         distance_matrix_CA__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_CA_distance)
+        chains_CA[chainID1].distance_matrices_CA = distance_matrix_CA__A_A
         distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
+        chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
+        chains_CA[chainID1].distance_matrices_CA_AB = chains_CA[chainID2].distances_matrices_CA_AB = distance_matrix_CA__A_B
+
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
-        #print(IM_CA__A_B)
+        chains_CA[chainID1].interactions_CA = chains_CA[chainID2].interactions_CA = interactions_CA__A_B
+        chains_CA[chainID1].interactions_m_CA = chains_CA[chainID2].interactions_m_CA = IM_CA__A_B
 
         """ JS sub matrix creation
         [ row, col ] = IM_CA__A_B.shape
@@ -386,9 +398,15 @@ def main():
         print("AA'S ATOMS DISTANCE CALCULATION")
         [chainID1, chainID2] = chains_CA.keys()
         distance_matrix_mean__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_mean_distance)
+        chains_CA[chainID1].distance_matrices_mean = distance_matrix_mean__A_A
         distance_matrix_mean__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_mean_distance)
+        chains_CA[chainID2].distance_matrices_mean = distance_matrix_mean__B_B
         distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
+        chains_CA[chainID1].distance_matrices_mean_AB = chains_CA[chainID2].distance_matrices_mean_AB = distance_matrix_mean__A_B
+
         interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) # chains_CA)
+        chains_CA[chainID1].interactions_mean = chains_CA[chainID2].interactions_mean = interactions_mean__A_B
+        chains_CA[chainID1].interactions_m_mean = chains_CA[chainID2].interactions_m_mean = IM_mean__A_B
 
         print("SPEARMANR")
         print(stats.spearmanr(distance_matrix_CA__A_A.flatten(), distance_matrix_mean__A_A.flatten()))
@@ -400,14 +418,41 @@ def main():
         
         dir_name = os.path.dirname(pdb_file)
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
-        chain_split_files.extend(splitted_files)
-        #chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
-        print()
+        chain_split_files.extend(splitted_files)    
 
-        for s in chain_split_files:
-            rsa(s, chains_CA)
-            dssp(chains_CA, s)
+        for prot in chain_split_files:
+            rsa(prot, chains_CA)
+            dssp(chains_CA, prot)
         
+        # creating a vectorizable construct 
+        for prot_id, chain in chains_CA.items():
+            for resnum, residue in chain.residues.items():
+                chain_data = {
+                    'residue_indexes': chain.residue_indexes,
+                    'residues': chain.residues,
+                    'prot_id': chain.prot_id,
+                    'dssp_struct': chain.dssp_struct,
+                    'dssp_index': chain.dssp_index,
+                    'dssp_onehot': chain.dssp_onehot,
+                    'chainID': chain.chainID,
+                    'distance_matrix_CA': chain.distance_matrices_CA,
+                    'distance_matrix_mean': chain.distance_matrices_mean,
+                    'distance_matrix_CA_AB': chain.distance_matrices_CA_AB,
+                    'distance_matrix_mean_AB': chain.distance_matrices_mean_AB,
+                    'sub_matrixes': chain.submatrices,
+                    'interactions_CA': chain.interactions_CA,
+                    'interactions_m_CA': chain.interactions_m_CA,
+                    'interactions_mean': chain.interactions_mean,
+                    'interactions_m_mean': chain.interactions_m_mean
+                }
+                residue_data = {
+                    'aa': residue.aa,
+                    'resnum': residue.resnum,
+                    'rsa_value': residue.rsa_value
+                }
+
+                chain_data['residue_data'] = residue_data
+                protein_data.append(chain_data)
 
 if __name__ == "__main__":
     main()
