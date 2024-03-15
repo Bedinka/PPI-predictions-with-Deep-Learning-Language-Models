@@ -352,7 +352,11 @@ def dssp(chain_CA, pdb):
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
 
-
+protein_data = {}
+one_hot_sequences = []
+distance_matrices_tensor = []
+submatrices_tensor = []
+rsa_values_tensor = []
  
 def main():
  
@@ -360,7 +364,7 @@ def main():
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     chain_split_files = []
-    protein_data = []
+    
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         print("CA DISTANCE CALCULATION")
@@ -424,6 +428,7 @@ def main():
             rsa(prot, chains_CA)
             dssp(chains_CA, prot)
         
+        """
         # creating a vectorizable construct 
         for prot_id, chain in chains_CA.items():
             for resnum, residue in chain.residues.items():
@@ -452,7 +457,14 @@ def main():
                 }
 
                 chain_data['residue_data'] = residue_data
-                protein_data.append(chain_data)
+                protein_data[chain.prot_id] = chain_data
+            """
+
+                
+        
+        break 
+    return protein_data
+    
 
 if __name__ == "__main__":
     main()
