@@ -8,6 +8,7 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
+import subprocess
 
 
 
@@ -68,7 +69,7 @@ def splitPDBbyChain(filename, output_dir):
                 fout.write(line)
         splitted_files.append(chain_filename)
 
-    return splitted_files, 
+    return splitted_files 
 
 
 class Chain:
@@ -262,7 +263,7 @@ def findInteractingResidues(chains, chainID1, chainID2, distance_matrix_CA):
             if distance < 11.0:
                 residueA = chainA.residues[chainA.residue_indexes[i]]
                 residueB = chainB.residues[chainB.residue_indexes[j]]
-                print("Found", residueA, residueB, distance)
+                #print("Found", residueA, residueB, distance)
                 interactions.append((residueA, residueB, distance))
                 interaction_matrix[i,j] = 1.0
     return interactions, interaction_matrix
@@ -317,7 +318,7 @@ def rsa(pdb_file, chains_CA):
                 all = result.residueAreas()               
                 residue_sasa = all[chain.chainID][str(residue.resnum)].total
                 residue.addRSA(residue_sasa)
-                break  
+                 
 
 def dssp(chain_CA, pdb):
     for chain in chain_CA.values():
@@ -325,7 +326,7 @@ def dssp(chain_CA, pdb):
         coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
     # hydrogene bond matrix
         hbond_matrix = pydssp.get_hbond_map(coord)
-        print(hbond_matrix.shape) # should be (batch, length, length)
+        #print(hbond_matrix.shape) # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
         chain.dssp_struct = dssp_struct
@@ -339,17 +340,20 @@ def dssp(chain_CA, pdb):
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
         chain.dssp_onehot = dssp_onhot
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        print(dssp_struct)
-        print(hbond_matrix)
- 
- 
+        #print(len(dssp_struct))
+        #print(hbond_matrix)
+        output_file = " ./" + str(chain.prot_id) + ".dssp.txt"
+        with open(output_file, 'w') as f:
+            f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
+
  
 def main():
+ 
     # Work directory
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     chain_split_files = []
-    protein_data = {}
+    
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         print("CA DISTANCE CALCULATION")
@@ -360,7 +364,7 @@ def main():
         distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
-        print(IM_CA__A_B)
+        #print(IM_CA__A_B)
 
         """ JS sub matrix creation
         [ row, col ] = IM_CA__A_B.shape
@@ -396,20 +400,14 @@ def main():
         
         dir_name = os.path.dirname(pdb_file)
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
-        dir_name = os.path.dirname(pdb_file)
-        chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
-        
+        chain_split_files.extend(splitted_files)
+        #chain_split_files.extend([os.path.join(dir_name, f) for f in os.listdir(dir_name) if f.endswith('.pdb') and f != os.path.basename(pdb_file)])
+        print()
+
         for s in chain_split_files:
             rsa(s, chains_CA)
             dssp(chains_CA, s)
-            break
-        break
         
-         
-
-
-
-
 
 if __name__ == "__main__":
     main()
