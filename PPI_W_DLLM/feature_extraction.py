@@ -92,15 +92,26 @@ class Chain:
         aResidue = Residue( aa, resnum )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
-        #print(aResidue)
         pass
     
     def addCA(self, aa, resnum, x, y, z):
         aResidue = Residue( aa, resnum, x, y, z)
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
-        #print(aResidue)
         pass
+    
+
+    def addCAMatrix (self, chains_CA , dist_mat , size, overlap):
+        aDistMatrix = Matrix(size, size)
+        self.distance_matrices_CA_AB = aDistMatrix
+        self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        print(aDistMatrix)
+
+    def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
+        aDistMatrix = Matrix(size, size)
+        self.distance_matrices_mean_AB = aDistMatrix
+        self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        print(aDistMatrix)
     
     def get_all_atoms(self):
         all_atoms = []
@@ -143,58 +154,23 @@ class Residue:
         self.rsa_value = sasa_all
         print(f"Added one rsa to {self.resnum}")
         print(self.rsa_value)
-        
-    
+         
     
 class Matrix:
-    def __init__(self, row, col, prot_id):
-        self.name = prot_id
-        self.matrix = []
-        self.row =row
+    def __init__(self, row, col):
+        self.submatrix = []
+        self.row = row
         self.col = col
         self.i=0 
         self.j=0
-        self.residues = []
+        self.residues_a = []
+        self.residues_b = []
 
-    def submatrixes( dist_mat , size, overlap ): 
-        submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
-        return submatrices
-
-    def sub_residuses(self, chains_CA, chainID1, chainID2, submatrices):
-
-        self.sub_res_a = []
-        self.sub_res_b = []
-        Chain_A = chains_CA[chainID1]
-        Chain_B = chains_CA[chainID2]
-
-        """ getting parsepdb chains keys as dictionary keys 
-        self.sub_res_a = {}
-        self.sub_res_b = {}
-        for chain_id in chains_CA.keys():
-        if chain_id == chainID1:
-            self.sub_res_a[chain_id] = []
-        elif chain_id == chainID2:
-            self.sub_res_b[chain_id] = []
-        """
-
-        for idx, submatrix in enumerate(submatrices):
-            print(f"Submatrix {idx+1}:")
-            print(submatrix)
-
-            # matrix, i, j
-            print(submatrix[0]) #matrix
-            print(submatrix[1]) #i
-            print(submatrix[2]) #j
-            
-            i = submatrix[1]
-            j = submatrix[2]
-            
-            start_a = Chain_A.residue_indexes[i]
-            start_b = Chain_B.residue_indexes[j]
-            sub_res_a = Chain_A.residues[start_a]
-            sub_res_b = Chain_A.residues[start_b]
-    
-        return  sub_res_a, sub_res_b
+    def submatrixes( self, chains_CA, dist_mat , size, overlap ): 
+        [chainID1, chainID2] = chains_CA.keys()
+        submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
+        self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
+        return submatrix
 
     def __getitem__(self, key):
         return self.matrix[key]
@@ -308,10 +284,28 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
             sub_matrix.i = i + 1  
             sub_matrix.j = j + 1  
             sub_mat.append(sub_matrix) # residue_indexes
+            print(sub_matrix.i, sub_matrix.j)
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
+
+def sub_residuses(chains_CA, chainID1, chainID2, submatrices):
+
+        sub_res_a = []
+        sub_res_b = []
+        Chain_A = chains_CA[chainID1]
+        Chain_B = chains_CA[chainID2]
+
+        for idx, submatrix in enumerate(submatrices):
+            print(f"Submatrix {idx+1}:")
+            print(submatrix)
+            start_a = Chain_A.residue_indexes[submatrix.i]
+            start_b = Chain_B.residue_indexes[submatrix.j]
+            sub_res_a = Chain_A.residues[start_a]
+            sub_res_b = Chain_B.residues[start_b]
+            print(sub_res_a, sub_res_b)
+        return  sub_res_a, sub_res_b
     
 def rsa(pdb_file, chains_CA): 
     structure = freesasa.Structure(pdb_file)
@@ -331,22 +325,19 @@ def dssp(chain_CA, pdb):
         coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
     # hydrogene bond matrix
         hbond_matrix = pydssp.get_hbond_map(coord)
-        #print(hbond_matrix.shape) # should be (batch, length, length)
+        # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
         chain.dssp_struct = dssp_struct
-
-    ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
+        ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
     # To get secondary str. as index
         dssp_index = pydssp.assign(coord, out_type='index')
         chain.dssp_indes = dssp_index
-    ## 0: loop,  1: alpha-helix,  2: beta-strand
+        ## 0: loop,  1: alpha-helix,  2: beta-strand
     # To get secondary str. as onehot representation
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
         chain.dssp_onehot = dssp_onhot
-    ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        #print(len(dssp_struct))
-        #print(hbond_matrix)
+        ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
         output_file = "./" + str(chain.prot_id) + ".dssp.txt"
         with open(output_file, 'w') as f:
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
@@ -364,6 +355,8 @@ def main():
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     chain_split_files = []
+    size = 7 
+    overlap = 1 
     
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
@@ -376,28 +369,14 @@ def main():
         distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
         chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
         distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
-        chains_CA[chainID1].distance_matrices_CA_AB = chains_CA[chainID2].distances_matrices_CA_AB = distance_matrix_CA__A_B
+        chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
+        chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
 
         interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
         chains_CA[chainID1].interactions_CA = chains_CA[chainID2].interactions_CA = interactions_CA__A_B
         chains_CA[chainID1].interactions_m_CA = chains_CA[chainID2].interactions_m_CA = IM_CA__A_B
 
-        """ JS sub matrix creation
-        [ row, col ] = IM_CA__A_B.shape
         
-        for i in range(row-size):
-            for j in range(col-size):
-                interacting_pairs = np.sum(get_submatrix(IM_CA__A_B, i, j, size))
-                if interacting_pairs > 1:
-                    print(i,j, interacting_pairs)
-                    print(get_submatrix(IM_CA__A_B, i, j, size))
-
-        [ row, col ] = distance_matrix_CA__A_A.shape
-        
-        for i in range(row-size):
-            for j in range(col-size):
-                print(get_submatrix(distance_matrix_CA__A_A, i, j, size))
-        """
 
         print("AA'S ATOMS DISTANCE CALCULATION")
         [chainID1, chainID2] = chains_CA.keys()
@@ -406,9 +385,10 @@ def main():
         distance_matrix_mean__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_mean_distance)
         chains_CA[chainID2].distance_matrices_mean = distance_matrix_mean__B_B
         distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
-        chains_CA[chainID1].distance_matrices_mean_AB = chains_CA[chainID2].distance_matrices_mean_AB = distance_matrix_mean__A_B
+        chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
+        chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
 
-        interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) # chains_CA)
+        interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) 
         chains_CA[chainID1].interactions_mean = chains_CA[chainID2].interactions_mean = interactions_mean__A_B
         chains_CA[chainID1].interactions_m_mean = chains_CA[chainID2].interactions_m_mean = IM_mean__A_B
 
@@ -416,7 +396,7 @@ def main():
         print(stats.spearmanr(distance_matrix_CA__A_A.flatten(), distance_matrix_mean__A_A.flatten()))
         print(stats.spearmanr(distance_matrix_CA__B_B.flatten(), distance_matrix_mean__B_B.flatten()))
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
-        print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))
+        print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))        
 
         # splitting chains and calculating the rsa on them 
         
@@ -428,42 +408,7 @@ def main():
             rsa(prot, chains_CA)
             dssp(chains_CA, prot)
         
-        """
-        # creating a vectorizable construct 
-        for prot_id, chain in chains_CA.items():
-            for resnum, residue in chain.residues.items():
-                chain_data = {
-                    'residue_indexes': chain.residue_indexes,
-                    'residues': chain.residues,
-                    'prot_id': chain.prot_id,
-                    'dssp_struct': chain.dssp_struct,
-                    'dssp_index': chain.dssp_index,
-                    'dssp_onehot': chain.dssp_onehot,
-                    'chainID': chain.chainID,
-                    'distance_matrix_CA': chain.distance_matrices_CA,
-                    'distance_matrix_mean': chain.distance_matrices_mean,
-                    'distance_matrix_CA_AB': chain.distance_matrices_CA_AB,
-                    'distance_matrix_mean_AB': chain.distance_matrices_mean_AB,
-                    'sub_matrixes': chain.submatrices,
-                    'interactions_CA': chain.interactions_CA,
-                    'interactions_m_CA': chain.interactions_m_CA,
-                    'interactions_mean': chain.interactions_mean,
-                    'interactions_m_mean': chain.interactions_m_mean
-                }
-                residue_data = {
-                    'aa': residue.aa,
-                    'resnum': residue.resnum,
-                    'rsa_value': residue.rsa_value
-                }
-
-                chain_data['residue_data'] = residue_data
-                protein_data[chain.prot_id] = chain_data
-            """
-
-                
-        
-        break 
-    return protein_data
+        break
     
 
 if __name__ == "__main__":
