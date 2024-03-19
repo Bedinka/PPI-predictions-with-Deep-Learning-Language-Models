@@ -1,5 +1,4 @@
 from Bio.PDB import PDBParser
-from Bio.PDB.DSSP import DSSP
 import tarfile
 import os
 import numpy as np
@@ -99,19 +98,20 @@ class Chain:
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
         pass
-    
 
     def addCAMatrix (self, chains_CA , dist_mat , size, overlap):
         aDistMatrix = Matrix(size, size)
-        self.distance_matrices_CA_AB = aDistMatrix
+        aDistMatrix.cadistmatrix = dist_mat
+        self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
         self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
-        print(aDistMatrix)
+        pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
         aDistMatrix = Matrix(size, size)
-        self.distance_matrices_mean_AB = aDistMatrix
+        aDistMatrix.meandistmatrix = dist_mat
+        self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
         self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
-        print(aDistMatrix)
+        pass
     
     def get_all_atoms(self):
         all_atoms = []
@@ -122,7 +122,15 @@ class Chain:
                 all_atoms.append(atom_name)
                 all_coords.append(coordinates)
         return all_atoms, all_coords
-    
+"""    
+    def __getitem__(self, key):
+        if key == 'distance_matrices_CA_AB':
+            return self.distance_matrices_CA_AB
+        elif key == 'distance_matrices_mean_AB':
+            return self.distance_matrices_mean_AB
+        else:
+            raise KeyError(f"Invalid key: {key}")
+"""    
 class Residue:
     def __init__(self, aa, resnum  ):
         self.aa = aa
@@ -158,6 +166,8 @@ class Residue:
     
 class Matrix:
     def __init__(self, row, col):
+        self.cadistmatrix= []
+        self.meandistmatrix= []
         self.submatrix = []
         self.row = row
         self.col = col
@@ -170,11 +180,13 @@ class Matrix:
         [chainID1, chainID2] = chains_CA.keys()
         submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
         self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
+        self.submatrix =submatrix
+        print("Created fixed sized matrixes and got the starting residues")
         return submatrix
-
+"""
     def __getitem__(self, key):
-        return self.matrix[key]
-        
+        return self.submatrix[key]
+"""        
 # Parsing the PDB files 
 def parsePDB(pdb_file):
     chains = {}
@@ -284,7 +296,6 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
             sub_matrix.i = i + 1  
             sub_matrix.j = j + 1  
             sub_mat.append(sub_matrix) # residue_indexes
-            print(sub_matrix.i, sub_matrix.j)
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
@@ -298,13 +309,12 @@ def sub_residuses(chains_CA, chainID1, chainID2, submatrices):
         Chain_B = chains_CA[chainID2]
 
         for idx, submatrix in enumerate(submatrices):
-            print(f"Submatrix {idx+1}:")
-            print(submatrix)
+            #print(f"Submatrix {idx+1}:")
+            #print(submatrix)
             start_a = Chain_A.residue_indexes[submatrix.i]
             start_b = Chain_B.residue_indexes[submatrix.j]
             sub_res_a = Chain_A.residues[start_a]
             sub_res_b = Chain_B.residues[start_b]
-            print(sub_res_a, sub_res_b)
         return  sub_res_a, sub_res_b
     
 def rsa(pdb_file, chains_CA): 
@@ -314,7 +324,6 @@ def rsa(pdb_file, chains_CA):
     for chain in chains_CA.values():
         if str(pdb_file).endswith(chain.chainID):
             for residue in chain.residues.values():
-                print(chain.residue_indexes)
                 all = result.residueAreas()               
                 residue_sasa = all[chain.chainID][str(residue.resnum)].total
                 residue.addRSA(residue_sasa)                 
@@ -342,64 +351,69 @@ def dssp(chain_CA, pdb):
         with open(output_file, 'w') as f:
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
+def ca_dist_calc(chains_CA, size, overlap ):
+    print("CA DISTANCE CALCULATION") 
+    [chainID1, chainID2] = chains_CA.keys()
+    distance_matrix_CA__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_CA_distance)
+    chains_CA[chainID1].distance_matrices_CA = distance_matrix_CA__A_A
+    distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
+    chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
+    distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
+    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
+    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
+    return distance_matrix_CA__A_B
 
-protein_data = {}
-one_hot_sequences = []
-distance_matrices_tensor = []
-submatrices_tensor = []
-rsa_values_tensor = []
- 
+def mean_dist_calc(chains_CA, size, overlap):
+    print("AA'S ATOMS DISTANCE CALCULATION")
+    [chainID1, chainID2] = chains_CA.keys()
+    distance_matrix_mean__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_mean_distance)
+    chains_CA[chainID1].distance_matrices_mean = distance_matrix_mean__A_A
+    distance_matrix_mean__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_mean_distance)
+    chains_CA[chainID2].distance_matrices_mean = distance_matrix_mean__B_B
+    distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
+    chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
+    chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
+    return distance_matrix_mean__A_B
+    
+def interacting_res (chains_CA, distance_matrix_CA__A_B , distance_matrix_mean__A_B):
+    [chainID1, chainID2] = chains_CA.keys()
+    interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) 
+    chains_CA[chainID1].interactions_CA = chains_CA[chainID2].interactions_CA = interactions_CA__A_B
+    chains_CA[chainID1].interactions_m_CA = chains_CA[chainID2].interactions_m_CA = IM_CA__A_B
+
+    interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) 
+    chains_CA[chainID1].interactions_mean = chains_CA[chainID2].interactions_mean = interactions_mean__A_B
+    chains_CA[chainID1].interactions_m_mean = chains_CA[chainID2].interactions_m_mean = IM_mean__A_B
+    return interactions_mean__A_B, IM_mean__A_B
+"""
+def spearman():
+        print("SPEARMANR")
+        print(stats.spearmanr(distance_matrix_CA__A_A.flatten(), distance_matrix_mean__A_A.flatten()))
+        print(stats.spearmanr(distance_matrix_CA__B_B.flatten(), distance_matrix_mean__B_B.flatten()))
+        print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
+        print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))   
+"""
+
 def main():
  
     # Work directory ands storing values
     work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
+    interacting_proteins = []
     chain_split_files = []
     size = 7 
     overlap = 1 
     
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
-        print("CA DISTANCE CALCULATION")
-        print(pdb_file)
+        
         chains_CA = parsePDB(pdb_file)
         [chainID1, chainID2] = chains_CA.keys()
-        distance_matrix_CA__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_CA_distance)
-        chains_CA[chainID1].distance_matrices_CA = distance_matrix_CA__A_A
-        distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
-        chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
-        distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
-        chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
-        chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
-
-        interactions_CA__A_B, IM_CA__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_CA__A_B) # chains_CA)
-        chains_CA[chainID1].interactions_CA = chains_CA[chainID2].interactions_CA = interactions_CA__A_B
-        chains_CA[chainID1].interactions_m_CA = chains_CA[chainID2].interactions_m_CA = IM_CA__A_B
-
-        
-
-        print("AA'S ATOMS DISTANCE CALCULATION")
-        [chainID1, chainID2] = chains_CA.keys()
-        distance_matrix_mean__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_mean_distance)
-        chains_CA[chainID1].distance_matrices_mean = distance_matrix_mean__A_A
-        distance_matrix_mean__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_mean_distance)
-        chains_CA[chainID2].distance_matrices_mean = distance_matrix_mean__B_B
-        distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
-        chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
-        chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
-
-        interactions_mean__A_B, IM_mean__A_B = findInteractingResidues(chains_CA, chainID1, chainID2, distance_matrix_mean__A_B) 
-        chains_CA[chainID1].interactions_mean = chains_CA[chainID2].interactions_mean = interactions_mean__A_B
-        chains_CA[chainID1].interactions_m_mean = chains_CA[chainID2].interactions_m_mean = IM_mean__A_B
-
-        print("SPEARMANR")
-        print(stats.spearmanr(distance_matrix_CA__A_A.flatten(), distance_matrix_mean__A_A.flatten()))
-        print(stats.spearmanr(distance_matrix_CA__B_B.flatten(), distance_matrix_mean__B_B.flatten()))
-        print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
-        print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))        
+        ca_dist = ca_dist_calc(chains_CA, size, overlap)
+        mean_dist = mean_dist_calc(chains_CA, size, overlap)
+        int_res = interacting_res(chains_CA, ca_dist, mean_dist )
 
         # splitting chains and calculating the rsa on them 
-        
         dir_name = os.path.dirname(pdb_file)
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
         chain_split_files.extend(splitted_files)    
@@ -408,8 +422,11 @@ def main():
             rsa(prot, chains_CA)
             dssp(chains_CA, prot)
         
-        break
+        for chain in chains_CA.values():
+            interacting_proteins.append(chain)        
+        break   
     
+    return interacting_proteins, chains_CA
 
 if __name__ == "__main__":
     main()

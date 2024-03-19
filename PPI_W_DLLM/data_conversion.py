@@ -1,52 +1,68 @@
 import torch
 import numpy as np
 import feature_extraction
+from tensorflow.keras.layers import AveragePooling2D
+from tensorflow.keras.layers import Input, Concatenate, Conv2D, Flatten, Dense, Reshape, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
 
-# Call the main function of feature_extraction.py
-feature_extraction.main()
+interacting_prot, chains_CA = feature_extraction.main()
 
-# Access the protein_data dictionary
+def create_autoencoder_with_pooling(input_shape, num_classes, latent_dim):
+    matrix_input = Input(shape=input_shape)
 
-one_hot_sequences = []
-distance_matrices_tensor = []
-submatrices_tensor = []
-rsa_values_tensor = []
+    class_input = Input(shape=(num_classes,))
 
-# Convert protein sequences to one-hot encoding
-amino_acids = 'ACDEFGHIKLMNPQRSTVWY'
-num_amino_acids = len(amino_acids)
+    pooled_input = AveragePooling2D(pool_size=(2, 2))(matrix_input)
 
-for protein_id, chain_data in feature_extraction.protein_data.items():
-    for data in chain_data.items():
-        sequences = data['residue_data']
-        max_seq_length = max(len(seq) for seq in sequences)
-        one_hot_seq = np.zeros((len(sequences), max_seq_length, num_amino_acids), dtype=np.float32)
-        for i, seq in enumerate(sequences):
-            for j, aa in enumerate(seq):
-                if aa in amino_acids:
-                    one_hot_seq[i, j, amino_acids.index(aa)] = 1
-        one_hot_sequences.append(one_hot_seq)
+    concatenated_input = Concatenate()([pooled_input, class_input])
 
-        # Convert distance matrices to tensor
-        distance_matrix = data['distance_matrix_CA']
-        distance_matrices_tensor.append(torch.tensor(distance_matrix, dtype=torch.float32))
+    encoder_output = GlobalAveragePooling2D()(Conv2D(32, (3, 3), activation='relu')(concatenated_input))
 
-        # Convert submatrices to tensor
-        submatrices_data = data['sub_matrixes']
-        submatrices_tensor.append(torch.tensor(submatrices_data, dtype=torch.float32))
+    decoder_input = Input(shape=(latent_dim,))
+    decoder_concatenated_input = Concatenate()([decoder_input, class_input])
+    decoder_output = Dense(np.prod(input_shape), activation='sigmoid')(decoder_concatenated_input)
+    decoded_output = Reshape(input_shape)(decoder_output)
 
-        # Convert RSA values to tensor
-        rsa_values_data = data['residue_data']['rsa_value']
-        rsa_values_tensor.append(torch.tensor(rsa_values_data, dtype=torch.float32))
 
-# Concatenate lists into tensors
-one_hot_sequences_tensor = np.concatenate(one_hot_sequences, axis=0)
-distance_matrices_tensor = torch.cat(distance_matrices_tensor, dim=0)
-submatrices_tensor = torch.cat(submatrices_tensor, dim=0)
-rsa_values_tensor = torch.cat(rsa_values_tensor, dim=0)
+    encoder = Model(inputs=[matrix_input, class_input], outputs=encoder_output)
+    decoder = Model(inputs=[decoder_input, class_input], outputs=decoded_output)
+    autoencoder = Model(inputs=[matrix_input, class_input], outputs=decoder(encoder([matrix_input, class_input])))
 
-# Print shapes for verification
-print("One-hot encoded sequences shape:", one_hot_sequences_tensor.shape)
-print("Distance matrices tensor shape:", distance_matrices_tensor.shape)
-print("Submatrices tensor shape:", submatrices_tensor.shape)
-print("RSA values tensor shape:", rsa_values_tensor.shape)
+    return autoencoder
+
+def extract_matrices_and_classes(chains_CA):
+    all_matrices = []
+    all_classes = []
+    for chain_id, chain in chains_CA.items():
+        all_matrices.extend(chain.distance_matrices_CA_AB)
+        all_matrices.extend(chain.distance_matrices_mean_AB)
+        all_matrices.extend(chain.submatrices)
+        all_classes.extend(chain.__dict__.values())
+    return all_matrices, all_classes
+ 
+def main ():
+    all_matrices, all_classes = extract_matrices_and_classes(chains_CA)
+    max_height = max_width = max_channels = 0
+    for matrix in all_matrices:
+            height, width = matrix.row, matrix.col
+            max_height = max(max_height, height)
+            max_width = max(max_width, width)
+            
+
+    # input shape using maximum shape
+    input_shape = (max_height, max_width, max_channels)
+    print(input_shape)
+    # number of classes and latent dimension for autoencoder
+    num_classes = len(interacting_prot)         
+    latent_dim = num_classes     
+    print(num_classes)                      
+    # autoencoder model with pooling
+    autoencoder = create_autoencoder_with_pooling(input_shape, num_classes, latent_dim)
+
+    autoencoder.fit([all_matrices, all_classes], all_matrices, epochs=epochs, batch_size=batch_size)
+
+    # fixed-size vector representation from the encoder for each PDB file
+    encoded_vectors = autoencoder.get_layer("encoder").predict([all_matrices, all_classes])
+
+if __name__ == "__main__":
+    main()
