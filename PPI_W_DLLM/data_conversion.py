@@ -34,7 +34,9 @@ def extract_matrices_and_classes(chains_CA):
     all_matrices = []
     all_classes = []
     for chain_id, chain in chains_CA.items():
+        print("This is extraction, before append:")
         all_matrices.extend(chain.distance_matrices_CA_AB)
+        print(chain.distance_matrices_CA_AB)
         all_matrices.extend(chain.distance_matrices_mean_AB)
         all_matrices.extend(chain.submatrices)
         all_classes.extend(chain.__dict__.values())
@@ -44,7 +46,9 @@ def main ():
     all_matrices, all_classes = extract_matrices_and_classes(chains_CA)
     max_height = max_width = max_channels = 0
     for matrix in all_matrices:
-            height, width = matrix.row, matrix.col
+            print("This is the all_matrixes first element:")
+            print(matrix)
+            height, width = matrix.shape
             max_height = max(max_height, height)
             max_width = max(max_width, width)
             
