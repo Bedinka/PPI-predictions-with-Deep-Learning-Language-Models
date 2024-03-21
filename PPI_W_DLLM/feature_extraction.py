@@ -80,7 +80,8 @@ class Chain:
         self.distance_matrices_mean = []
         self.distance_matrices_CA_AB = []
         self.distance_matrices_mean_AB = []
-        self.submatrices = []
+        self.mean_submatrices = []
+        self.ca_submatrices = []
         self.interactions_CA =[]
         self.interactions_m_CA =[]
         self.interactions_mean =[]
@@ -103,14 +104,14 @@ class Chain:
         aDistMatrix = Matrix(size, size)
         aDistMatrix.cadistmatrix = dist_mat
         self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
-        self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        self.ca_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
         aDistMatrix = Matrix(size, size)
         aDistMatrix.meandistmatrix = dist_mat
         self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
-        self.submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         pass
     
     def get_all_atoms(self):
@@ -426,7 +427,7 @@ def main():
             interacting_proteins.append(chain)        
         break   
     
-    return interacting_proteins, chains_CA
+    return interacting_proteins
 
 if __name__ == "__main__":
     main()

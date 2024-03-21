@@ -1,58 +1,66 @@
-import numpy as np
 import feature_extraction
-from tensorflow.keras.layers import AveragePooling2D, Masking, LSTM, Concatenate, Dense, Reshape
-from tensorflow.keras.layers import Input, Concatenate, Conv2D, Flatten, Dense, Reshape, GlobalAveragePooling2D
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+from tensorflow.keras import layers, losses
+from tensorflow.keras.datasets import fashion_mnist
 from tensorflow.keras.models import Model
 
-interacting_prot, chains_CA = feature_extraction.main()
+interacting_prot = []
+interacting_prot = feature_extraction.main()
+
+for protein in interacting_prot:
+    print(protein.distance_matrices_CA)
+    dist_matrix = protein.distance_matrices_CA
+    num_rows = len(dist_matrix)
+    mid_point = num_rows // 2
+    dist_ca_train = dist_matrix[:mid_point]
+    dist_ca_test = dist_matrix[mid_point:]
+    """
+    (dist_ca_ab_train, _)= (dist_ca_ab_test, _)= protein.distance_matrices_CA_AB
+    (dist_ca_ab_sub_train, _)= (dist_ca_ab_sub_test, _)= protein.ca_submatrices
+    (dist_mean_train, _)= (dist_mean_test, _)= protein.distance_matrices_mean
+    (dist_mean_ab_train, _)= (dist_mean_ab_test, _)= protein.distance_matrices_mean_AB
+    (dist_mean_ab_sub_train, _)= (dist_mean_ab_sub_test, _)= protein.mean_submatrices
+    """
+dist_ca_train = dist_ca_train.astype('float32') / 255.
+dist_ca_test = dist_ca_test.astype('float32') / 255.
+
+print (dist_ca_train.shape)
+print (dist_ca_test.shape)
+
+class Autoencoder(Model):
+
+  def __init__(self, latent_dim, shape):
+    super(Autoencoder, self).__init__()
+    self.latent_dim = latent_dim
+    self.shape = shape
+    self.encoder = tf.keras.Sequential([
+      layers.Flatten(),
+      layers.Dense(latent_dim, activation='relu'),
+    ])
+    self.decoder = tf.keras.Sequential([
+      layers.Dense(tf.math.reduce_prod(shape), activation='sigmoid'),
+      layers.Reshape(shape)
+    ])
+
+  def call(self, x):
+    encoded = self.encoder(x)
+    decoded = self.decoder(encoded)
+    return decoded
 
 
-def create_autoencoder_with_pooling(input_shape, num_classes, latent_dim):
-    class_input = Input(shape=(num_classes,))
-    chain1_input = Input(shape=(input_shape[0]))  
-    chain2_input = Input(shape=(input_shape[0])) 
+shape = dist_ca_train.shape[1:]
+latent_dim = 100
+autoencoder = Autoencoder(latent_dim, shape)
 
-    pooled_input_chain1 = AveragePooling2D(pool_size=(2, 2))(chain1_input)
-    pooled_input_chain2 = AveragePooling2D(pool_size=(2, 2))(chain2_input)
+autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
 
-    concatenated_input = Concatenate()([pooled_input_chain1, pooled_input_chain2, class_input])
+autoencoder.fit(dist_ca_train, dist_ca_train,
+                epochs=10,
+                shuffle=True,
+                validation_data=(dist_ca_test, dist_ca_test))
 
-    encoder_output = GlobalAveragePooling2D()(Conv2D(32, (3, 3), activation='relu')(concatenated_input))
-
-    decoder_input = Input(shape=(latent_dim,))
-    decoder_concatenated_input = Concatenate()([decoder_input, class_input])
-    decoder_output = Dense(np.prod(input_shape), activation='sigmoid')(decoder_concatenated_input)
-    decoded_output = Reshape(input_shape)(decoder_output)
-
-    encoder = Model(inputs=[chain1_input, chain2_input, class_input], outputs=encoder_output)
-    decoder = Model(inputs=[decoder_input, class_input], outputs=decoded_output)
-    autoencoder = Model(inputs=[chain1_input, chain2_input, class_input], outputs=decoder(encoder([chain1_input, chain2_input, class_input])))
-
-    return autoencoder
-
-def extract_classes(chains_CA):
-    all_classes = []
-    for chain_id, chain in chains_CA.items():
-        all_classes.append(chain.__dict__.values())
-    return all_classes
-
-def main():
-    all_classes = extract_classes(chains_CA)
-    # Determine input shapes dynamically
-
-    input_shape =  100
-    max_channels = 17
-    input_shapes = (input_shape, max_channels)
-    num_classes = 2
-    latent_dim = 2
-
-    # Create autoencoder model
-    autoencoder = create_autoencoder_with_pooling(input_shapes, num_classes, latent_dim)
-    autoencoder.compile(optimizer='adam', loss='mse')
-    autoencoder.fit(interacting_prot)
-
-    # Extract encoded vectors
-    encoded_vectors = autoencoder.layers[1].predict()
-
-if __name__ == "__main__":
-    main()
