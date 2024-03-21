@@ -68,7 +68,8 @@ def splitPDBbyChain(filename, output_dir):
     return splitted_files 
 
 class Chain:
-    def __init__(self, chainID):
+    def __init__(self, chainID, sample_number):
+        self.samplenum = sample_number
         self.chainID = chainID
         self.residues = {}
         self.residue_indexes = []    
@@ -189,7 +190,7 @@ class Matrix:
         return self.submatrix[key]
 """        
 # Parsing the PDB files 
-def parsePDB(pdb_file):
+def parsePDB(pdb_file, sample_counter):
     chains = {}
     parts = pdb_file.split('/')
     filename = parts[-1]
@@ -210,16 +211,18 @@ def parsePDB(pdb_file):
             resnum = int(line[22:26]) 
             chainID = line[21]
             if chainID not in chains:
-                chains[chainID] = Chain(chainID)
+                chains[chainID] = Chain(chainID, sample_counter)
                 if chainID == 'A':
                     chains[chainID].prot_id = first_part
                     print(chains[chainID].prot_id)
+                    sample_counter += 1
                 else :
                     chains[chainID].prot_id = second_part
+                    sample_counter += 1
             if resnum not in chains[chainID].residues:
                 chains[chainID].addResidue( aa, resnum)
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
-    return chains
+    return chains 
 
 # Calculating distance 
 def calculate_distance(p1, p2):
@@ -394,7 +397,7 @@ def spearman():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))   
 """
-
+sample_counter = 1
 def main():
  
     # Work directory ands storing values
@@ -404,11 +407,11 @@ def main():
     chain_split_files = []
     size = 7 
     overlap = 1 
+    processed_sample = None
     
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
-        
-        chains_CA = parsePDB(pdb_file)
+        chains_CA = parsePDB(pdb_file, sample_counter)
         [chainID1, chainID2] = chains_CA.keys()
         ca_dist = ca_dist_calc(chains_CA, size, overlap)
         mean_dist = mean_dist_calc(chains_CA, size, overlap)
