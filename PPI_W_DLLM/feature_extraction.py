@@ -105,14 +105,16 @@ class Chain:
         aDistMatrix = Matrix(size, size)
         aDistMatrix.cadistmatrix = dist_mat
         self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
-        self.ca_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
         pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
         aDistMatrix = Matrix(size, size)
         aDistMatrix.meandistmatrix = dist_mat
         self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
-        self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
+        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
         pass
     
     def get_all_atoms(self):
@@ -294,11 +296,11 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
     rows, cols = distmat_AB.shape  
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
-            #sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            sub_matrix = Matrix(sub_size, sub_size)
-            sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            sub_matrix.i = i + 1  
-            sub_matrix.j = j + 1  
+            sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            #sub_matrix = Matrix(sub_size, sub_size)
+            #sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            #sub_matrix.i = i + 1  
+            #sub_matrix.j = j + 1  
             sub_mat.append(sub_matrix) # residue_indexes
     return sub_mat
 
@@ -363,8 +365,8 @@ def ca_dist_calc(chains_CA, size, overlap ):
     distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
     chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
     distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
-    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
-    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__A_B, size , overlap)
+    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap) # AB was chaged to AA
+    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap)# AB was chaged to BB
     return distance_matrix_CA__A_B
 
 def mean_dist_calc(chains_CA, size, overlap):
@@ -375,8 +377,8 @@ def mean_dist_calc(chains_CA, size, overlap):
     distance_matrix_mean__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_mean_distance)
     chains_CA[chainID2].distance_matrices_mean = distance_matrix_mean__B_B
     distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
-    chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
-    chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__A_B, size , overlap )
+    chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_A, size , overlap )# AB was chaged to AA
+    chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__B_B, size , overlap )# AB was chaged to BB
     return distance_matrix_mean__A_B
     
 def interacting_res (chains_CA, distance_matrix_CA__A_B , distance_matrix_mean__A_B):
