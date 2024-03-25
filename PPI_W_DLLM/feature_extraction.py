@@ -105,6 +105,8 @@ class Chain:
         aDistMatrix = Matrix(size, size)
         aDistMatrix.cadistmatrix = dist_mat
         self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
+        #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
+        #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
         self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
         pass
 
@@ -403,7 +405,7 @@ sample_counter = 1
 def main():
  
     # Work directory ands storing values
-    work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
+    work_dir = "/Users/baledi/ProtSeq Project /workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
     chain_split_files = []
