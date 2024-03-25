@@ -66,11 +66,11 @@ def main():
   
   re_a, re_b = mean_matrix_vec(interacting_prot)
   ca_a, ca_b =ca_matrix_vec(interacting_prot)
-  finals_train_vec = np.concatenate((re_a, ca_a), axis=0)
-  finals_test_vec = np.concatenate((re_b, ca_b), axis=0) 
+  #finals_train_vec = np.concatenate((re_a, ca_a), axis=0)
+  #finals_test_vec = np.concatenate((re_b, ca_b), axis=0) 
       #sub_matrix_2 = np. array ([[protein.mean_submatrices],[protein.ca_submatrices]], dtype = float )
-  dist_ca_train =  finals_train_vec
-  dist_ca_test = finals_test_vec
+  dist_ca_train =  re_a
+  dist_ca_test = re_b
   dist_ca_train = dist_ca_train.astype('float32') / 255.
   dist_ca_test = dist_ca_test.astype('float32') / 255.
   print (dist_ca_train.shape)
