@@ -2,7 +2,7 @@ from Bio.PDB import PDBParser
 import tarfile
 import os
 import numpy as np
-import pandas as pd
+import pandas as pd 
 from scipy import stats
 import freesasa
 import torch 
@@ -405,7 +405,7 @@ sample_counter = 1
 def main():
  
     # Work directory ands storing values
-    work_dir = "/Users/baledi/ProtSeq Project /workdir"
+    work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
     chain_split_files = []
