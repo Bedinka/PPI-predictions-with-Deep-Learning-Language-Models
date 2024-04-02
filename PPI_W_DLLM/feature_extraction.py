@@ -8,6 +8,7 @@ import freesasa
 import torch 
 import pydssp
 
+work_dir = "/Users/baledi/ProtSeq Project /workdir"
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
     pdb_files = []
@@ -79,6 +80,8 @@ class Chain:
         self.dssp_onehot = []
         self.distance_matrices_CA = []
         self.distance_matrices_mean = []
+        self.dist_res = []
+        self.name_res =[]
         self.distance_matrices_CA_AB = []
         self.distance_matrices_mean_AB = []
         self.mean_submatrices = []
@@ -117,8 +120,10 @@ class Chain:
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
         self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
+        self.dist_res , self.name_res = sub_residuses (self.residues, self.residue_indexes)
         pass
-    
+        
+
     def get_all_atoms(self):
         all_atoms = []
         all_coords = []
@@ -293,12 +298,12 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
     return distance_matrix
 
 # Sub Matrix creation , Dina version
-def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
+def create_fixedsize_submatrix(distmat, sub_size, overlap):
     sub_mat = []
-    rows, cols = distmat_AB.shape  
+    rows, cols = distmat.shape  
     for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
-            sub_matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
+            sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
             #sub_matrix = Matrix(sub_size, sub_size)
             #sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
             #sub_matrix.i = i + 1  
@@ -309,21 +314,15 @@ def create_fixedsize_submatrix(distmat_AB, sub_size, overlap):
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
 
-def sub_residuses(chains_CA, chainID1, chainID2, submatrices):
+def sub_residuses( residues_list, residue_indexes):
+    sub_residues = []
+    sub_names = []
+    for i in range(len(residue_indexes) - 6):
+        sub_residues.append(residue_indexes[i:i+7])
+        sub_names.append([residues_list[resnum].aa for resnum in residue_indexes[i:i+7]])
+    print( sub_residues , sub_names)
+    return sub_residues , sub_names
 
-        sub_res_a = []
-        sub_res_b = []
-        Chain_A = chains_CA[chainID1]
-        Chain_B = chains_CA[chainID2]
-
-        for idx, submatrix in enumerate(submatrices):
-            #print(f"Submatrix {idx+1}:")
-            #print(submatrix)
-            start_a = Chain_A.residue_indexes[submatrix.i]
-            start_b = Chain_B.residue_indexes[submatrix.j]
-            sub_res_a = Chain_A.residues[start_a]
-            sub_res_b = Chain_B.residues[start_b]
-        return  sub_res_a, sub_res_b
     
 def rsa(pdb_file, chains_CA): 
     structure = freesasa.Structure(pdb_file)
@@ -405,7 +404,7 @@ sample_counter = 1
 def main():
  
     # Work directory ands storing values
-    work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
+    
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
     chain_split_files = []
@@ -420,6 +419,7 @@ def main():
         ca_dist = ca_dist_calc(chains_CA, size, overlap)
         mean_dist = mean_dist_calc(chains_CA, size, overlap)
         int_res = interacting_res(chains_CA, ca_dist, mean_dist )
+        
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
