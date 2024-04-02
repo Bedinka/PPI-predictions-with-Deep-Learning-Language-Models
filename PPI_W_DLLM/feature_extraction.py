@@ -8,7 +8,7 @@ import freesasa
 import torch 
 import pydssp
 
-work_dir = "/Users/baledi/ProtSeq Project /workdir"
+work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
     pdb_files = []
@@ -320,7 +320,6 @@ def sub_residuses( residues_list, residue_indexes):
     for i in range(len(residue_indexes) - 6):
         sub_residues.append(residue_indexes[i:i+7])
         sub_names.append([residues_list[resnum].aa for resnum in residue_indexes[i:i+7]])
-    print( sub_residues , sub_names)
     return sub_residues , sub_names
 
     
@@ -354,7 +353,7 @@ def dssp(chain_CA, pdb):
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
         chain.dssp_onehot = dssp_onhot
         ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        output_file = "./" + str(chain.prot_id) + ".dssp.txt"
+        output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
         with open(output_file, 'w') as f:
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
@@ -412,6 +411,7 @@ def main():
     overlap = 1 
     processed_sample = None
     
+    i = 0
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         chains_CA = parsePDB(pdb_file, sample_counter)
@@ -431,9 +431,13 @@ def main():
             dssp(chains_CA, prot)
         
         for chain in chains_CA.values():
-            interacting_proteins.append(chain)        
-        break   
-    
+            interacting_proteins.append(chain)      
+        if i == 2:
+            break 
+        
+        print(i)
+        i += 1
+
     return interacting_proteins
 
 if __name__ == "__main__":
