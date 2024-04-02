@@ -8,7 +8,6 @@ import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, losses
-from tensorflow.keras.datasets import fashion_mnist
 from tensorflow.keras.models import Model
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -40,6 +39,8 @@ def ca_matrix_vec(proteins):
       print(sub_values_b.shape)
       ca_b= sub_values_b.reshape(-1, 7, 7)
   return ca_a,ca_b 
+
+
 
 class Autoencoder(Model):
 
