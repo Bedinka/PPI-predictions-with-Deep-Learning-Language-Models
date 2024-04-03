@@ -80,8 +80,8 @@ class Chain:
         self.dssp_onehot = []
         self.distance_matrices_CA = []
         self.distance_matrices_mean = []
-        self.dist_res = []
-        self.name_res =[]
+        self.sub_res_index = []
+        self.sub_res_name =[]
         self.distance_matrices_CA_AB = []
         self.distance_matrices_mean_AB = []
         self.mean_submatrices = []
@@ -120,7 +120,8 @@ class Chain:
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
         self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
-        self.dist_res , self.name_res = sub_residuses (self.residues, self.residue_indexes)
+        self.sub_res_index , self.sub_res_name = sub_residuses (self.residues, self.residue_indexes, size)
+        #NEED THE SUB nemas and indexes here too!!
         pass
         
 
@@ -133,15 +134,7 @@ class Chain:
                 all_atoms.append(atom_name)
                 all_coords.append(coordinates)
         return all_atoms, all_coords
-"""    
-    def __getitem__(self, key):
-        if key == 'distance_matrices_CA_AB':
-            return self.distance_matrices_CA_AB
-        elif key == 'distance_matrices_mean_AB':
-            return self.distance_matrices_mean_AB
-        else:
-            raise KeyError(f"Invalid key: {key}")
-"""    
+ 
 class Residue:
     def __init__(self, aa, resnum  ):
         self.aa = aa
@@ -187,17 +180,14 @@ class Matrix:
         self.residues_a = []
         self.residues_b = []
 
-    def submatrixes( self, chains_CA, dist_mat , size, overlap ): 
+    def submatrixes( self, chains_CA, dist_mat , size, overlap ): # not in use 
         [chainID1, chainID2] = chains_CA.keys()
         submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
         self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
         self.submatrix =submatrix
         print("Created fixed sized matrixes and got the starting residues")
         return submatrix
-"""
-    def __getitem__(self, key):
-        return self.submatrix[key]
-"""        
+       
 # Parsing the PDB files 
 def parsePDB(pdb_file, sample_counter):
     chains = {}
@@ -314,12 +304,18 @@ def create_fixedsize_submatrix(distmat, sub_size, overlap):
 def get_submatrix(distance_matrix,i,j, size):
     return distance_matrix[i:i+size,j:j+size]
 
-def sub_residuses( residues_list, residue_indexes):
+def sub_residuses( residues_list, residue_indexes, size ):
     sub_residues = []
     sub_names = []
-    for i in range(len(residue_indexes) - 6):
-        sub_residues.append(residue_indexes[i:i+7])
-        sub_names.append([residues_list[resnum].aa for resnum in residue_indexes[i:i+7]])
+    for i in range(len(residue_indexes) - size + 1):
+            for j in range(len(residue_indexes) - size + 1):
+                subr = [residue_indexes[i:i + size], residue_indexes[j:j + size]]
+                sub_residues.append(subr)
+                subn = [
+                    [residues_list[resnum].aa for resnum in residue_indexes[i:i+size]],
+                    [residues_list[resnum].aa for resnum in residue_indexes[j:j+size]]
+                ]
+                sub_names.append(subn)
     return sub_residues , sub_names
 
     
@@ -432,7 +428,8 @@ def main():
         
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
-        if i == 2:
+        
+        if i == 20:
             break 
         
         print(i)
