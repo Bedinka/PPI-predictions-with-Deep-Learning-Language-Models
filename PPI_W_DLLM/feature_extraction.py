@@ -396,17 +396,13 @@ def spearman():
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))   
 """
 sample_counter = 1
-def main():
- 
-    # Work directory ands storing values
+def main(processed_sample, size):
+
     
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
     chain_split_files = []
-    size = 7 
     overlap = 1 
-    processed_sample = None
-    
     i = 0
     # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
@@ -429,7 +425,7 @@ def main():
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
         
-        if i == 20:
+        if i == processed_sample:
             break 
         
         print(i)
@@ -438,4 +434,6 @@ def main():
     return interacting_proteins
 
 if __name__ == "__main__":
-    main()
+    processed_sample = 5
+    size = 7
+    main(processed_sample, size)
