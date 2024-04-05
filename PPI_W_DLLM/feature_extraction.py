@@ -8,6 +8,28 @@ import freesasa
 import torch 
 import pydssp
 
+amino_acids_dict = {
+    'ALA': 1,
+    'ARG': 2,
+    'ASN': 3,
+    'ASP': 4,
+    'CYS': 5,
+    'GLN': 6,
+    'GLU': 7,
+    'GLY': 8,
+    'HIS': 9,
+    'ILE': 10,
+    'LEU': 11,
+    'LYS': 12,
+    'MET': 13,
+    'PHE': 14,
+    'PRO': 15,
+    'SER': 16,
+    'THR': 17,
+    'TRP': 18,
+    'TYR': 19,
+    'VAL': 20
+}
 work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -73,7 +95,8 @@ class Chain:
         self.samplenum = sample_number
         self.chainID = chainID
         self.residues = {}
-        self.residue_indexes = []    
+        self.residue_indexes = []
+        self.aa_dict = []    
         self.prot_id = []
         self.dssp_struct = []
         self.dssp_index = []
@@ -96,6 +119,8 @@ class Chain:
         aResidue = Residue( aa, resnum )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
+        if aa in amino_acids_dict:
+            self.aa_dict.append(amino_acids_dict[aa])
         pass
     
     def addCA(self, aa, resnum, x, y, z):
@@ -104,13 +129,13 @@ class Chain:
         self.residue_indexes.append(resnum)
         pass
 
-    def addCAMatrix (self, chains_CA , dist_mat , size, overlap):
+    def addCAMatrix (self, chains_CA , dist_mat , size, overlap ):
         aDistMatrix = Matrix(size, size)
         aDistMatrix.cadistmatrix = dist_mat
         self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
+        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
         pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
@@ -119,7 +144,7 @@ class Chain:
         self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
+        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
         self.sub_res_index , self.sub_res_name = sub_residuses (self.residues, self.residue_indexes, size)
         #NEED THE SUB nemas and indexes here too!!
         pass
@@ -219,8 +244,9 @@ def parsePDB(pdb_file, sample_counter):
                     chains[chainID].prot_id = second_part
                     sample_counter += 1
             if resnum not in chains[chainID].residues:
-                chains[chainID].addResidue( aa, resnum)
-            chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
+                chains[chainID].addResidue( aa, resnum)                
+            chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)  
+
     return chains 
 
 # Calculating distance 
@@ -288,17 +314,27 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
     return distance_matrix
 
 # Sub Matrix creation , Dina version
-def create_fixedsize_submatrix(distmat, sub_size, overlap):
+def create_fixedsize_submatrix(distmat, sub_size, overlap, aa_dict):
     sub_mat = []
     rows, cols = distmat.shape  
-    for i in range(0, rows - sub_size +1, overlap):
+    for i in range(0, rows - sub_size + 1, overlap):
+        for j in range(0, cols - sub_size + 1, overlap):
+            sub_matrix = np.zeros((sub_size + 1, sub_size + 1))
+    
+            sub_matrix[1:, 0] = aa_dict[i:i+sub_size]
+            sub_matrix[0, 1:] = aa_dict[j:j+sub_size]
+            sub_matrix[1:, 1:] = distmat[i:i+sub_size, j:j+sub_size]
+
+            sub_mat.append(sub_matrix)
+    '''for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
             sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
             #sub_matrix = Matrix(sub_size, sub_size)
             #sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
             #sub_matrix.i = i + 1  
             #sub_matrix.j = j + 1  
-            sub_mat.append(sub_matrix) # residue_indexes
+            aa_slice = aa_dict[i:i+sub_size]  
+            sub_mat.append((sub_matrix, aa_slice)) # residue_indexes'''
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
@@ -361,8 +397,8 @@ def ca_dist_calc(chains_CA, size, overlap ):
     distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
     chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
     distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
-    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap) # AB was chaged to AA
-    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap)# AB was chaged to BB
+    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap ) # AB was chaged to AA
+    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap )# AB was chaged to BB
     return distance_matrix_CA__A_B
 
 def mean_dist_calc(chains_CA, size, overlap):
@@ -398,7 +434,6 @@ def spearman():
 sample_counter = 1
 def main(processed_sample, size):
 
-    
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
     chain_split_files = []
@@ -431,9 +466,9 @@ def main(processed_sample, size):
         print(i)
         i += 1
 
+
     return interacting_proteins
 
 if __name__ == "__main__":
-    processed_sample = 5
-    size = 7
-    main(processed_sample, size)
+    
+    main()

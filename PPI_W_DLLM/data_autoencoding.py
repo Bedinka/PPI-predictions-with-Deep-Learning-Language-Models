@@ -66,23 +66,22 @@ class LossHistory(callbacks.Callback):
         self.train_losses.append(logs.get('loss'))
         self.val_losses.append(logs.get('val_loss'))
    
-def mean_matrix_vec(interacting_prot): 
+def mean_matrix_vec(interacting_prot, size): 
   re = []
   sub_index = []
   for protein in interacting_prot:
     sub_values= np.array([protein.mean_submatrices])
     print(sub_values.shape)
-    tensor1 = torch.tensor(sub_values.reshape(-1, 7, 7))
-    re.extend(sub_values.reshape(-1, 7, 7))
-    sub_index.append(np.array([protein.sub_res_index]))
-  return re
+    re.extend(sub_values.reshape(-1, size+1, size+1))
+    #sub_index.append(np.array([protein.sub_res_index]))
     
-def ca_matrix_vec(proteins):
+  return re
+def ca_matrix_vec(proteins, size):
   ca = []
   for protein in proteins:
       sub_values = np.array([protein.ca_submatrices])
       print(sub_values.shape)
-      ca.extend(sub_values.reshape(-1, 7, 7))
+      ca.extend(sub_values.reshape(-1, size+1, size+1))
   return ca
 
 
@@ -94,9 +93,6 @@ def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
     j = int
     dist1 = np.sum(np.abs(dist_ca_train[i,] - dist_ca_train[i+j,]))
     X.append(dist1)
-
-  print(encoded_vectors_train[1,].shape)
-  print(encoded_vectors_train[2,].shape)
   
   for i in range(ranges):
     j = int
@@ -136,20 +132,16 @@ def plot(encoded):
   ax.set_ylim([ymin, ymax])
   plt.show()
   
- 
 
-
-def main(latent_dim, model_path, epochs=10):
+def main(latent_dim, model_path, processed_sample, size, epochs=10):
   
   import feature_extraction
-  processed_sample = 30
-  size = 7
   interacting_prot = feature_extraction.main(processed_sample, size)
   ranges= 2000
   int = 100
   loss_history = LossHistory()
-  re_a = mean_matrix_vec(interacting_prot)
-  ca_a =ca_matrix_vec(interacting_prot)
+  re_a = mean_matrix_vec(interacting_prot, size)
+  ca_a =ca_matrix_vec(interacting_prot, size)
   dist_ca_train = np.array(re_a)
   dist_ca_test =  np.array(ca_a)
   #dist_ca_train = np.concatenate(re_a, axis=0)
@@ -159,7 +151,7 @@ def main(latent_dim, model_path, epochs=10):
   print (dist_ca_train.shape)
   print (dist_ca_test.shape)
   shape = dist_ca_train.shape[1:]
-  autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) #Autoencoder(latent_dim, shape)
+  autoencoder = Autoencoder(latent_dim, shape)
   #tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) 
   autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
   autoencoder.fit(dist_ca_train, dist_ca_train,
@@ -178,7 +170,7 @@ def main(latent_dim, model_path, epochs=10):
   x, y , correlation, p_value = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
   
   plot(encoded_vectors_train )
-  #autoencoder.save('dina_model.keras')
+  autoencoder.save('dina_model_1.keras')
   
   collected_data = {
      "train_losses": loss_history.train_losses,
@@ -189,10 +181,12 @@ def main(latent_dim, model_path, epochs=10):
   
 
   
-  return 
+  return collected_data
 
 if __name__ == "__main__":
-    latent_dim = 2
+    latent_dim = 10
     model_path = 'dina_model.keras'
+    processed_sample = 30
+    size = 7
 
-    main(latent_dim, model_path)
+    main(latent_dim ,model_path, processed_sample ,size ) #latent_dim ,model_path, processed_sample ,size
