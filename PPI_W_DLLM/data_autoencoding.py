@@ -6,6 +6,8 @@ import os
 import torch 
 from scipy import stats
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import OneHotEncoder
+import blosum as bl
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
@@ -76,6 +78,7 @@ def mean_matrix_vec(interacting_prot, size):
     #sub_index.append(np.array([protein.sub_res_index]))
     
   return re
+
 def ca_matrix_vec(proteins, size):
   ca = []
   for protein in proteins:
@@ -84,6 +87,17 @@ def ca_matrix_vec(proteins, size):
       ca.extend(sub_values.reshape(-1, size+1, size+1))
   return ca
 
+def one_hot_encoding(submatrix):
+  encoder = OneHotEncoder()
+  one_hot_encoded = encoder.fit_transform(submatrix).toarray()
+  print(submatrix)
+  print(one_hot_encoded)
+  np.savetxt('onehot.txt', one_hot_encoded)
+  return one_hot_encoded
+
+def blosum():
+  matrix = bl.BLOSUM(62)
+  val = matrix["A"]["Y"]
 
 def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
   X = []
@@ -142,6 +156,7 @@ def main(latent_dim, model_path, processed_sample, size, epochs=10):
   loss_history = LossHistory()
   re_a = mean_matrix_vec(interacting_prot, size)
   ca_a =ca_matrix_vec(interacting_prot, size)
+  
   dist_ca_train = np.array(re_a)
   dist_ca_test =  np.array(ca_a)
   #dist_ca_train = np.concatenate(re_a, axis=0)
@@ -168,9 +183,10 @@ def main(latent_dim, model_path, processed_sample, size, epochs=10):
   print(encoded_vectors_train.shape)
 
   x, y , correlation, p_value = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
+  one_hot_train = one_hot_encoding(encoded_vectors_train)
+  plot(one_hot_train)
   
-  plot(encoded_vectors_train )
-  autoencoder.save('dina_model_1.keras')
+  #autoencoder.save('dina_model_1.keras')
   
   collected_data = {
      "train_losses": loss_history.train_losses,
@@ -179,14 +195,12 @@ def main(latent_dim, model_path, processed_sample, size, epochs=10):
       "spearman_p_value": p_value
   }
   
-
-  
   return collected_data
 
 if __name__ == "__main__":
-    latent_dim = 10
+    latent_dim = 5
     model_path = 'dina_model.keras'
-    processed_sample = 30
-    size = 7
+    processed_sample = 1
+    size = 10
 
     main(latent_dim ,model_path, processed_sample ,size ) #latent_dim ,model_path, processed_sample ,size
