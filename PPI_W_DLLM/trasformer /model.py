@@ -73,7 +73,7 @@ class PositionalEncoding (nn.Module):
         x = x + (self.pe[:, :x.shape[1], :]).requires_grad_(False) # (batch, seq_len, d_model) , they will be always fixed and not learned(requires_grad)
         return self.dropout(x)
 
-class ResidualConnection(nn.Module):
+class ResidualConnection(nn.Module): # basically a skip connection between add_norm_1 and add-nomr_2 and between the feed forward , combining all together 
 
         def __init__(self, features: int, dropout: float) -> None: 
             super().__init__()
@@ -81,7 +81,7 @@ class ResidualConnection(nn.Module):
             self.norm = LayerNormalization(features)
     
         def forward(self, x, sublayer):
-            return x + self.dropout(sublayer(self.norm(x)))
+            return x + self.dropout(sublayer(self.norm(x))) # we takle the x and combine it with the output of the next layer 
 
 class MultiHeadAttentionBlock(nn.Module):
     # takes the input of the encoder and uses it 3 times, Query, Keys, Values , in the encoder these matrixes will all be the same , not in the decoder tho !
@@ -95,6 +95,7 @@ class MultiHeadAttentionBlock(nn.Module):
         assert d_model % h == 0, "d_model is not divisible by h, dividing embedding vector into H heads , which mneed to divide equally the same domain of the same vector representing the mbedding into equal matrices to ech "
 
         self.d_k = d_model // h # Dimension of vector seen by each head
+        # defining all the matrixes for the transformations 
         self.w_q = nn.Linear(d_model, d_model, bias=False) # Wq ( d_m, d_m)! this will give back after the multiplication with (sed, d_m) = Q' (seq, d_m)
         self.w_k = nn.Linear(d_model, d_model, bias=False) # Wk
         self.w_v = nn.Linear(d_model, d_model, bias=False) # Wv
@@ -107,21 +108,21 @@ class MultiHeadAttentionBlock(nn.Module):
         d_k = query.shape[-1]
         # Just apply the formula from the paper
         # (batch, h, seq_len, d_k) --> (batch, h, seq_len, seq_len)
-        attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k) # @ add sign is matrix multiplication in pytorch , transpose the last two dimensions se by d_k and D_k by seq_len 
-        if mask is not None:
+        attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k) # @ add sign is matrix multiplication in pytorch , transpose the last two dimensions seq_len by d_k and D_k by seq_len 
+        if mask is not None: # if mask is define aply it 
             # Write a very low value (indicating -inf) to the positions where mask == 0
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            attention_scores.masked_fill_(mask == 0, -1e9) # replace all the values for which this statement is true with the value after it , values that we dont want in the attention ( like padding or an exact value)
         attention_scores = attention_scores.softmax(dim=-1) # (batch, h, seq_len, seq_len) # Apply softmax
         if dropout is not None:
             attention_scores = dropout(attention_scores)
         # (batch, h, seq_len, seq_len) --> (batch, h, seq_len, d_k)
         # return attention scores which can be used for visualization
-        return (attention_scores @ value), attention_scores
+        return (attention_scores @ value), attention_scores #multiply the output of softmax(attenion scores) with the V matrix , a tuple , used for visualization 
 
     def forward(self, q, k, v, mask): # during the softmax we create a sequence by sequence matrix , we can mask values in this matrix before aplying the softmax 
         query = self.w_q(q) # (batch, seq_len, d_model) --> (batch, seq_len, d_model) Q'
         key = self.w_k(k) # (batch, seq_len, d_model) --> (batch, seq_len, d_model) K'
-        value = self.w_v(v) # (batch, seq_len, d_model) --> (batch, seq_len, d_model)V'
+        value = self.w_v(v) # (batch, seq_len, d_model) --> (batch, seq_len, d_model) V'
 
         # (batch, seq_len, d_model) --> (batch, seq_len, h, d_k) --> (batch, h, seq_len, d_k)  we want each head to watch (seq-len, d_k) , so full sequence  whit a small part of embedding
         query = query.view(query.shape[0], query.shape[1], self.h, self.d_k).transpose(1, 2) # .view in pytorch method , which keeps the batch dimension ( we want to split the  embedding not the sequence into H parts) , in the 2. dim we want to keep the sequence, d_model split into two smaller dim which h by d_k , gives you back the d_m shape 
@@ -129,18 +130,19 @@ class MultiHeadAttentionBlock(nn.Module):
         key = key.view(key.shape[0], key.shape[1], self.h, self.d_k).transpose(1, 2) # 
         value = value.view(value.shape[0], value.shape[1], self.h, self.d_k).transpose(1, 2)
 
-        # Calculate attention
+        # Calculate attention, creating the heads 
         x, self.attention_scores = MultiHeadAttentionBlock.attention(query, key, value, mask, self.dropout) # we need the output and the attention score ( out of softmax)
         
         # Combine all the heads together
         # (batch, h, seq_len, d_k) --> (batch, seq_len, h, d_k) --> (batch, seq_len, d_model)
-        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.h * self.d_k)
+        x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.h * self.d_k) #concatanate all the heads, transpose it was seq_len was the 3 dim we want in the 1. dim for combining cause the result we ewant the seq_len in the 2. position 
+        # we have to use contigous with the view, cause in pytorch to tansform the shape of a tensor, he need it to save and put it in place 
 
         # Multiply by Wo
         # (batch, seq_len, d_model) --> (batch, seq_len, d_model)  
         return self.w_o(x)
 
-class EncoderBlock(nn.Module):
+class EncoderBlock(nn.Module): #this is the block which containes N x times the mult
 
 
     def __init__(self, features: int, self_attention_block: MultiHeadAttentionBlock, feed_forward_block: FeedForwardBlock, dropout: float) -> None:

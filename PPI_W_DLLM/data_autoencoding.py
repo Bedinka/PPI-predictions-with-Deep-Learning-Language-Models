@@ -23,6 +23,26 @@ from scipy import stats
 from random import randint
 #os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
+'''
+class Autoencoder(Model):
+  def __init__(self, latent_dim, shape):
+    super(Autoencoder, self).__init__()
+    self.latent_dim = latent_dim
+    self.shape = shape
+    self.encoder = tf.keras.Sequential([
+      layers.Flatten(),
+      layers.Dense(latent_dim, activation='relu'),
+    ])
+    self.decoder = tf.keras.Sequential([
+      layers.Dense(tf.math.reduce_prod(shape), activation='sigmoid'),
+      layers.Reshape(shape)
+    ])
+
+  def call(self, x):
+    encoded = self.encoder(x)
+    decoded = self.decoder(encoded)
+    return decoded
+'''
 
 @tf.keras.utils.register_keras_serializable()
 class Autoencoder(Model):
@@ -44,6 +64,7 @@ class Autoencoder(Model):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         return decoded
+    
     def get_config(self):
       config = super().get_config()
       config.update(
@@ -74,7 +95,7 @@ def mean_matrix_vec(interacting_prot, size):
   for protein in interacting_prot:
     sub_values= np.array([protein.mean_submatrices])
     print(sub_values.shape)
-    re.extend(sub_values.reshape(-1, size+1, size+1))
+    re.extend(sub_values.reshape(-1, size, size))
     #sub_index.append(np.array([protein.sub_res_index]))
     
   return re
@@ -84,7 +105,7 @@ def ca_matrix_vec(proteins, size):
   for protein in proteins:
       sub_values = np.array([protein.ca_submatrices])
       print(sub_values.shape)
-      ca.extend(sub_values.reshape(-1, size+1, size+1))
+      ca.extend(sub_values.reshape(-1, size, size))
   return ca
 
 def one_hot_encoding(submatrix):
@@ -114,13 +135,28 @@ def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
     Y.append(dist2)
   
   correlation, p_value =stats.spearmanr(X, Y)
+  print( "Correlation between distances of encoded vectors and distance matrices", correlation, p_value )  
+  
   print(encoded_vectors_train[1,])
+  print(encoded_vectors_train[1,].shape)
+  #print(stats.spearmanr(encoded_vectors_train[0,:],encoded_vectors_train[1,:]))
 
-  for i in range(5):  
-    print(encoded_vectors_train[i, 0])  
-    print(encoded_vectors_train[i, 1])
+  try:
+    DIM1 = []
+    DIM2 = []
+    for i in range(10000):  
+      #print(encoded_vectors_train[i, 0])  
+      #print(encoded_vectors_train[i, 1])
+      DIM1.append(encoded_vectors_train[i, 0])
+      DIM2.append(encoded_vectors_train[i, 1])
+    
+    correlation2, p_value2 =stats.spearmanr(DIM1, DIM2)
+  except:
+    correlation2 = None
+    p_value2 = None
 
-  return X, Y , correlation, p_value 
+  print( correlation2, p_value2 )  
+  return X, Y , correlation, p_value, correlation2, p_value2 
 
 def plot(encoded):
   
@@ -147,12 +183,12 @@ def plot(encoded):
   plt.show()
   
 
-def main(latent_dim, model_path, processed_sample, size, epochs=10):
+def main(latent_dim, model_path, processed_sample, size, SAVE=True, epochs=10):
   
   import feature_extraction
   interacting_prot = feature_extraction.main(processed_sample, size)
   ranges= 2000
-  int = 100
+  int = 500
   loss_history = LossHistory()
   re_a = mean_matrix_vec(interacting_prot, size)
   ca_a =ca_matrix_vec(interacting_prot, size)
@@ -166,41 +202,63 @@ def main(latent_dim, model_path, processed_sample, size, epochs=10):
   print (dist_ca_train.shape)
   print (dist_ca_test.shape)
   shape = dist_ca_train.shape[1:]
-  autoencoder = Autoencoder(latent_dim, shape)
-  #tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) 
-  autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-  autoencoder.fit(dist_ca_train, dist_ca_train,
-                  epochs=10,
-                  shuffle=True,
-                  validation_data=(dist_ca_test, dist_ca_test),
-                  callbacks=[loss_history])
-  encoded_vectors_train = autoencoder.encoder(dist_ca_train)
+  if SAVE:
+    autoencoder = Autoencoder(latent_dim, shape)
+    autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+    autoencoder.fit(dist_ca_train, dist_ca_train,
+                    epochs=10,
+                    shuffle=True,
+                    validation_data=(dist_ca_test, dist_ca_test),
+                    callbacks=[loss_history])
+  else:  
+    autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) 
+  
+  encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
   print(encoded_vectors_train.shape)
   print(encoded_vectors_train)
-  encoded_vectors_test = autoencoder.encoder(dist_ca_test)
+  encoded_vectors_test = autoencoder.encoder(dist_ca_test).numpy()
 
   print(dist_ca_train.shape)
   print(encoded_vectors_train.shape)
 
-  x, y , correlation, p_value = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
-  one_hot_train = one_hot_encoding(encoded_vectors_train)
-  plot(one_hot_train)
+  x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
+  x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
   
-  #autoencoder.save('dina_model_1.keras')
+  print("#################", model_path)
+  print(correlation, p_value, correlation2, p_value2 )
+  print(correlation_test, p_value_test, correlation2_test, p_value2_test )
+  #one_hot_train = one_hot_encoding(encoded_vectors_train)
+  #plot(one_hot_train)
+  
+  if SAVE:
+     autoencoder.save(model_path) #'dina_model_js.keras')
   
   collected_data = {
+     "model_name": model_path,
      "train_losses": loss_history.train_losses,
       "val_losses": loss_history.val_losses,
       "spearman_correlation": correlation ,
-      "spearman_p_value": p_value
-  }
+      "spearman_p_value": p_value,
+      "spearman_correlation_dim1_2": correlation2,
+      "spearman_p_value_dim1_2": p_value2
+    }
   
   return collected_data
 
 if __name__ == "__main__":
-    latent_dim = 5
-    model_path = 'dina_model.keras'
+    '''latent_dim = 
+    model_path = 'dina_model_js.keras'
     processed_sample = 1
-    size = 10
+    size = 10'''
+    #SAVE = True
 
-    main(latent_dim ,model_path, processed_sample ,size ) #latent_dim ,model_path, processed_sample ,size
+    '''fout = open("summary.txt", "a")
+    for i in range(10):
+      model_path = 'dina_model_sample_%d_dim_%d_size_%d_index_%d.keras' % (processed_sample, latent_dim, size, i)
+      print(model_path)
+      fout.write(model_path+"\n")
+      collected_data = main(latent_dim ,model_path, processed_sample ,size, SAVE ) #latent_dim ,model_path, processed_sample ,size
+      print(collected_data)
+      fout.write(str(collected_data)+"\n"+"\n")
+    fout.close()'''
+    main()

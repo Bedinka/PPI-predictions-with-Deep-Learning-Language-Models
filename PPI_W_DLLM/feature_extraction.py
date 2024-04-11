@@ -319,13 +319,13 @@ def create_fixedsize_submatrix(distmat, sub_size, overlap, aa_dict):
     rows, cols = distmat.shape  
     for i in range(0, rows - sub_size + 1, overlap):
         for j in range(0, cols - sub_size + 1, overlap):
-            #sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
-            #''' Adding the index to the matrix 
+            sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
+            ''' Adding the index to the matrix 
             sub_matrix = np.zeros((sub_size + 1, sub_size + 1))
             sub_matrix[1:, 0] = aa_dict[i:i+sub_size]
             sub_matrix[0, 1:] = aa_dict[j:j+sub_size]
             sub_matrix[1:, 1:] = distmat[i:i+sub_size, j:j+sub_size]
-            #'''
+            '''
             sub_mat.append(sub_matrix)
     '''for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
@@ -391,7 +391,7 @@ def dssp(chain_CA, pdb):
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
 def ca_dist_calc(chains_CA, size, overlap ):
-    print("CA DISTANCE CALCULATION") 
+    #print("CA DISTANCE CALCULATION") 
     [chainID1, chainID2] = chains_CA.keys()
     distance_matrix_CA__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_CA_distance)
     chains_CA[chainID1].distance_matrices_CA = distance_matrix_CA__A_A
@@ -403,7 +403,7 @@ def ca_dist_calc(chains_CA, size, overlap ):
     return distance_matrix_CA__A_B
 
 def mean_dist_calc(chains_CA, size, overlap):
-    print("AA'S ATOMS DISTANCE CALCULATION")
+    #print("AA'S ATOMS DISTANCE CALCULATION")
     [chainID1, chainID2] = chains_CA.keys()
     distance_matrix_mean__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_mean_distance)
     chains_CA[chainID1].distance_matrices_mean = distance_matrix_mean__A_A
@@ -464,7 +464,7 @@ def main(processed_sample, size):
         if i == processed_sample:
             break 
         
-        print(i)
+        #print(i)
         i += 1
 
 
