@@ -210,7 +210,7 @@ class Matrix:
         submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
         self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
         self.submatrix =submatrix
-        print("Created fixed sized matrixes and got the starting residues")
+        #print("Created fixed sized matrixes and got the starting residues")
         return submatrix
        
 # Parsing the PDB files 
@@ -238,7 +238,7 @@ def parsePDB(pdb_file, sample_counter):
                 chains[chainID] = Chain(chainID, sample_counter)
                 if chainID == 'A':
                     chains[chainID].prot_id = first_part
-                    print(chains[chainID].prot_id)
+                    #print(chains[chainID].prot_id)
                     sample_counter += 1
                 else :
                     chains[chainID].prot_id = second_part

@@ -94,7 +94,7 @@ def mean_matrix_vec(interacting_prot, size):
   sub_index = []
   for protein in interacting_prot:
     sub_values= np.array([protein.mean_submatrices])
-    print(sub_values.shape)
+    #print(sub_values.shape)
     re.extend(sub_values.reshape(-1, size, size))
     #sub_index.append(np.array([protein.sub_res_index]))
     
@@ -104,7 +104,7 @@ def ca_matrix_vec(proteins, size):
   ca = []
   for protein in proteins:
       sub_values = np.array([protein.ca_submatrices])
-      print(sub_values.shape)
+      #print(sub_values.shape)
       ca.extend(sub_values.reshape(-1, size, size))
   return ca
 
@@ -135,10 +135,10 @@ def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
     Y.append(dist2)
   
   correlation, p_value =stats.spearmanr(X, Y)
-  print( "Correlation between distances of encoded vectors and distance matrices", correlation, p_value )  
+  #print( "Correlation between distances of encoded vectors and distance matrices", correlation, p_value )  
   
-  print(encoded_vectors_train[1,])
-  print(encoded_vectors_train[1,].shape)
+  #print(encoded_vectors_train[1,])
+  #print(encoded_vectors_train[1,].shape)
   #print(stats.spearmanr(encoded_vectors_train[0,:],encoded_vectors_train[1,:]))
 
   try:
@@ -155,7 +155,7 @@ def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
     correlation2 = None
     p_value2 = None
 
-  print( correlation2, p_value2 )  
+  #print( correlation2, p_value2 )  
   return X, Y , correlation, p_value, correlation2, p_value2 
 
 def plot(encoded):
@@ -183,7 +183,7 @@ def plot(encoded):
   plt.show()
   
 
-def main(latent_dim, model_path, processed_sample, size, SAVE=True, epochs=10):
+def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
   
   import feature_extraction
   interacting_prot = feature_extraction.main(processed_sample, size)
@@ -199,14 +199,14 @@ def main(latent_dim, model_path, processed_sample, size, SAVE=True, epochs=10):
   #dist_ca_test =  np.concatenate(ca_a, axis=0)
   dist_ca_train = dist_ca_train.astype('float32') / 255.
   dist_ca_test = dist_ca_test.astype('float32') / 255.
-  print (dist_ca_train.shape)
-  print (dist_ca_test.shape)
+  #print (dist_ca_train.shape)
+  #print (dist_ca_test.shape)
   shape = dist_ca_train.shape[1:]
   if SAVE:
     autoencoder = Autoencoder(latent_dim, shape)
     autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
     autoencoder.fit(dist_ca_train, dist_ca_train,
-                    epochs=10,
+                    epochs=epoch,
                     shuffle=True,
                     validation_data=(dist_ca_test, dist_ca_test),
                     callbacks=[loss_history])
@@ -214,12 +214,12 @@ def main(latent_dim, model_path, processed_sample, size, SAVE=True, epochs=10):
     autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) 
   
   encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
-  print(encoded_vectors_train.shape)
-  print(encoded_vectors_train)
+  #print(encoded_vectors_train.shape)
+  #print(encoded_vectors_train)
   encoded_vectors_test = autoencoder.encoder(dist_ca_test).numpy()
 
-  print(dist_ca_train.shape)
-  print(encoded_vectors_train.shape)
+  #print(dist_ca_train.shape)
+  #print(encoded_vectors_train.shape)
 
   x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
   x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
@@ -231,10 +231,14 @@ def main(latent_dim, model_path, processed_sample, size, SAVE=True, epochs=10):
   #plot(one_hot_train)
   
   if SAVE:
-     autoencoder.save(model_path) #'dina_model_js.keras')
+     autoencoder.save(model_path)
   
   collected_data = {
      "model_name": model_path,
+     "epochs" : epoch,
+     "latent_dim" : latent_dim,
+     "matrix_size" : size,
+     "processed_sample" : processed_sample,
      "train_losses": loss_history.train_losses,
       "val_losses": loss_history.val_losses,
       "spearman_correlation": correlation ,
