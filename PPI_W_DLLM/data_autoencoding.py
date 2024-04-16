@@ -16,33 +16,9 @@ from tensorflow.keras.models import Model
 from keras.callbacks import Callback
 from sklearn.decomposition import PCA
 
-
-#from autoencoder import Autoencoder
-
 from scipy import stats
 from random import randint
-#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
-'''
-class Autoencoder(Model):
-  def __init__(self, latent_dim, shape):
-    super(Autoencoder, self).__init__()
-    self.latent_dim = latent_dim
-    self.shape = shape
-    self.encoder = tf.keras.Sequential([
-      layers.Flatten(),
-      layers.Dense(latent_dim, activation='relu'),
-    ])
-    self.decoder = tf.keras.Sequential([
-      layers.Dense(tf.math.reduce_prod(shape), activation='sigmoid'),
-      layers.Reshape(shape)
-    ])
-
-  def call(self, x):
-    encoded = self.encoder(x)
-    decoded = self.decoder(encoded)
-    return decoded
-'''
 
 @tf.keras.utils.register_keras_serializable()
 class Autoencoder(Model):
@@ -91,7 +67,6 @@ class LossHistory(callbacks.Callback):
    
 def mean_matrix_vec(interacting_prot, size): 
   re = []
-  sub_index = []
   for protein in interacting_prot:
     sub_values= np.array([protein.mean_submatrices])
     #print(sub_values.shape)
@@ -158,32 +133,34 @@ def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
   #print( correlation2, p_value2 )  
   return X, Y , correlation, p_value, correlation2, p_value2 
 
-def plot(encoded):
+def plot(encoded, model_name):
+  try:
+    m1 = np.array(encoded[1])
+    m2 = np.array(encoded[0])
+    xmin = m1.min()
+    xmax = m1.max()
+    ymin = m2.min()
+    ymax = m2.max()
+    X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    values = np.vstack([m1, m2])
+    kernel = stats.gaussian_kde(values)
+    Z = np.reshape(kernel(positions).T, X.shape)
+                  
+    fig, ax = plt.subplots()
+    ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,extent=[xmin, xmax, ymin, ymax])
+    ax.plot(m1, m2, 'k.', markersize=2)
+    ax.set_xlim([xmin, xmax])
+    ax.set_ylim([ymin, ymax])
   
-  m1 = np.array(encoded[1])
-  m2 = np.array(encoded[0])
-  xmin = m1.min()
-  xmax = m1.max()
-  ymin = m2.min()
-  ymax = m2.max()
-  X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
-  positions = np.vstack([X.ravel(), Y.ravel()])
-  values = np.vstack([m1, m2])
-  kernel = stats.gaussian_kde(values)
-  Z = np.reshape(kernel(positions).T, X.shape)
-                
-  fig, ax = plt.subplots()
-  ax.imshow(np.rot90(Z), cmap=plt.cm.gist_earth_r,extent=[xmin, xmax, ymin, ymax])
-  ax.plot(m1, m2, 'k.', markersize=2)
-  ax.set_xlim([xmin, xmax])
-  ax.set_ylim([ymin, ymax])
- 
-  ax.set_xlim([xmin, xmax])
-  ax.set_ylim([ymin, ymax])
-  plt.show()
+    ax.set_xlim([xmin, xmax])
+    ax.set_ylim([ymin, ymax])
+    plt.savefig(f'{model_name}_plot.png')
+  except np.linalg.LinAlgError as e:
+        print("Error: ", e)
   
 
-def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
+def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   
   import feature_extraction
   interacting_prot = feature_extraction.main(processed_sample, size)
@@ -195,8 +172,6 @@ def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
   
   dist_ca_train = np.array(re_a)
   dist_ca_test =  np.array(ca_a)
-  #dist_ca_train = np.concatenate(re_a, axis=0)
-  #dist_ca_test =  np.concatenate(ca_a, axis=0)
   dist_ca_train = dist_ca_train.astype('float32') / 255.
   dist_ca_test = dist_ca_test.astype('float32') / 255.
   #print (dist_ca_train.shape)
@@ -211,7 +186,7 @@ def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
                     validation_data=(dist_ca_test, dist_ca_test),
                     callbacks=[loss_history])
   else:  
-    autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder} ) 
+    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) 
   
   encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
   #print(encoded_vectors_train.shape)
@@ -224,17 +199,17 @@ def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
   x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
   x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
   
-  print("#################", model_path)
+  print("#################", model_name)
   print(correlation, p_value, correlation2, p_value2 )
   print(correlation_test, p_value_test, correlation2_test, p_value2_test )
   #one_hot_train = one_hot_encoding(encoded_vectors_train)
-  #plot(one_hot_train)
+  plot(encoded_vectors_train, model_name)
   
   if SAVE:
-     autoencoder.save(model_path)
+    tf.saved_model.save(autoencoder, model_name)
   
   collected_data = {
-     "model_name": model_path,
+     "model_name": model_name,
      "epochs" : epoch,
      "latent_dim" : latent_dim,
      "matrix_size" : size,
@@ -251,7 +226,7 @@ def main(latent_dim, model_path, processed_sample, size, SAVE, epoch):
 
 if __name__ == "__main__":
     '''latent_dim = 
-    model_path = 'dina_model_js.keras'
+    model_name = 'dina_model_js.keras'
     processed_sample = 1
     size = 10'''
     #SAVE = True

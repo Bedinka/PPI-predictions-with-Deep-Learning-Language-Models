@@ -13,7 +13,7 @@ train_losses_list = []
 val_losses_list = []
 model_names = []
 
-with open('summary_detailed.txt', 'r') as file:
+with open('summary_detailed_3.txt', 'r') as file:
     for line in file:
         if line.strip():  # Skip empty lines
             line = line.replace('nan', 'None')

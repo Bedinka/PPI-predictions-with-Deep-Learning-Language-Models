@@ -7,6 +7,7 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
+import pickle
 
 amino_acids_dict = {
     'ALA': 1,
@@ -30,7 +31,29 @@ amino_acids_dict = {
     'TYR': 19,
     'VAL': 20
 }
-work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
+work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
+cache_dir = "cache"
+
+# Function to load cached data
+def load_cache(filename):
+    try:
+        with open(filename, "rb") as file:
+            return pickle.load(file)
+    except FileNotFoundError:
+        return None
+
+def save_cache(filename, data):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as file:
+        pickle.dump(data, file)
+
+def check_cache_and_calculate(cache_filename, calculate_function, *args, **kwargs):
+    data = load_cache(cache_filename)
+    if data is None:
+        data = calculate_function(*args, **kwargs)
+        save_cache(cache_filename, data)
+    return data
+
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
     pdb_files = []
@@ -357,15 +380,19 @@ def sub_residuses( residues_list, residue_indexes, size ):
 
     
 def rsa(pdb_file, chains_CA): 
-    structure = freesasa.Structure(pdb_file)
-    result = freesasa.calc(structure)
-    area_classes = freesasa.classifyResults(result, structure)
-    for chain in chains_CA.values():
-        if str(pdb_file).endswith(chain.chainID):
-            for residue in chain.residues.values():
-                all = result.residueAreas()               
-                residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                residue.addRSA(residue_sasa)                 
+    try:
+        print(f"run FreeSASA on : {pdb_file}")
+        structure = freesasa.Structure(pdb_file)
+        result = freesasa.calc(structure)
+        area_classes = freesasa.classifyResults(result, structure)
+        for chain in chains_CA.values():
+            if str(pdb_file).endswith(chain.chainID):
+                for residue in chain.residues.values():
+                    all = result.residueAreas()               
+                    residue_sasa = all[chain.chainID][str(residue.resnum)].total
+                    residue.addRSA(residue_sasa)        
+    except Exception as e:
+        print(f"An error occurred while processing {pdb_file}: {e}")         
 
 def dssp(chain_CA, pdb):
     for chain in chain_CA.values():
@@ -376,8 +403,6 @@ def dssp(chain_CA, pdb):
         # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
-        chain.dssp_struct = dssp_struct
-        ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
     # To get secondary str. as index
         dssp_index = pydssp.assign(coord, out_type='index')
         chain.dssp_indes = dssp_index
@@ -437,10 +462,9 @@ def main(processed_sample, size):
 
     processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
-    chain_split_files = []
     overlap = 1 
-    i = 0
-    # Looping over each pdb file in the directory 
+    i = 1 # number of processed sample 
+
     for pdb_file in processed_pdb_files:
         chains_CA = parsePDB(pdb_file, sample_counter)
         [chainID1, chainID2] = chains_CA.keys()
@@ -451,16 +475,40 @@ def main(processed_sample, size):
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
+        
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
-        chain_split_files.extend(splitted_files)    
 
-        for prot in chain_split_files:
+        for prot in splitted_files:
             rsa(prot, chains_CA)
             dssp(chains_CA, prot)
         
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
         
+        """cache_filename = os.path.join(cache_dir, f"{pdb_file}.cache")
+        chains_CA = check_cache_and_calculate(cache_filename, parsePDB, pdb_file, sample_counter)
+
+        cache_filename_ca = os.path.join(cache_dir, f"{pdb_file}_ca_dist.cache")
+        cache_filename_mean = os.path.join(cache_dir, f"{pdb_file}_mean_dist.cache")
+        cache_filename_int_res = os.path.join(cache_dir, f"{pdb_file}_int_res.cache")
+
+        ca_dist = check_cache_and_calculate(cache_filename_ca, ca_dist_calc, chains_CA, size, overlap)
+        mean_dist = check_cache_and_calculate(cache_filename_mean, mean_dist_calc, chains_CA, size, overlap)
+        int_res = check_cache_and_calculate(cache_filename_int_res, interacting_res, chains_CA, ca_dist, mean_dist)
+
+        dir_name = os.path.dirname(pdb_file)
+        cache_filename_split = os.path.join(cache_dir, f"{pdb_file}_split.cache")
+        splitted_files = check_cache_and_calculate(cache_filename_split, splitPDBbyChain, pdb_file, dir_name)
+
+        for prot in splitted_files:
+            cache_filename_rsa = os.path.join(cache_dir, f"{prot}_rsa.cache")
+            rsa_data = check_cache_and_calculate(cache_filename_rsa, rsa, prot, chains_CA)
+            cache_filename_dssp = os.path.join(cache_dir, f"{prot}_dssp.cache")
+            dssp_data = check_cache_and_calculate(cache_filename_dssp, dssp, chains_CA, prot)"""
+
+        for chain in chains_CA.values():
+            interacting_proteins.append(chain)
+
         if i == processed_sample:
             break 
         
