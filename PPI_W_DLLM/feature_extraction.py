@@ -195,7 +195,7 @@ class Residue:
         self.atoms[atom_name] = (x,y,z)
 
     def add_coordinate(self, coordinate):
-        self.coordinates.append(coordinate)
+        self.coordinates.append(coordinate) 
 
     def get_mean_coordinate(self):
         xs = []
@@ -230,7 +230,7 @@ class Matrix:
 
     def submatrixes( self, chains_CA, dist_mat , size, overlap ): # not in use 
         [chainID1, chainID2] = chains_CA.keys()
-        submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
+        submatrix = create_fixedsize_submatrix(dist_mat, size, overlap) 
         self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
         self.submatrix =submatrix
         #print("Created fixed sized matrixes and got the starting residues")
@@ -379,12 +379,13 @@ def sub_residuses( residues_list, residue_indexes, size ):
     return sub_residues , sub_names
 
     
-def rsa(pdb_file, chains_CA): 
+def rsa(pdb_file, chains_CA, work_dir): 
     try:
-        print(f"run FreeSASA on : {pdb_file}")
+        #print(f"run FreeSASA on : {pdb_file}")
         structure = freesasa.Structure(pdb_file)
         result = freesasa.calc(structure)
         area_classes = freesasa.classifyResults(result, structure)
+        result.write_pdb(os.path.basename(pdb_file))
         for chain in chains_CA.values():
             if str(pdb_file).endswith(chain.chainID):
                 for residue in chain.residues.values():
@@ -460,7 +461,9 @@ def spearman():
 sample_counter = 1
 def main(processed_sample, size):
 
-    processed_pdb_files = process_tgz_files_in_directory(work_dir) 
+    processed_pdb_files = [os.path.join(f"{work_dir}/interactions_001", file) for file in os.listdir(f"{work_dir}/interactions_001") if file.endswith('.pdb')]
+   #processed_pdb_files = process_tgz_files_in_directory(work_dir)
+
     interacting_proteins = []
     overlap = 1 
     i = 1 # number of processed sample 
@@ -479,7 +482,7 @@ def main(processed_sample, size):
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
 
         for prot in splitted_files:
-            rsa(prot, chains_CA)
+            rsa(prot, chains_CA, work_dir)
             dssp(chains_CA, prot)
         
         for chain in chains_CA.values():
