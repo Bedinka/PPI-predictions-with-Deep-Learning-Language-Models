@@ -10,38 +10,6 @@
         <link rel="stylesheet" href="{% static 'style.css' %}">
         <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/multi-swap.js"></script>
         <script src="{% static 'test.js' %}"></script>
-
-        <!--
-        <script>
-            function submit_find_intron_site(index) {
-                input_text = window.mRNA.value;
-                //alert(input_text);
-                //let dnaSequence = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
-                let dnaSequence = input_text;
-                let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
-                //console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
-
-                exonNumDic = setExonNum(dnaSequence);
-                update_Exon_Components();
-
-                let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
-                console.log(`Format output: ${output}`);
-                //alert(window.test.innerHTML);
-                //window.intron_output.innerHTML = "<iframe><pre><h1>" + output + "</h1></pre></iframe>";
-                //window.intron_output4.document.body.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-                var scriptBlock = document.createElement('script');
-                scriptBlock.setAttribute("type","text/javascript");
-                scriptBlock.setAttribute("src", "/static/test.js");
-                
-                window.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
-                window.frames['intron_output4'].document.head.appendChild(scriptBlock);
-                //document.getElementsByTagName("intron_output4")[0].appendChild(scriptBlock);
-                //window.intron_output.html("<pre><h1>" + output + "</h1></pre>");
-                //window.intron_output3.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-                //window.frames['WDE_RTF'].document.body.innerHTML = "<pre>" + output + "</pre>";
-            }
-        </script>
-    -->
     </head>
 
 {% load partials %}
@@ -72,119 +40,10 @@
 </div>
 
 
-<!-- ==================================== -->    
-<!-- Find the best intron insertion sites -->
-<!-- ==================================== -->    
-<div class="container mx-auto">
-    <p></p>
-    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Find intron insertion sites:</h1>
-</div>
 
-<div class="container mx-auto">
-    <!-- <form action="/moclointron/optimize_codons" method="post"> -->
-    <!-- READ: https://bugbytes.io/posts/rendering-template-fragments-with-django-template-partials/ -->
-    <!-- <form name="form2" method="post">-->
-        <!-- <form hx-post="{% url 'index' %}" hx-target="#mRNA_output" hx-swap="innerHTML" name="form1" class="form-control"> -->
-        <div style="width: 450px">
-            <label class="label cursor-pointer" style="border:0px solid black;"> Input sequence type:
-                <input type="radio" class="checkbox" id="input_text_dna" name="input_text" value="dna" checked/>
-                <label for="dna"> DNA </label>
-                <input type="radio" class="checkbox" id="input_text_protein" name="input_text" value="protein" />
-                <label for="protein"> PROTEIN </label>
-                <button class="btn btn-active" onclick="javascript:submit_find_intron_site();">Submit</button>
-            </label>
-        </div>
-        <div style="width: 750px">
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <input type="checkbox" class="checkbox" id="vehicle5" name="vehicle5" value="Bike" />
-                <label for="vehicle5"> Exon legnth restriction: </label>
-                Minimum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="min_gc" name="min_gc" value = "100" min = "0" max = "1000" />
-                Maximum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="max_gc" name="max_gc" value = "500" min = "0" max = "1000" />
-            </label>
-        </div>
-        <div style="width: 550px">
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <select id="MoClo_select" class="select select-bordered w-full max-w-xs" style="width: 100px" onchange="changeMoClo()">
-                    <option disabled>Which MoClo Part?</option>
-                    <option selected>B3</option>
-                    <option>B4</option>
-                    <option>B5</option>
-                    <option>B3-B4</option>
-                    <option>B3-B5</option>
-                    <option>B4-B5</option>
-                    <option>Undefined</option>
-                  </select>
-                <label for="vehicle5"> 5' Overhang: </label>
-                <input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="overhang_5" name="overhang_5" value = "AATG" />
-                <label for="vehicle5"> 3' Overhang: </label>
-                <input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="overhang_3" name="overhang_3" value = "AGGT" />
-            </label>
-        </div>
-        <div style="max-width: 750px; min-width: 750px">
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <!--<label for="mRNA" class="peer">Input: </label>-->
-                <textarea class="textarea textarea-bordered resize-none" id="mRNA"name="mRNA" rows="5" cols="70" style="width:750px;">ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT</textarea>
-            </label>
-        </div>
-        <!-- 
-        <div style="width: 750px">
-            <textarea style="display:none;" class="textarea textarea-bordered resize-none" id="intron_output" name="WDE_RTF" rows="20" cols="70" style="width:750px;">ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT</textarea>       
-            <textarea style="display:none;" class="textarea textarea-bordered resize-none" id="intron_output" name="WDE_RTF" rows="20" cols="70" style="width:750px;">
-            <div name="WDE_RTF" class="test" id = "intron_output3"  rows="20" cols="70" style="width:750px;"><h1>Translate <font color="red">Http</font>Response</h1></div>
-            </textarea>
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <label for="intron_output4" class="peer">Output: </label>
-                
-                <iframe class="iframe_class" name="intron_output4" id="intron_output4" style="border-radius: var(--rounded-btn, 0.5rem); border: 1px solid var(--fallback-bc,oklch(var(--bc)/0.2)); background-color: white; width:800px; height:500px;"><html><body>GGGGGG</body></html></iframe>
-                <iframe class="iframe_class" style="display:none;" name="WDE_RTF" id="intron_output2" style="border:#000000 1px solid; background-color: white; width:800px; height:500px;"><html><body>GGGGGG</body></html></iframe>
-            </label>    
-        </div>
-        
-        <div style="max-width: 1100px; min-width: 1100px">
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <label for="mRNA" class="peer">CDS (NTs): </label>
-                <textarea class="textarea textarea-bordered resize-none" id="mRNA"name="mRNA" rows="5" cols="70" style="width:400px;">ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT</textarea>
-                
-                <label for="intron_output">Output: </label>
-                <textarea class="textarea textarea-bordered resize-none" id="intron_output" name="intron_output" rows="5" cols="70" style="width:400px;" readonly="True">{% partial intron_output %}</textarea>
-            </label>
-        </div>
-         -->
+{% include 'insert_input_part.html' %}
 
-    <!-- </form>-->
-</div>
-
-<div class="divider"></div>
-<div class="container mx-auto">
-    <div style="width: 750px">
-        <!-- <label for="intron_output4" class="peer">Output: </label>   -->
-        <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Ouptut:</h1>
-    </div>
-</div>
-<div class="container mx-auto"  id="content">
-    <div class="middle" style="max-width: 750px; min-width: 750px">
-        <label class="label cursor-pointer" style="padding: 0px 0px 0px 0px; border:0px solid black;">
-            <!--<iframe class="iframe_class" name="intron_output4" id="intron_output4" style="border-radius: var(--rounded-btn, 0.5rem); border: 1px solid var(--fallback-bc,oklch(var(--bc)/0.2)); background-color: white; width:750px; height:300px;"><html><body>GGGGGG</body></html></iframe>-->
-            <iframe class="iframe_class" name="intron_output4" id="intron_output4" style="padding: 0px 0px 0px 0px; border: 0px; background-color: white; width:750px; height:300px;"><html><body>GGGGGG</body></html></iframe>
-        </label>    
-    </div>
-    <div class="middle2" style="max-width: 50px; min-width:50px" style="padding: 0px 0px 0px 0px; border: 0px;">
-    </div>
-    <div class="middle" style="max-width: 750px; min-width: 400px">
-        <b>Exon Information: </b>
-        <div id="exons"></div>
-        <div><br></div>
-        <div>
-            <b>MoClo Fidelity: </b><input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="moclo_fidelity" name="moclo_fidelity" value = "100" min = "0" max = "100" />
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Remove selected exons</button>
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Reset</button>
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Download</button>
-        </div>
-    </div>
-</div>
-
-
-<div class="divider"></div>
+{% include 'insert_output_part.html' %}
 
 </body>
 
