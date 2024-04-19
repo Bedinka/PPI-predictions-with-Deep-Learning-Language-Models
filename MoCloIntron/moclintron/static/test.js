@@ -325,6 +325,14 @@ function changeMoClo() {
         document.getElementById("overhang_5").value = "AATG";
         document.getElementById("overhang_3").value = "AGGT";
     }
+    else if (x =="B3A"){
+        document.getElementById("overhang_5").value = "AATG";
+        document.getElementById("overhang_3").value = "CCCC";
+    }
+    else if (x =="B3B"){
+        document.getElementById("overhang_5").value = "AATG";
+        document.getElementById("overhang_3").value = "DDDD";
+    }
     else if (x =="B4"){
         document.getElementById("overhang_5").value = "AAAA";
         document.getElementById("overhang_3").value = "TTTT";
@@ -347,4 +355,7 @@ function changeMoClo() {
     }
 }
 
-console.log("test.js loaded 13!");
+console.log("test.js loaded 14!");
+
+
+
