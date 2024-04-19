@@ -7,53 +7,8 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
-import pickle
 
-amino_acids_dict = {
-    'ALA': 1,
-    'ARG': 2,
-    'ASN': 3,
-    'ASP': 4,
-    'CYS': 5,
-    'GLN': 6,
-    'GLU': 7,
-    'GLY': 8,
-    'HIS': 9,
-    'ILE': 10,
-    'LEU': 11,
-    'LYS': 12,
-    'MET': 13,
-    'PHE': 14,
-    'PRO': 15,
-    'SER': 16,
-    'THR': 17,
-    'TRP': 18,
-    'TYR': 19,
-    'VAL': 20
-}
-work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
-cache_dir = "cache"
-
-# Function to load cached data
-def load_cache(filename):
-    try:
-        with open(filename, "rb") as file:
-            return pickle.load(file)
-    except FileNotFoundError:
-        return None
-
-def save_cache(filename, data):
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "wb") as file:
-        pickle.dump(data, file)
-
-def check_cache_and_calculate(cache_filename, calculate_function, *args, **kwargs):
-    data = load_cache(cache_filename)
-    if data is None:
-        data = calculate_function(*args, **kwargs)
-        save_cache(cache_filename, data)
-    return data
-
+work_dir = "/home/pc550/Documents/PPI_W_DLLM/workdir"
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
     pdb_files = []
@@ -118,8 +73,7 @@ class Chain:
         self.samplenum = sample_number
         self.chainID = chainID
         self.residues = {}
-        self.residue_indexes = []
-        self.aa_dict = []    
+        self.residue_indexes = []    
         self.prot_id = []
         self.dssp_struct = []
         self.dssp_index = []
@@ -142,8 +96,6 @@ class Chain:
         aResidue = Residue( aa, resnum )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
-        if aa in amino_acids_dict:
-            self.aa_dict.append(amino_acids_dict[aa])
         pass
     
     def addCA(self, aa, resnum, x, y, z):
@@ -152,13 +104,13 @@ class Chain:
         self.residue_indexes.append(resnum)
         pass
 
-    def addCAMatrix (self, chains_CA , dist_mat , size, overlap ):
+    def addCAMatrix (self, chains_CA , dist_mat , size, overlap):
         aDistMatrix = Matrix(size, size)
         aDistMatrix.cadistmatrix = dist_mat
         self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
+        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
         pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
@@ -167,7 +119,7 @@ class Chain:
         self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
+        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap)
         self.sub_res_index , self.sub_res_name = sub_residuses (self.residues, self.residue_indexes, size)
         #NEED THE SUB nemas and indexes here too!!
         pass
@@ -195,7 +147,7 @@ class Residue:
         self.atoms[atom_name] = (x,y,z)
 
     def add_coordinate(self, coordinate):
-        self.coordinates.append(coordinate) 
+        self.coordinates.append(coordinate)
 
     def get_mean_coordinate(self):
         xs = []
@@ -230,10 +182,10 @@ class Matrix:
 
     def submatrixes( self, chains_CA, dist_mat , size, overlap ): # not in use 
         [chainID1, chainID2] = chains_CA.keys()
-        submatrix = create_fixedsize_submatrix(dist_mat, size, overlap) 
+        submatrix = create_fixedsize_submatrix(dist_mat, size, overlap)
         self.residuses_a , self.residues_b = sub_residuses( chains_CA, chainID1, chainID2, submatrix)
         self.submatrix =submatrix
-        #print("Created fixed sized matrixes and got the starting residues")
+        print("Created fixed sized matrixes and got the starting residues")
         return submatrix
        
 # Parsing the PDB files 
@@ -261,15 +213,14 @@ def parsePDB(pdb_file, sample_counter):
                 chains[chainID] = Chain(chainID, sample_counter)
                 if chainID == 'A':
                     chains[chainID].prot_id = first_part
-                    #print(chains[chainID].prot_id)
+                    print(chains[chainID].prot_id)
                     sample_counter += 1
                 else :
                     chains[chainID].prot_id = second_part
                     sample_counter += 1
             if resnum not in chains[chainID].residues:
-                chains[chainID].addResidue( aa, resnum)                
-            chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)  
-
+                chains[chainID].addResidue( aa, resnum)
+            chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)    
     return chains 
 
 # Calculating distance 
@@ -337,28 +288,17 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
     return distance_matrix
 
 # Sub Matrix creation , Dina version
-def create_fixedsize_submatrix(distmat, sub_size, overlap, aa_dict):
+def create_fixedsize_submatrix(distmat, sub_size, overlap):
     sub_mat = []
     rows, cols = distmat.shape  
-    for i in range(0, rows - sub_size + 1, overlap):
-        for j in range(0, cols - sub_size + 1, overlap):
-            sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
-            ''' Adding the index to the matrix 
-            sub_matrix = np.zeros((sub_size + 1, sub_size + 1))
-            sub_matrix[1:, 0] = aa_dict[i:i+sub_size]
-            sub_matrix[0, 1:] = aa_dict[j:j+sub_size]
-            sub_matrix[1:, 1:] = distmat[i:i+sub_size, j:j+sub_size]
-            '''
-            sub_mat.append(sub_matrix)
-    '''for i in range(0, rows - sub_size +1, overlap):
+    for i in range(0, rows - sub_size +1, overlap):
         for j in range(0, cols - sub_size +1, overlap):
             sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
             #sub_matrix = Matrix(sub_size, sub_size)
             #sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
             #sub_matrix.i = i + 1  
             #sub_matrix.j = j + 1  
-            aa_slice = aa_dict[i:i+sub_size]  
-            sub_mat.append((sub_matrix, aa_slice)) # residue_indexes'''
+            sub_mat.append(sub_matrix) # residue_indexes
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
@@ -379,21 +319,16 @@ def sub_residuses( residues_list, residue_indexes, size ):
     return sub_residues , sub_names
 
     
-def rsa(pdb_file, chains_CA, work_dir): 
-    try:
-        #print(f"run FreeSASA on : {pdb_file}")
-        structure = freesasa.Structure(pdb_file)
-        result = freesasa.calc(structure)
-        area_classes = freesasa.classifyResults(result, structure)
-        result.write_pdb(os.path.basename(pdb_file))
-        for chain in chains_CA.values():
-            if str(pdb_file).endswith(chain.chainID):
-                for residue in chain.residues.values():
-                    all = result.residueAreas()               
-                    residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                    residue.addRSA(residue_sasa)        
-    except Exception as e:
-        print(f"An error occurred while processing {pdb_file}: {e}")         
+def rsa(pdb_file, chains_CA): 
+    structure = freesasa.Structure(pdb_file)
+    result = freesasa.calc(structure)
+    area_classes = freesasa.classifyResults(result, structure)
+    for chain in chains_CA.values():
+        if str(pdb_file).endswith(chain.chainID):
+            for residue in chain.residues.values():
+                all = result.residueAreas()               
+                residue_sasa = all[chain.chainID][str(residue.resnum)].total
+                residue.addRSA(residue_sasa)                 
 
 def dssp(chain_CA, pdb):
     for chain in chain_CA.values():
@@ -404,6 +339,8 @@ def dssp(chain_CA, pdb):
         # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
+        chain.dssp_struct = dssp_struct
+        ## output is batched np.ndarray of C3 annotation, like ['-', 'H', 'H', ..., 'E', '-']
     # To get secondary str. as index
         dssp_index = pydssp.assign(coord, out_type='index')
         chain.dssp_indes = dssp_index
@@ -417,19 +354,19 @@ def dssp(chain_CA, pdb):
             f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
 def ca_dist_calc(chains_CA, size, overlap ):
-    #print("CA DISTANCE CALCULATION") 
+    print("CA DISTANCE CALCULATION") 
     [chainID1, chainID2] = chains_CA.keys()
     distance_matrix_CA__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_CA_distance)
     chains_CA[chainID1].distance_matrices_CA = distance_matrix_CA__A_A
     distance_matrix_CA__B_B = create_distance_matrix(chains_CA, chainID2, chainID2, get_CA_distance)
     chains_CA[chainID2].distance_matrices_CA = distance_matrix_CA__B_B
     distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
-    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap ) # AB was chaged to AA
-    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap )# AB was chaged to BB
+    chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap) # AB was chaged to AA
+    chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap)# AB was chaged to BB
     return distance_matrix_CA__A_B
 
 def mean_dist_calc(chains_CA, size, overlap):
-    #print("AA'S ATOMS DISTANCE CALCULATION")
+    print("AA'S ATOMS DISTANCE CALCULATION")
     [chainID1, chainID2] = chains_CA.keys()
     distance_matrix_mean__A_A = create_distance_matrix(chains_CA, chainID1, chainID1, get_mean_distance)
     chains_CA[chainID1].distance_matrices_mean = distance_matrix_mean__A_A
@@ -461,13 +398,13 @@ def spearman():
 sample_counter = 1
 def main(processed_sample, size):
 
-    processed_pdb_files = [os.path.join(f"{work_dir}/interactions_001", file) for file in os.listdir(f"{work_dir}/interactions_001") if file.endswith('.pdb')]
-   #processed_pdb_files = process_tgz_files_in_directory(work_dir)
-
+    
+    processed_pdb_files = process_tgz_files_in_directory(work_dir) 
     interacting_proteins = []
+    chain_split_files = []
     overlap = 1 
-    i = 1 # number of processed sample 
-
+    i = 0
+    # Looping over each pdb file in the directory 
     for pdb_file in processed_pdb_files:
         chains_CA = parsePDB(pdb_file, sample_counter)
         [chainID1, chainID2] = chains_CA.keys()
@@ -478,49 +415,25 @@ def main(processed_sample, size):
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
-        
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
+        chain_split_files.extend(splitted_files)    
 
-        for prot in splitted_files:
-            rsa(prot, chains_CA, work_dir)
+        for prot in chain_split_files:
+            rsa(prot, chains_CA)
             dssp(chains_CA, prot)
         
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
         
-        """cache_filename = os.path.join(cache_dir, f"{pdb_file}.cache")
-        chains_CA = check_cache_and_calculate(cache_filename, parsePDB, pdb_file, sample_counter)
-
-        cache_filename_ca = os.path.join(cache_dir, f"{pdb_file}_ca_dist.cache")
-        cache_filename_mean = os.path.join(cache_dir, f"{pdb_file}_mean_dist.cache")
-        cache_filename_int_res = os.path.join(cache_dir, f"{pdb_file}_int_res.cache")
-
-        ca_dist = check_cache_and_calculate(cache_filename_ca, ca_dist_calc, chains_CA, size, overlap)
-        mean_dist = check_cache_and_calculate(cache_filename_mean, mean_dist_calc, chains_CA, size, overlap)
-        int_res = check_cache_and_calculate(cache_filename_int_res, interacting_res, chains_CA, ca_dist, mean_dist)
-
-        dir_name = os.path.dirname(pdb_file)
-        cache_filename_split = os.path.join(cache_dir, f"{pdb_file}_split.cache")
-        splitted_files = check_cache_and_calculate(cache_filename_split, splitPDBbyChain, pdb_file, dir_name)
-
-        for prot in splitted_files:
-            cache_filename_rsa = os.path.join(cache_dir, f"{prot}_rsa.cache")
-            rsa_data = check_cache_and_calculate(cache_filename_rsa, rsa, prot, chains_CA)
-            cache_filename_dssp = os.path.join(cache_dir, f"{prot}_dssp.cache")
-            dssp_data = check_cache_and_calculate(cache_filename_dssp, dssp, chains_CA, prot)"""
-
-        for chain in chains_CA.values():
-            interacting_proteins.append(chain)
-
         if i == processed_sample:
             break 
         
-        #print(i)
+        print(i)
         i += 1
-
 
     return interacting_proteins
 
 if __name__ == "__main__":
-    
-    main()
+    processed_sample = 5
+    size = 7
+    main(processed_sample, size)
