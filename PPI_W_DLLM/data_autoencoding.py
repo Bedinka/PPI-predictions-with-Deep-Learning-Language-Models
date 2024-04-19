@@ -177,7 +177,18 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   #print (dist_ca_train.shape)
   #print (dist_ca_test.shape)
   shape = dist_ca_train.shape[1:]
-  if SAVE:
+  if os.path.exists(model_name):
+    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
+  else: 
+    autoencoder = Autoencoder(latent_dim, shape)
+    autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+    autoencoder.fit(dist_ca_train, dist_ca_train,
+                    epochs=epoch,
+                    shuffle=True,
+                    validation_data=(dist_ca_test, dist_ca_test),
+                    callbacks=[loss_history])
+
+  """if SAVE:
     autoencoder = Autoencoder(latent_dim, shape)
     autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
     autoencoder.fit(dist_ca_train, dist_ca_train,
@@ -186,7 +197,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
                     validation_data=(dist_ca_test, dist_ca_test),
                     callbacks=[loss_history])
   else:  
-    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) 
+    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
   
   encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
   #print(encoded_vectors_train.shape)

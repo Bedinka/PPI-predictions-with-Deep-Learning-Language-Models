@@ -477,13 +477,13 @@ def main(processed_sample, size):
         
 
         # splitting chains and calculating the rsa on them 
-        dir_name = os.path.dirname(pdb_file)
+        """dir_name = os.path.dirname(pdb_file)
         
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
 
         for prot in splitted_files:
             rsa(prot, chains_CA, work_dir)
-            dssp(chains_CA, prot)
+            dssp(chains_CA, prot)"""
         
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
