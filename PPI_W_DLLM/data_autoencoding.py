@@ -233,7 +233,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
       "spearman_p_value_dim1_2": p_value2
     }
   
-  return collected_data
+  return encoded_vectors_train #, collected_data
 
 if __name__ == "__main__":
     '''latent_dim = 
