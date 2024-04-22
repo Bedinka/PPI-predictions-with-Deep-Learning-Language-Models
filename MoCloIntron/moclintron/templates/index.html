@@ -1,0 +1,307 @@
+<html lang="en">
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js" integrity="sha512-9qpauSP4+dDIldsrdNEZ2Z7JoyLZGfJsAP2wfXnc3drOh+5NXOBxjlq3sGXKdulmN9W+iwLxRt42zKMa8AHEeg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        {% load static %}
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@4.6.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!--<script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>-->
+        <link rel="stylesheet" href="{% static 'wilyDNAEditor.css' %}">
+        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/multi-swap.js"></script>
+        <script src="{% static 'test.js' %}"></script>
+    </head>
+
+{% load partials %}
+
+{% startpartial fidelity_output %}
+    {{ current_fidelity_output }}
+{% endpartial %}
+
+{% startpartial mRNA_output %}
+    {{ current_mRNA_output }}
+{% endpartial %}
+
+{% startpartial intron_output %}
+    {{ current_intron_output }}
+{% endpartial %}
+
+
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-boost="true" hx-ext="multi-swap">
+    
+<div class="main">
+
+<div class="navbar bg-base-600  bg-neutral text-neutral-content">
+    <button class="btn btn-ghost text-xl">MoCloINTRON</button>
+    <button class="btn btn-ghost text-xl" hx-get="/moclointron/description" hx-target=".main" hx-swap="outerHTML">DESCRIPTION</button>
+    {% block content %}
+    {% endblock %}
+</div>
+
+
+<div class="container mx-auto">
+    <div style="max-width: 1000px; min-width: 1000px">
+    <p></p>
+    <!-- <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-3xl dark:text-white"> -->
+    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">   
+        Submit protein sequence to optimize codons:</h1>
+    </div>
+</div>
+<!-- 
+<div class="form-control">
+    <div style="max-width: 80px">
+        <label class="label cursor-pointer" style="border:1px solid black;">
+        <input type="checkbox" checked="checked" class="checkbox">
+        Test
+        </label>
+    </div>
+    <div style="max-width: 80px">
+        <label class="label cursor-pointer" style="border:1px solid black;">
+        <input type="checkbox" checked="checked" class="checkbox">
+        Test2
+        </label>
+    </div>
+</div>
+-->
+    
+<div class="container mx-auto">
+
+    <!-- <form action="/moclointron/optimize_codons" method="post"> -->
+    <!-- READ: https://bugbytes.io/posts/rendering-template-fragments-with-django-template-partials/ -->
+    <form hx-post="{% url 'index' %}" hx-target="#mRNA_output" hx-swap="innerHTML" name="form1" class="form-control">
+        <div class="d-flex">
+            <div style="max-width: 550px; min-width: 550px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle1" name="vehicle1" value="Bike1">
+                Use species-specific codon frequency:
+                <select class="select select-bordered">
+                    <option>Chlamydomonas reinhardtti</option>
+                    <option>Homo sapiens</option>
+                    <option>...</option>
+                </select>
+            </label>
+            </div>
+        </div>
+
+        <div class="d-flex">
+            <div style="max-width: 245px; min-width: 245px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle2" name="vehicle2" value="Bike2">
+                <label for="vehicle2"> Remove repeated sequences</label>
+                </label>
+            </div>
+        </div>
+
+        <div class="d-flex" id = "options2">
+            <div style="width: 540px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle3" name="vehicle3" value="Bike3" />
+                <label for="vehicle3"> GC% restriction: </label>
+                Minimum GC% <input type="number" style="width: 70px" class="input input-bordered w-full max-w-xs" id="min_gc" name="min_gc" min = "0" max = "100" value = "40"/> 
+                Maximum GC% <input type="number" style="width: 70px" class="input input-bordered w-full max-w-xs" id="max_gc" name="max_gc" min = "0" max = "100" value = "60"/>
+            </label>
+                <!-- <span></span>
+                <input type="range" min="0" max="100" value="60" class="range" step="10" />
+                <div class="w-full flex justify-between text-xs px-2">
+                <span>0%</span>
+                <span>20%</span>
+                <span>40%</span>
+                <span>60%</span>
+                <span>80%</span>
+                </div> -->
+            </div>
+        </div>
+        <div class="d-flex">
+            <div style="max-width: 1100px; min-width: 1100px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <label for="cds" class="peer">CDS (AAs): </label>
+                <!-- <p class="font-sans ...">CDS (AAs):</p> -->
+                <textarea class="textarea textarea-bordered resize-none" id="cds"name="cds" rows="5" cols="70" style="width:400px;">MAAAGSGSSGGGGFFFGGGFF</textarea>
+                <button class="btn btn-active">Submit</button>
+                <label for="mRNA_output">Output: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="mRNA_output" name="mRNA_output" rows="5" cols="70" style="width:400px;" readonly="True">{% partial mRNA_output %}</textarea>
+            </div>
+        </label>
+        </div>
+    </form>
+</div>
+
+<div class="divider"></div>
+
+<!-- ==================================== -->    
+<!-- Find the best intron insertion sites -->
+<!-- ==================================== -->    
+<div class="container mx-auto">
+    <p></p>
+    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Find intron insertion sites:</h1>
+</div>
+<div class="container mx-auto">
+    <!-- <form action="/moclointron/optimize_codons" method="post"> -->
+    <!-- READ: https://bugbytes.io/posts/rendering-template-fragments-with-django-template-partials/ -->
+        <form hx-post="{% url 'index' %}" hx-target="#intron_output2" hx-swap="outerHTML" name="form2">
+        <!-- <form hx-post="{% url 'index' %}" hx-target="#mRNA_output" hx-swap="innerHTML" name="form1" class="form-control"> -->
+            <div style="width: 80px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle4" name="vehicle4" value="Bike" />
+                <label for="vehicle4"> XXXX </label>
+                </label>
+            </div>
+            <div style="width: 750px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle5" name="vehicle5" value="Bike" />
+                <label for="vehicle5"> Exon legnth restriction: </label>
+                Minimum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="min_gc" name="min_gc" value = "100" min = "0" max = "1000" />
+                Maximum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="max_gc" name="max_gc" value = "500" min = "0" max = "1000" />
+                </label>
+            </div>
+            <div style="max-width: 1100px; min-width: 1100px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <label for="mRNA" class="peer">CDS (NTs): </label>
+                <!-- <p class="font-sans ...">CDS (AAs):</p> -->
+                <textarea class="textarea textarea-bordered resize-none" id="mRNA"name="mRNA" rows="5" cols="70" style="width:400px;">ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT</textarea>
+                <button class="btn btn-active">Submit</button>
+                <label for="intron_output">Output: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="intron_output" name="intron_output" rows="5" cols="70" style="width:400px;" readonly="True">{% partial intron_output %}</textarea>
+                </label>
+                <div class="test" id = "intron_output2"><h1>Translate <font color="red">Http</font>Response</h1></div>
+            </div>
+        </form>
+</div>
+
+<div id="exons">Exon list</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+
+
+<!--  ## https://www.wily-dna-editor.com/index.html -->
+<div hx-put="/moclointron/htmx_messages">
+    Put To Messages
+</div>
+<div hx-post="/moclointron/htmx_mouse_entered" hx-trigger="mouseenter">
+    [Here Mouse, Mouse!]
+</div>
+<div hx-post="/moclointron/htmx_mouse_entered" hx-trigger="mouseenter once">
+    [Here Mouse, Mouse!]
+</div>
+<a href="#" data-hx-post="/moclointron/htmx_click">Click Me!</a>
+<a href="#" hx-post="/moclointron/htmx_click" onclick="alert('hi')" hx-target="#id_a" hx-swap="innerHTML">Click to swap content</a><br>
+
+<textarea id="id_a">Old 1 content</textarea>
+
+<div class="divider"></div>
+
+   <!-- simple example how to swap #id1 and #id2 from /example by innerHTML (default swap method) -->
+   <button hx-get="/moclointron/example" hx-swap="multi:#id1,#id2">Click to swap #id1 and #id2 content</button>
+<br>
+   <!-- advanced example how to swap multiple elements from /example by different swap methods -->
+   <a href="/moclointron/example" hx-swap="multi:#id1,#id2:outerHTML,#id3:beforeend,#id4:delete">Click to swap #id1 and #id2, extend #id3 content and delete #id4 element</a>
+
+   <div id="id1">Old 1 content</div>
+   <div id="id2">Old 2 content</div>
+   <div id="id3">Old 3 content</div>
+   <div id="id4">Old 4 content</div>
+   <div id="WDE_main_tab" class="WDE_tab_page">
+    <!-- Hide the textarea and replace it with an iFrame -->
+    <textarea id="SEQUENCE_TEMPLATE" rows="12" cols="90" style="display:none;"></textarea>
+    <iframe name="WDE_RTF" id="WDE_RTF" style="border:#000000 1px solid; background-color: white; width:800px; height:500px;"></iframe>
+    <!-- End replacing the textarea -->
+   <input type="button" onClick="wdeTransInSel()" value="Translate Selection">&nbsp;</div>
+
+
+   <div id="WDE_translate" class="WDE_tab_page" > <!-- style="display: none;"> -->
+    <a>Genetic Code:</a>&nbsp;
+    <select id="WDE_TRANS_CODE" onChange="wdeSelTransCode()" ></select>&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="button" onClick="wdeSaveTrans()" value="Save Translation">&nbsp;
+    <input type="button" onClick="wdePrintTrans()" value="Print">
+    <br />
+    <a>Amino Acids:</a>&nbsp;
+    <input type="button" id="wdeTransTreeOneButton" onClick="wdeTGTransTreeOne(-1,1)" value="3 Letter Code">&nbsp;
+    &nbsp;&nbsp;&nbsp;<a>Translate:</a>&nbsp;
+    <input type="button" id="wdeTransFrameNrButton" onClick="wdeTGTransFrameNr(-1,1)" value="6 Frame">&nbsp;
+    &nbsp;&nbsp;&nbsp;<a>Show Reverse Complement:</a>&nbsp;
+    <input type="button" id="wdeTransRevCompButton" onClick="wdeTGTransRevComp(-1,1)" value="On">
+    <br />
+    <input type="button" onClick="wdeTransInSel()" value="Translate Selection">&nbsp;
+    <input type="button" onClick="wdeTransInAll()" value="Translate All">&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="button" id="wdeTransOrfViewButton" onClick="wdeTGOrfView(-1,1)" value="View ORF List">&nbsp;
+    <input type="button" id="wdeTransOrfSortButton" onClick="wdeTGOrfSort(-1,1)" value="Sort ORFs by Position">&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <a>Min ORF Length:</a>&nbsp;
+    <input id="ORF_AS_NR" value="10" onChange="wdeTransDrawFrame()" type="text" style="text-align:right;" size="2" onchange="wdeSetLocalStorage('wde_ORF_AS_NR','ORF_AS_NR');">&nbsp;
+    <a>As</a>
+
+    <div id="WDE_translate_spacer">&nbsp;
+      <a>Code Field...</a>
+    </div>
+    <iframe name="WDE_TRANS" id="WDE_TRANS" style="border:#000000 1px solid; background-color: white; width:800px; height:500px;"></iframe>
+  </div>
+   <div class="divider"></div>
+<div class="divider"></div>
+
+<!-- ==================================== -->    
+<!--        Calculate MoClo Fidelity      -->
+<!-- ==================================== -->    
+<div class="container mx-auto">
+    <p></p>
+    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Calculate MoClo Fidelity:</h1>
+</div>
+<div class="container mx-auto">
+        <form hx-post="{% url 'index' %}" hx-target="#fidelity_output" hx-swap="innerHTML">
+            <div style="width: 1100px">
+            <label class="label cursor-pointer" style="border:0px solid black;">
+                <label for="overhangs">Overhangs: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="overhangs" name="overhangs" rows="10" cols="70" style="width:400px;">GACG
+CAAG
+CGCG
+TACG
+CGAG
+GGCG
+GCCA
+GCGG
+GCCC
+GTGG</textarea>
+                <button class="btn btn-active">Submit</button>
+                <label for="fidelity_output">Output: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="fidelity_output" name="fidelity_output" rows="10" cols="70" style="width:400px;" readonly="True">{% partial fidelity_output %}</textarea>
+            </label>
+            </div>
+        </form>
+</div>
+
+</div>
+
+<script src="{% static 'script.js' %}"></script>
+<script src="{% static 'wilyDNAEditor.js' %}"></script>
+
+</body>
+
+<script>
+    let form = document.querySelector('form')
+    let mRNA_output = document.getElementById('mRNA_output')
+    form.addEventListener('htmx:beforeSend', () => {
+        //mRNA_output.value = "1";
+        //alert("hi");
+    });
+    //let intron_output = document.getElementById('intron_output')
+    //form.addEventListener('htmx:beforeSend', () => {
+    //    mRNA_output.value = "1";
+    //    alert("hi");
+    //});
+</script>
+
+
+</html>

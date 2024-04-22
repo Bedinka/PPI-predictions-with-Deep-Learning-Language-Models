@@ -1,0 +1,125 @@
+<script>
+function input_sequence_type() {
+    var input_text = document.getElementById("input_text_dna").checked;
+    if (input_text) {
+        document.getElementById("mRNA").value = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
+        document.getElementById("tr_option1").disabled = true;
+        document.getElementById("tr_option2").disabled = true;
+        document.getElementById("tr_option3").disabled = true;
+        document.getElementById("min_gc").disabled = true;
+        document.getElementById("max_gc").disabled = true;
+        document.getElementById("specied_select").disabled = true;
+    } else {
+        document.getElementById("mRNA").value = "MCAAGG";
+        document.getElementById("tr_option1").disabled = false;
+        document.getElementById("tr_option2").disabled = false;
+        document.getElementById("tr_option3").disabled = false;
+        document.getElementById("min_gc").disabled = false;
+        document.getElementById("max_gc").disabled = false;
+        document.getElementById("specied_select").disabled = false;
+    }
+}
+</script>
+
+<!-- ==================================== -->    
+<!-- Find the best intron insertion sites -->
+<!-- ==================================== -->    
+<div class="container mx-auto">
+    <p></p>
+    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Find intron insertion sites</h1>
+</div>
+
+<div class="container mx-auto"  id="content">
+    <div style="max-width: 750px; min-width: 750px">
+    <!-- <form action="/moclointron/optimize_codons" method="post"> -->
+    <!-- READ: https://bugbytes.io/posts/rendering-template-fragments-with-django-template-partials/ -->
+    <!-- <form name="form2" method="post">-->
+        <!-- <form hx-post="{% url 'index' %}" hx-target="#mRNA_output" hx-swap="innerHTML" name="form1" class="form-control"> -->
+        <div style="width: 450px">
+            <label class="label cursor-pointer" style="border:0px solid black;"> <b>Input sequence type: </b>
+                <input type="radio" class="checkbox" id="input_text_dna" name="input_text" value="dna" onclick="input_sequence_type();" checked/>
+                <label for="dna"> DNA </label>
+                <input type="radio" class="checkbox" id="input_text_protein" name="input_text" value="protein" onclick="input_sequence_type();"/>
+                <label for="protein"> PROTEIN </label>
+                <button class="btn btn-active" onclick="javascript:submit_find_intron_site();">Submit</button>
+            </label>
+        </div>
+        <div style="width: 750px">
+            <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="vehicle5" name="vehicle5" value="Bike" />
+                <label for="vehicle5"> Exon legnth restriction: </label>
+                Minimum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="min_gc" name="min_gc" value = "100" min = "0" max = "1000" />
+                Maximum exon length <input type="number" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="max_gc" name="max_gc" value = "500" min = "0" max = "1000" />
+            </label>
+        </div>
+        <div style="width: 550px">
+            <label class="label cursor-pointer" style="border:0px solid black;">
+                <select id="MoClo_select" class="select select-bordered w-full max-w-xs" style="width: 100px" onchange="changeMoClo()">
+                    <option disabled>Which MoClo Part?</option>
+                    <option selected>B3</option>
+                    <option>B3A</option>
+                    <option>B3B</option>
+                    <option>B4</option>
+                    <option>B5</option>
+                    <option>B3-B4</option>
+                    <option>B3-B5</option>
+                    <option>B4-B5</option>
+                    <option>Undefined</option>
+                  </select>
+                <label for="vehicle5"> 5' Overhang: </label>
+                <input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="overhang_5" name="overhang_5" value = "AATG" />
+                <label for="vehicle5"> 3' Overhang: </label>
+                <input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="overhang_3" name="overhang_3" value = "AGGT" />
+            </label>
+        </div>
+        <div style="max-width: 750px; min-width: 750px">
+            <label class="label cursor-pointer" style="border:0px solid black;">
+                <!--<label for="mRNA" class="peer">Input: </label>-->
+                <textarea class="textarea textarea-bordered resize-none" id="mRNA"name="mRNA" rows="5" cols="70" style="width:750px;">ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT</textarea>
+            </label>
+        </div>
+    </div>
+
+    <!--
+    <div  style="max-width: 50px; min-width:50px" style="padding: 0px 0px 0px 0px; border: 0px;">
+    </div>
+    -->
+
+    <div style="max-width: 750px; min-width: 400px;">
+        <br>
+        <b>Translation Options: </b>
+        <div class="d-flex">
+            <div style="max-width: 550px; min-width: 550px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="tr_option1" name="vehicle1" value="Bike1" checked disabled>
+                Use species-specific codon frequency:
+                <select id="specied_select" class="select select-bordered" disabled>
+                    <option>Chlamydomonas reinhardtti</option>
+                    <option>Homo sapiens</option>
+                    <option>...</option>
+                </select>
+            </label>
+            </div>
+        </div>
+
+        <div class="d-flex">
+            <div style="max-width: 245px; min-width: 245px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="tr_option2" name="vehicle2" value="Bike2" disabled>
+                <label for="vehicle2"> Remove repeated sequences</label>
+                </label>
+            </div>
+        </div>
+
+        <div class="d-flex" id = "options2">
+            <div style="width: 540px">
+                <label class="label cursor-pointer" style="border:0px solid black;">
+                <input type="checkbox" class="checkbox" id="tr_option3" name="vehicle3" value="Bike3" disabled/>
+                <label for="vehicle3"> GC% restriction: </label>
+                Minimum GC% <input type="number" disabled style="width: 70px" class="input input-bordered w-full max-w-xs" id="min_gc" name="min_gc" min = "0" max = "100" value = "40"/> 
+                Maximum GC% <input type="number" disabled style="width: 70px" class="input input-bordered w-full max-w-xs" id="max_gc" name="max_gc" min = "0" max = "100" value = "60"/>
+            </label>
+            </div>
+        </div>
+    </div>
+</div>
