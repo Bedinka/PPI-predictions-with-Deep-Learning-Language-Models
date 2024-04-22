@@ -185,6 +185,39 @@
 
 
 
+<!-- ==================================== -->    
+<!--        Calculate MoClo Fidelity      -->
+<!-- ==================================== -->    
+<div class="container mx-auto">
+    <p></p>
+    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Calculate MoClo Fidelity:</h1>
+</div>
+<div class="container mx-auto">
+        <form hx-post="{% url 'index' %}" hx-target="#fidelity_output" hx-swap="innerHTML">
+            <div style="width: 1100px">
+            <label class="label cursor-pointer" style="border:0px solid black;">
+                <label for="overhangs">Overhangs: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="overhangs" name="overhangs" rows="10" cols="70" style="width:400px;">GACG
+CAAG
+CGCG
+TACG
+CGAG
+GGCG
+GCCA
+GCGG
+GCCC
+GTGG</textarea>
+                <button class="btn btn-active">Submit</button>
+                <label for="fidelity_output">Output: </label>
+                <textarea class="textarea textarea-bordered resize-none" id="fidelity_output" name="fidelity_output" rows="10" cols="70" style="width:400px;" readonly="True">{% partial fidelity_output %}</textarea>
+            </label>
+            </div>
+        </form>
+</div>
+
+
+
+
 <!--  ## https://www.wily-dna-editor.com/index.html -->
 <div hx-put="/moclointron/htmx_messages">
     Put To Messages
@@ -251,36 +284,6 @@
   </div>
    <div class="divider"></div>
 <div class="divider"></div>
-
-<!-- ==================================== -->    
-<!--        Calculate MoClo Fidelity      -->
-<!-- ==================================== -->    
-<div class="container mx-auto">
-    <p></p>
-    <h1 class="mb-2 text-3xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white">Calculate MoClo Fidelity:</h1>
-</div>
-<div class="container mx-auto">
-        <form hx-post="{% url 'index' %}" hx-target="#fidelity_output" hx-swap="innerHTML">
-            <div style="width: 1100px">
-            <label class="label cursor-pointer" style="border:0px solid black;">
-                <label for="overhangs">Overhangs: </label>
-                <textarea class="textarea textarea-bordered resize-none" id="overhangs" name="overhangs" rows="10" cols="70" style="width:400px;">GACG
-CAAG
-CGCG
-TACG
-CGAG
-GGCG
-GCCA
-GCGG
-GCCC
-GTGG</textarea>
-                <button class="btn btn-active">Submit</button>
-                <label for="fidelity_output">Output: </label>
-                <textarea class="textarea textarea-bordered resize-none" id="fidelity_output" name="fidelity_output" rows="10" cols="70" style="width:400px;" readonly="True">{% partial fidelity_output %}</textarea>
-            </label>
-            </div>
-        </form>
-</div>
 
 </div>
 

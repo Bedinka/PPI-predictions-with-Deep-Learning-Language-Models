@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-o2%)^gf%&=e98hc#o5#r^e(yytho4l=@e(qi2_9yl!)r7%2ylc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["10.200.121.147", "127.0.0.1"]
+ALLOWED_HOSTS = ["10.200.121.147", "127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -157,6 +157,7 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATICFILES_DIRS = [
+    "C:/JS_CRAG/YangLabIntern/MoCloIntron/moclintron/static",
     "C:/Users/jaese/Dropbox/Code3/MoCloIntron/MoCloIntron/moclintron/static",
     "/Users/jyang/Dropbox_lionking0000/Dropbox/Code3/MoCloIntron/myproject/moclintron/static",
 ]
