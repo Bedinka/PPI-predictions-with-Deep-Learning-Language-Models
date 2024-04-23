@@ -24,10 +24,16 @@
         <div id="exons"></div>
         <div><br></div>
         <div>
-            <b>MoClo Fidelity: </b><input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="moclo_fidelity" name="moclo_fidelity" value = "100" min = "0" max = "100" />
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Remove selected exons</button>
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Reset</button>
+            &nbsp
+            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px" onclick="remove_selected_exons()">Remove selected exons</button>
+            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px" onclick="reset_exons()">Reset</button>
             <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px">Download</button>
+        </div>
+        <br>
+        <div>
+            &nbsp
+            <button class="btn btn-active" style="align-content: right;" style="max-width: 750px; min-width: 400px" onclick="">Calculate Fidelity</button>
+            <b>MoClo Fidelity: </b><input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="moclo_fidelity" name="moclo_fidelity" value = "100" min = "0" max = "100" />
         </div>
     </div>
 </div>
