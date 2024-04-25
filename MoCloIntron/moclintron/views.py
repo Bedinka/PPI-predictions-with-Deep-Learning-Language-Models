@@ -504,6 +504,43 @@ def optimize_codons(request):
         }
     return HttpResponse(template.render(context, request))
 
+import json
+
+@csrf_exempt
+def optimize_codons_axios(request):
+    template = loader.get_template("results.html")
+    print(request.body)
+    print(request.POST.get('data'))
+    print(dir(request))
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    protein = body['protein']
+    mRNA = getmRNA(protein)
+    context={
+        "current_overhangs": "current_overhangs",
+        "current_output": "current_output"
+    }
+    '''
+    form = Overhang_Form(request.POST, request.FILES)
+    if form.is_valid():
+        print("optimize_codons")
+        print(form.cleaned_data)
+        current_overhangs = form.cleaned_data['overhangs']
+        output = test(current_overhangs)
+        context = {
+            "current_overhangs": current_overhangs, #form.cleaned_data['overhangs'], #request.POST["overhangs"],
+            "current_output": output, #form.cleaned_data['overhangs'], #request.POST["overhangs"],
+        }
+    else:
+        print("False")
+        context = {
+            "current_overhangs": "",
+            "current_output": "",
+        }
+    '''
+    #mRNA = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT"
+    return HttpResponse(mRNA)
+    return HttpResponse(template.render(context, request))
 
 def rev_compl(st):
     nn = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}

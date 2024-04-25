@@ -11,6 +11,7 @@
         <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/multi-swap.js"></script>
         
         <!--<script src="{% static 'test.js' %}"></script>-->
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
         <script src="{% static 'test1.js' %}"></script>
     </head>
 
@@ -34,7 +35,7 @@
     
 <div class="main">
 
-<div class="navbar bg-base-600  bg-neutral text-neutral-content">
+<div class="navbar bg-base-600  bg-neutral text-neutral-content" style="min-width: 1000px">
     <button class="btn btn-ghost text-xl">MoCloINTRON</button>
     <button class="btn btn-ghost text-xl" hx-get="/moclointron/description" hx-target=".main" hx-swap="outerHTML">DESCRIPTION</button>
     {% block content %}
