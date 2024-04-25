@@ -160,4 +160,5 @@ STATICFILES_DIRS = [
     "C:/JS_CRAG/YangLabIntern/MoCloIntron/moclintron/static",
     "C:/Users/jaese/Dropbox/Code3/MoCloIntron/MoCloIntron/moclintron/static",
     "/Users/jyang/Dropbox_lionking0000/Dropbox/Code3/MoCloIntron/myproject/moclintron/static",
+    "/Users/jyang/Documents/GitHub/YangLabIntern/MoCloIntron/moclintron/static",
 ]
