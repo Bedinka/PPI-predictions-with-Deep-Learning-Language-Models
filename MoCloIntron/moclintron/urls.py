@@ -16,5 +16,6 @@ urlpatterns = [
     path("htmx_click_site", views.htmx_click_site, name="htmx_click_site"),
     path("insert", views.insert, name="insert"),
     path("optimize_codons_axios", views.optimize_codons_axios, name="optimize_codons_axios"),
+    path("calculate_fidelity_axios", views.calculate_fidelity_axios, name="calculate_fidelity_axios"),
           
 ]

@@ -1,3 +1,5 @@
+// https://axios-http.com/
+
 let indexList = [];  // This array is assumed to be defined globally or in the same scope as checkIndex
 //let exonNumDic = {};
 let input_text = "";
@@ -338,6 +340,42 @@ function checkIndex(index) {
 //    console.log(response.data);
 //}
 
+function calculate_fidelity(){
+    overhang_seqs = []
+    exons_info = document.getElementById("exons").children
+    for (let i = 0; i < exons_info.length; i++) {
+        if (exons_info[i].type == "text"){
+            text = exons_info[i].value
+            overhang = text.substring(text.length - 4, text.length);
+            overhang_seqs.push(overhang)
+        }
+    }
+
+    console.log(overhang_seqs)
+
+    axios.post('/moclointron/calculate_fidelity_axios', {
+        overhangs_old: ["GACG",
+        "CAAG",
+        "CGCG",
+        "TACG",
+        "CGAG",
+        "GGCG",
+        "GCCA",
+        "GCGG",
+        "GCCC",
+        "GTGG"],
+        overhangs: overhang_seqs
+    })
+    .then(function (response) {
+        document.getElementById("moclo_fidelity").value = response["data"];
+    })
+    .catch(function (error) {
+        console.log("------- error -------");
+        console.log(error);
+    });
+}
+
+
 function submit_find_intron_site(index) {
     input_text = window.mRNA.value;
     
@@ -385,6 +423,7 @@ function submit_find_intron_site(index) {
             
             //window.frames['intron_output4'].document.body.innerHTML = response; //"<pre style='font-size: 12pt;'>" + output + "</pre>";
             //window.frames['intron_output4'].document.head.appendChild(scriptBlock);
+
         })
         .catch(function (error) {
             console.log("------- error -------");

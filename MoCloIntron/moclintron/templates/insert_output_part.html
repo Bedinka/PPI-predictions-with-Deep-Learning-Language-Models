@@ -32,7 +32,7 @@
         <br>
         <div>
             &nbsp
-            <button class="btn btn-active" style="align-content: right;" style="max-width: 400px; min-width: 400px" onclick="">Calculate Fidelity</button>
+            <button class="btn btn-active" style="align-content: right;" style="max-width: 400px; min-width: 400px" onclick="calculate_fidelity()">Calculate Fidelity</button>
             <b>MoClo Fidelity: </b><input type="text" style="max-width: 100px" class="input input-bordered w-full max-w-xs" id="moclo_fidelity" name="moclo_fidelity" value = "100" min = "0" max = "100" />
         </div>
     </div>
@@ -40,3 +40,16 @@
 
 
 <div class="divider"></div>
+
+<script>
+    el = document.getElementById("exons");
+    //el.addEventListener('DOMSubtreeModified',calculate_fidelity);
+
+    // Create an observer instance linked to the callback function
+    const observer = new MutationObserver(calculate_fidelity);
+    // Options for the observer (which mutations to observe)
+    const config = { attributes: true, childList: true, subtree: true };
+
+    // Start observing the target node for configured mutations
+    observer.observe(el, config);
+</script>
