@@ -1,3 +1,5 @@
+// https://axios-http.com/
+
 let indexList = [];  // This array is assumed to be defined globally or in the same scope as checkIndex
 //let exonNumDic = {};
 let input_text = "";
@@ -283,7 +285,7 @@ function update_Exon_Components(dnaSequence){
         exon_text += `&nbsp&nbsp&nbsp<input type="checkbox" class="checkbox_exons" id="exon_${i}" value="${indexList[i]}">&nbsp&nbsp <input type="text" value="Exon ${i}: ${prev_index+1} - ${indexList[i]} : (${exon_len})">`; // "<input type='text' value='test'><br>";
         exon_text += "</font>";
         //exon_text += `Length: ${exon_len}`; // "<input type='text' value='test'><br>";
-        exon_text += "&nbsp&nbsp&nbsp&nbsp";
+        exon_text += "&nbsp&nbsp";
         if (i == 0){
             exon_text += `<input type="text" value="Overhang (5'): ${first_exon_overhang_5}">`; // "<input type='text' value='test'><br>";
         }
@@ -331,33 +333,132 @@ function checkIndex(index) {
 //   window.intron_output.innerHTML = "<pre><h1>" + output + "</h1></pre>";
 //}
 
+//const getRequest = async () => {
+//    const response = await axios.get(‘/request’, {
+//        params: {“test”: “this is a test”}
+//    })
+//    console.log(response.data);
+//}
+
+function calculate_fidelity(){
+    overhang_seqs = []
+    exons_info = document.getElementById("exons").children
+    for (let i = 0; i < exons_info.length; i++) {
+        if (exons_info[i].type == "text"){
+            text = exons_info[i].value
+            overhang = text.substring(text.length - 4, text.length);
+            overhang_seqs.push(overhang)
+        }
+    }
+
+    console.log(overhang_seqs)
+
+    axios.post('/moclointron/calculate_fidelity_axios', {
+        overhangs_old: ["GACG",
+        "CAAG",
+        "CGCG",
+        "TACG",
+        "CGAG",
+        "GGCG",
+        "GCCA",
+        "GCGG",
+        "GCCC",
+        "GTGG"],
+        overhangs: overhang_seqs
+    })
+    .then(function (response) {
+        document.getElementById("moclo_fidelity").value = response["data"];
+    })
+    .catch(function (error) {
+        console.log("------- error -------");
+        console.log(error);
+    });
+}
+
 
 function submit_find_intron_site(index) {
     input_text = window.mRNA.value;
-    //alert(input_text);
-    //let dnaSequence = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
-    let dnaSequence = input_text;
-    let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
-    //console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
-
-    exonNumDic = setExonNum(indexList, dnaSequence);
-    update_Exon_Components(dnaSequence);
-
-    let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
-    //console.log(`Format output: ${output}`);
-    //alert(window.test.innerHTML);
-    //window.intron_output.innerHTML = "<iframe><pre><h1>" + output + "</h1></pre></iframe>";
-    //window.intron_output4.document.body.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-    var scriptBlock = document.createElement('script');
-    scriptBlock.setAttribute("type","text/javascript");
-    scriptBlock.setAttribute("src", "/static/test1.js");
     
-    window.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
-    window.frames['intron_output4'].document.head.appendChild(scriptBlock);
-    //document.getElementsByTagName("intron_output4")[0].appendChild(scriptBlock);
-    //window.intron_output.html("<pre><h1>" + output + "</h1></pre>");
-    //window.intron_output3.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-    //window.frames['WDE_RTF'].document.body.innerHTML = "<pre>" + output + "</pre>";
+    if (document.getElementById('input_text_protein').checked ){
+        axios.post('/moclointron/optimize_codons_axios', {
+            protein: input_text
+        })
+        .then(function (response) {
+            console.log("------- response -------");
+            console.log(response);
+            console.log(response["data"]);
+            
+            dnaSequence = response["data"];
+            window.mRNA.value = dnaSequence;
+            document.getElementById('input_text_dna').checked = true;
+
+            let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
+            //console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
+            reset_exons2(dnaSequence);
+
+            exonNumDic = setExonNum(indexList, dnaSequence);
+            update_Exon_Components(dnaSequence);
+
+            let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
+            //console.log(`Format output: ${output}`);
+            //alert(window.test.innerHTML);
+            //window.intron_output.innerHTML = "<iframe><pre><h1>" + output + "</h1></pre></iframe>";
+            //window.intron_output4.document.body.innerHTML = "<pre><h1>" + output + "</h1></pre>";
+            var scriptBlock = document.createElement('script');
+            scriptBlock.setAttribute("type","text/javascript");
+            scriptBlock.setAttribute("src", "/static/test1.js");
+            
+            console.log("------- mRNA -------");
+            console.log("<pre style='font-size: 12pt;'>" + output + "</pre>");
+
+            window.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
+            window.frames['intron_output4'].document.head.appendChild(scriptBlock);
+
+
+            //var scriptBlock = document.createElement('script');
+            //scriptBlock.setAttribute("type","text/javascript");
+            //scriptBlock.setAttribute("src", "/static/test1.js");
+            
+            // response = "<pre style='font-size: 12pt;'>      M  C  A  A  A  G  S  G  S  S  G  G  G  G  F  F  F  G  G  G  <br>      <font style='background-color: yellow'>A</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(14);' title='Click to add/remove intron here - index:14' hx-post='/moclointron/htmx_click_site?index=14' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(15);' title='Click to add/remove intron here - index:15' hx-post='/moclointron/htmx_click_site?index=15' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(20);' title='Click to add/remove intron here - index:20' hx-post='/moclointron/htmx_click_site?index=20' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(21);' title='Click to add/remove intron here - index:21' hx-post='/moclointron/htmx_click_site?index=21' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>A</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>A</font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(30);' title='Click to add/remove intron here - index:30' hx-post='/moclointron/htmx_click_site?index=30' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(31);' title='Click to add/remove intron here - index:31' hx-post='/moclointron/htmx_click_site?index=31' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(32);' title='Click to add/remove intron here - index:32' hx-post='/moclointron/htmx_click_site?index=32' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(33);' title='Click to add/remove intron here - index:33' hx-post='/moclointron/htmx_click_site?index=33' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(36);' title='Click to add/remove intron here - index:36' hx-post='/moclointron/htmx_click_site?index=36' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(39);' title='Click to add/remove intron here - index:39' hx-post='/moclointron/htmx_click_site?index=39' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>A</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(51);' title='Click to add/remove intron here - index:51' hx-post='/moclointron/htmx_click_site?index=51' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>A</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(54);' title='Click to add/remove intron here - index:54' hx-post='/moclointron/htmx_click_site?index=54' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'><a href='javascript:htmx_click_site_test(57);' title='Click to add/remove intron here - index:57' hx-post='/moclointron/htmx_click_site?index=57' hx-target='#exons' hx-swap='innerHTML'><font color='red'>G</font></a></font><font style='background-color: yellow'>G</font><font style='background-color: yellow'>C</font><br>      000000000000000000000000000000000000000000000000000000000000<br>    1|         |         |         |         |         |         |<br><br>      F  F  <br>      <font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>C</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><font style='background-color: yellow'>T</font><br>      000000<br>   61|<br><br></pre>"
+            
+            //window.frames['intron_output4'].document.body.innerHTML = response; //"<pre style='font-size: 12pt;'>" + output + "</pre>";
+            //window.frames['intron_output4'].document.head.appendChild(scriptBlock);
+
+        })
+        .catch(function (error) {
+            console.log("------- error -------");
+            console.log(error);
+        });
+    }else{
+        //getRequest();
+        //alert(input_text);
+        //let dnaSequence = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
+        let dnaSequence = input_text;
+        let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
+        //console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
+
+        exonNumDic = setExonNum(indexList, dnaSequence);
+        update_Exon_Components(dnaSequence);
+
+        let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
+        //console.log(`Format output: ${output}`);
+        //alert(window.test.innerHTML);
+        //window.intron_output.innerHTML = "<iframe><pre><h1>" + output + "</h1></pre></iframe>";
+        //window.intron_output4.document.body.innerHTML = "<pre><h1>" + output + "</h1></pre>";
+        var scriptBlock = document.createElement('script');
+        scriptBlock.setAttribute("type","text/javascript");
+        scriptBlock.setAttribute("src", "/static/test1.js");
+        
+        console.log("------- mRNA -------");
+        console.log("<pre style='font-size: 12pt;'>" + output + "</pre>");
+
+        window.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
+        window.frames['intron_output4'].document.head.appendChild(scriptBlock);
+        //document.getElementsByTagName("intron_output4")[0].appendChild(scriptBlock);
+        //window.intron_output.html("<pre><h1>" + output + "</h1></pre>");
+        //window.intron_output3.innerHTML = "<pre><h1>" + output + "</h1></pre>";
+        //window.frames['WDE_RTF'].document.body.innerHTML = "<pre>" + output + "</pre>";
+    }
 }
 
 function changeMoClo() {
@@ -395,6 +496,17 @@ function changeMoClo() {
         document.getElementById("overhang_5").value = "AGGT";
         document.getElementById("overhang_3").value = "GCTT";
     }
+}
+
+function reset_exons2(cds){
+    var newindexList = [];
+    newindexList.push(cds.length);
+    indexList = newindexList;
+    window.indexList = newindexList;
+    window.frames['intron_output4'].indexList = newindexList;
+    console.log(`newindex list: ${newindexList}`);
+    console.log(`Index list: ${window.frames['intron_output4'].indexList}`);
+    update_Exon_Indexlist(newindexList);
 }
 
 function reset_exons(){
