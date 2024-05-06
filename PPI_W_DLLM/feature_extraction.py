@@ -136,6 +136,8 @@ class Chain:
         self.interactions_m_CA =[]
         self.interactions_mean =[]
         self.interactions_m_mean =[]
+        self.int_prots = []
+        self.interact = 0
           
 
     def addResidue(self, aa, resnum):
@@ -471,6 +473,12 @@ def main(processed_sample, size):
     for pdb_file in processed_pdb_files:
         chains_CA = parsePDB(pdb_file, sample_counter)
         [chainID1, chainID2] = chains_CA.keys()
+        if chainID2 not in  chains_CA[chainID1].int_prots:
+            chains_CA[chainID1].interact = 1
+            chains_CA[chainID1].int_prots.append(chainID2)
+        if chainID1 not in chains_CA[chainID2].int_prots  :
+            chains_CA[chainID2].interact = 1
+            chains_CA[chainID2].int_prots.append(chainID1)
         ca_dist = ca_dist_calc(chains_CA, size, overlap)
         mean_dist = mean_dist_calc(chains_CA, size, overlap)
         int_res = interacting_res(chains_CA, ca_dist, mean_dist )
@@ -488,27 +496,6 @@ def main(processed_sample, size):
         for chain in chains_CA.values():
             interacting_proteins.append(chain)      
         
-        """cache_filename = os.path.join(cache_dir, f"{pdb_file}.cache")
-        chains_CA = check_cache_and_calculate(cache_filename, parsePDB, pdb_file, sample_counter)
-
-        cache_filename_ca = os.path.join(cache_dir, f"{pdb_file}_ca_dist.cache")
-        cache_filename_mean = os.path.join(cache_dir, f"{pdb_file}_mean_dist.cache")
-        cache_filename_int_res = os.path.join(cache_dir, f"{pdb_file}_int_res.cache")
-
-        ca_dist = check_cache_and_calculate(cache_filename_ca, ca_dist_calc, chains_CA, size, overlap)
-        mean_dist = check_cache_and_calculate(cache_filename_mean, mean_dist_calc, chains_CA, size, overlap)
-        int_res = check_cache_and_calculate(cache_filename_int_res, interacting_res, chains_CA, ca_dist, mean_dist)
-
-        dir_name = os.path.dirname(pdb_file)
-        cache_filename_split = os.path.join(cache_dir, f"{pdb_file}_split.cache")
-        splitted_files = check_cache_and_calculate(cache_filename_split, splitPDBbyChain, pdb_file, dir_name)
-
-        for prot in splitted_files:
-            cache_filename_rsa = os.path.join(cache_dir, f"{prot}_rsa.cache")
-            rsa_data = check_cache_and_calculate(cache_filename_rsa, rsa, prot, chains_CA)
-            cache_filename_dssp = os.path.join(cache_dir, f"{prot}_dssp.cache")
-            dssp_data = check_cache_and_calculate(cache_filename_dssp, dssp, chains_CA, prot)"""
-
         for chain in chains_CA.values():
             interacting_proteins.append(chain)
 

@@ -22,7 +22,6 @@ for epoch in range(3):  # Adjust number of epochs as needed
         loss.backward()
         optimizer.step()
 
-# Save the trained model
 model_save_path = 'bert_model_state_dict.pth'
 torch.save({
     'state_dict': model.state_dict(),
@@ -30,12 +29,11 @@ torch.save({
     'config': model.config
 }, model_save_path)
 
-# Load the saved model
 loaded_model_dict = torch.load(model_save_path)
 loaded_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
 loaded_model.load_state_dict(loaded_model_dict['state_dict'])
 
-# Move the loaded model to appropriate device
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 loaded_model.to(device)
 
