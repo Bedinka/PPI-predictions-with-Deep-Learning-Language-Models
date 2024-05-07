@@ -32,27 +32,6 @@ amino_acids_dict = {
     'VAL': 20
 }
 work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
-cache_dir = "cache"
-
-# Function to load cached data
-def load_cache(filename):
-    try:
-        with open(filename, "rb") as file:
-            return pickle.load(file)
-    except FileNotFoundError:
-        return None
-
-def save_cache(filename, data):
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "wb") as file:
-        pickle.dump(data, file)
-
-def check_cache_and_calculate(cache_filename, calculate_function, *args, **kwargs):
-    data = load_cache(cache_filename)
-    if data is None:
-        data = calculate_function(*args, **kwargs)
-        save_cache(cache_filename, data)
-    return data
 
 # Extracting protein IDs to a txt file 
 def extract_pdb_names_from_tgz(tgz_file, output_file):
@@ -144,8 +123,7 @@ class Chain:
         aResidue = Residue( aa, resnum )
         self.residues[resnum] = aResidue
         self.residue_indexes.append(resnum)
-        if aa in amino_acids_dict:
-            self.aa_dict.append(amino_acids_dict[aa])
+        self.aa_dict.append(aa)
         pass
     
     def addCA(self, aa, resnum, x, y, z):
@@ -406,9 +384,10 @@ def dssp(chain_CA, pdb):
         # should be (batch, length, length)
     # getting scondary struct 
         dssp_struct = pydssp.assign(coord, out_type='c3')
+        chain.dssp_struct = dssp_struct
     # To get secondary str. as index
         dssp_index = pydssp.assign(coord, out_type='index')
-        chain.dssp_indes = dssp_index
+        chain.dssp_index = dssp_index
         ## 0: loop,  1: alpha-helix,  2: beta-strand
     # To get secondary str. as onehot representation
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
@@ -460,6 +439,71 @@ def spearman():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))   
 """
+def create_positive_data_tsv(chains_CA):
+    data = []
+    [chainID1, chainID2] = chains_CA.keys()
+    prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
+    residue_indexes = f"{chains_CA[chainID1].residue_indexes}_{chains_CA[chainID2].residue_indexes}" 
+    aa_dict = f"{chains_CA[chainID1].aa_dict}_{chains_CA[chainID2].aa_dict}" 
+    dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
+    dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
+    dssp_onehot = f"{chains_CA[chainID1].dssp_onehot}_{chains_CA[chainID2].dssp_onehot}" 
+    if chains_CA[chainID1].residue_indexes[-1] + 1 == chains_CA[chainID2].residue_indexes[0]:
+        interact = 1
+    else:
+        interact = 0 
+    data.append({
+        'Protein ID': prot_id,
+        'Interact': interact,
+        'Residue Indexes': residue_indexes,
+        'Residues' : aa_dict,
+        'DSSP Structure': dssp_struct,
+        'DSSP Index': dssp_index,
+        'DSSP Onehot': dssp_onehot
+
+    })
+    
+    file_path = "bert_train_2.tsv"
+    df = pd.DataFrame(data)
+    if not os.path.isfile(file_path):
+        df.to_csv(file_path, sep='\t', index=False)
+    else:
+        df.to_csv(file_path, sep='\t', index=False, header=False, mode='a')
+
+def create_negative_data_tsv(interacting_proteins):
+    data = []
+    import random
+    chains_CA = random.sample(interacting_proteins, 2)
+    chainID1, chainID2 = chains_CA[0].chainID, chains_CA[1].chainID
+    prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
+    residue_indexes = f"{chains_CA[0].residue_indexes}_{chains_CA[1].residue_indexes}" 
+    aa_dict = f"{chains_CA[0].aa_dict}_{chains_CA[1].aa_dict}" 
+    dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
+    dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
+    dssp_onehot = f"{chains_CA[0].dssp_onehot}_{chains_CA[1].dssp_onehot}" 
+    if chains_CA[0].residue_indexes[-1] + 1 == chains_CA[1].residue_indexes[0]:
+        interact = 1
+    else:
+        interact = 0 
+
+    data.append({
+        'Protein ID': prot_id,
+        'Interact': interact,
+        'Residue Indexes': residue_indexes,
+        'Residues' : aa_dict,
+        'DSSP Structure': dssp_struct,
+        'DSSP Index': dssp_index,
+        'DSSP Onehot': dssp_onehot
+
+    })
+    
+    file_path = "bert_train_2.tsv"
+    df = pd.DataFrame(data)
+    if not os.path.isfile(file_path):
+            df.to_csv(file_path, sep='\t', index=False)
+    else:
+            df.to_csv(file_path, sep='\t', index=False, header=False, mode='a')
+
 sample_counter = 1
 def main(processed_sample, size):
 
@@ -475,29 +519,30 @@ def main(processed_sample, size):
         [chainID1, chainID2] = chains_CA.keys()
         if chainID2 not in  chains_CA[chainID1].int_prots:
             chains_CA[chainID1].interact = 1
-            chains_CA[chainID1].int_prots.append(chainID2)
+            chains_CA[chainID1].int_prots.append(chains_CA[chainID2].prot_id)
         if chainID1 not in chains_CA[chainID2].int_prots  :
             chains_CA[chainID2].interact = 1
-            chains_CA[chainID2].int_prots.append(chainID1)
+            chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
         ca_dist = ca_dist_calc(chains_CA, size, overlap)
         mean_dist = mean_dist_calc(chains_CA, size, overlap)
         int_res = interacting_res(chains_CA, ca_dist, mean_dist )
         
 
         # splitting chains and calculating the rsa on them 
-        """dir_name = os.path.dirname(pdb_file)
+        dir_name = os.path.dirname(pdb_file)
         
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
 
         for prot in splitted_files:
-            rsa(prot, chains_CA, work_dir)
-            dssp(chains_CA, prot)"""
+            #rsa(prot, chains_CA, work_dir)
+            dssp(chains_CA, prot)     
         
         for chain in chains_CA.values():
-            interacting_proteins.append(chain)      
+            if chain not in interacting_proteins:
+                interacting_proteins.append(chain)
         
-        for chain in chains_CA.values():
-            interacting_proteins.append(chain)
+        create_positive_data_tsv(chains_CA)
+        create_negative_data_tsv(interacting_proteins)
 
         if i == processed_sample:
             break 

@@ -1,34 +1,31 @@
 import pandas as pd
 import feature_extraction
 
-def create_dataframe(interacting_prot):
+"""def create_dataframe(interacting_prot):
     data = []
     for protein in interacting_prot:
         data.append({
-            'Chain ID': protein.chainID,
+            'Protein ID': protein.prot_id,
+            'Interacting Chain': protein.int_prots,
+            'Interact': protein.interact,
             'Residue Indexes': protein.residue_indexes,
             'Amino Acid Dictionary': protein.aa_dict,
-            'Protein ID': protein.prot_id,
             'DSSP Structure': protein.dssp_struct,
             'DSSP Index': protein.dssp_index,
-            'DSSP Onehot': protein.dssp_onehot,
-            'Distance Matrices Mean': protein.distance_matrices_mean,
-            'Sub Residue Index': protein.sub_res_index,
-            'Sub Residue Name': protein.sub_res_name,
-            'Interacting Chain': protein.int_prots,
-            'Interact': protein.interact
+            'DSSP Onehot': protein.dssp_onehot
+
         })
     
     df = pd.DataFrame(data)
-    return df
+    df.to_csv("bert_train.tsv", sep='\t', index=False)
+   """
 
-processed_sample = 5
+processed_sample = 100
 size = 7
 
 interacting_prot = feature_extraction.main(processed_sample, size)
 
-data_df = create_dataframe(interacting_prot)
-
+data_df = pd.read_csv('bert_train_2.tsv', sep='\t')
 data_df.head()
 # This will hold all of the dataset samples, as strings.
 sen_w_feats = []
@@ -78,16 +75,12 @@ for index, row in data_df.iterrows():
     combined = ""
     
     #combined += "The ID of this item is {:}, ".format(row["Clothing ID"])
-    combined += "{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}".format(row["Protein ID"], 
+    combined += "{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}[SEP]{:}".format(row["Protein ID"], 
                                                        row["Residue Indexes"],
-                                                       row["Amino Acid Dictionary"],
-                                                       row["Chain ID"],
+                                                       row["Residues"],
                                                        row["DSSP Structure"],
                                                        row["DSSP Index"],
-                                                       row["DSSP Onehot"],
-                                                       row["Distance Matrices Mean"],
-                                                       row["Interacting Chain"])
-    
+                                                       row["DSSP Onehot"])
 
     
     # Add the combined text to the list.
@@ -133,14 +126,14 @@ model = BertForSequenceClassification.from_pretrained(
 
 # Tell pytorch to run this model on the GPU.
 desc = model.cuda()
-batch_size = 16
+batch_size = 8
 
 # I used a smaller learning rate to combat over-fitting that I was seeing in the
 # validation loss. I could probably try even smaller.
 learning_rate = 1e-5
 
 # Number of training epochs. 
-epochs = 4
+epochs = 10
 
 max_len = 0
 
@@ -472,3 +465,96 @@ print("")
 print("Training complete!")
 
 print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
+
+
+# Create a DataFrame from our training statistics.
+df_stats = pd.DataFrame(data=training_stats)
+
+# Use the 'epoch' as the row index.
+df_stats = df_stats.set_index('epoch')
+
+# A hack to force the column headers to wrap (doesn't seem to work in Colab).
+#df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
+
+import matplotlib.pyplot as plt
+
+
+import seaborn as sns
+
+# Use plot styling from seaborn.
+sns.set(style='darkgrid')
+
+# Increase the plot size and font size.
+sns.set(font_scale=1.5)
+plt.rcParams["figure.figsize"] = (12,6)
+
+# Plot the learning curve.
+plt.plot(df_stats['Training Loss'], 'b-o', label="Training")
+plt.plot(df_stats['Valid. Loss'], 'g-o', label="Validation")
+
+# Label the plot.
+plt.title("Training & Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+plt.xticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+plt.show()
+
+# Create a DataLoader to batch our test samples for us. We'll use a sequential
+# sampler this time--don't need this to be random!
+prediction_sampler = SequentialSampler(test_dataset)
+prediction_dataloader = DataLoader(test_dataset, sampler=prediction_sampler, batch_size=batch_size)
+
+print('Predicting labels for {:,} test sentences...'.format(len(test_dataset)))
+
+# Put model in evaluation mode
+model.eval()
+
+# Tracking variables 
+predictions , true_labels = [], []
+
+# Predict 
+for batch in prediction_dataloader:
+  # Add batch to GPU
+  batch = tuple(t.to(device) for t in batch)
+  
+  # Unpack the inputs from our dataloader
+  b_input_ids, b_input_mask, b_labels = batch
+  
+  # Telling the model not to compute or store gradients, saving memory and 
+  # speeding up prediction
+  with torch.no_grad():
+      # Forward pass, calculate logit predictions.
+      result = model(b_input_ids, 
+                     token_type_ids=None, 
+                     attention_mask=b_input_mask,
+                     return_dict=True)
+
+  logits = result.logits
+
+  # Move logits and labels to CPU
+  logits = logits.detach().cpu().numpy()
+  label_ids = b_labels.to('cpu').numpy()
+  
+  # Store predictions and true labels
+  predictions.append(logits)
+  true_labels.append(label_ids)
+
+print('    DONE.')
+
+# Combine the results across all batches. 
+flat_predictions = np.concatenate(predictions, axis=0)
+
+# For each sample, pick the label (0 or 1) with the higher score.
+flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
+
+# Combine the correct labels for each batch into a single list.
+flat_true_labels = np.concatenate(true_labels, axis=0)
+
+from sklearn.metrics import f1_score
+
+# Calculate the F1
+f1 = f1_score(flat_true_labels, flat_predictions)
+
+print('F1 Score: %.3f' % f1)
