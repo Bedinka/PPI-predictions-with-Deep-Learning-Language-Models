@@ -1,5 +1,4 @@
 import pandas as pd
-import feature_extraction
 
 """def create_dataframe(interacting_prot):
     data = []
@@ -22,8 +21,6 @@ import feature_extraction
 
 processed_sample = 100
 size = 7
-
-interacting_prot = feature_extraction.main(processed_sample, size)
 
 data_df = pd.read_csv('bert_train_2.tsv', sep='\t')
 data_df.head()

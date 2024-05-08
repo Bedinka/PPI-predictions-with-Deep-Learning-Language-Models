@@ -1,4 +1,4 @@
-import data_collect
+import YangLabIntern.PPI_W_DLLM.Autoencoder.autoencoder_data_collect as autoencoder_data_collect
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt

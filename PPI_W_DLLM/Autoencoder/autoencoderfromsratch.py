@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import math
 
+# FROM : https://github.com/hkproj/transformer-from-scratch-notes 
+#https://www.youtube.com/watch?v=bCz4OMemCcA&t=2s&ab_channel=UmarJamil 
+
 class LayerNormalization(nn.Module):
     # item in the sequence, we calculate for each item independently the mean and variance , calculate ne wvalues with theit own mean and variance 
     def __init__(self, features: int, eps:float=10**-6) -> None:

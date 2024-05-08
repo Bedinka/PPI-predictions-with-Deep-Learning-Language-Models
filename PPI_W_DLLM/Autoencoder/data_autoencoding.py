@@ -1,3 +1,6 @@
+# FROM : https://www.tensorflow.org/tutorials/generative/autoencoder 
+#https://www.tensorflow.org/tutorials/keras/save_and_load 
+
 import feature_extraction
 import numpy as np
 import pandas as pd

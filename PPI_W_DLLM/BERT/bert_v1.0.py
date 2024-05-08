@@ -1,3 +1,5 @@
+# My BERT try fith flattened str data mfrom numerical input 
+
 import torch
 import numpy as np 
 from transformers import BertTokenizer, BertForSequenceClassification

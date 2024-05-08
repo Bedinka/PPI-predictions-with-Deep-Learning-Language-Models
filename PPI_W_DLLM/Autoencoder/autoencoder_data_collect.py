@@ -1,4 +1,4 @@
-import data_autoencoding
+import YangLabIntern.PPI_W_DLLM.Autoencoder.data_autoencoding as data_autoencoding
 import pandas as pd
 
 def main():
