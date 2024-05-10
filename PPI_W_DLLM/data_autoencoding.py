@@ -21,7 +21,10 @@ from sklearn.decomposition import PCA
 
 from scipy import stats
 from random import randint
-
+import pickle
+import os
+size = 7
+work_dir = "/home/dina/Documents/PPI_WDLLM"
 
 @tf.keras.utils.register_keras_serializable()
 class Autoencoder(Model):
@@ -68,7 +71,7 @@ class LossHistory(callbacks.Callback):
         self.train_losses.append(logs.get('loss'))
         self.val_losses.append(logs.get('val_loss'))
    
-def mean_matrix_vec(interacting_prot, size): 
+"""def mean_matrix_vec(interacting_prot, size): 
   re = []
   for protein in interacting_prot:
     sub_values= np.array([protein.mean_submatrices])
@@ -84,7 +87,7 @@ def ca_matrix_vec(proteins, size):
       sub_values = np.array([protein.ca_submatrices])
       #print(sub_values.shape)
       ca.extend(sub_values.reshape(-1, size, size))
-  return ca
+  return ca"""
 
 def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
   X = []
@@ -149,25 +152,55 @@ def plot(encoded, model_name):
     plt.savefig(f'{model_name}_plot.png')
   except np.linalg.LinAlgError as e:
         print("Error: ", e)
-  
+
+def concatenate_pickle_ca():
+
+    # CA
+    pickle_files_ca = [os.path.join(f"{work_dir}/Matrices_CA", file) for file in os.listdir(f"{work_dir}/Matrices_CA") if file.endswith('.pickle')]
+    concatenated_data_ca = []
+    for file_name in pickle_files_ca:
+        with open(file_name, 'rb') as g:
+            data = np.array([pickle.load(g)])
+            print(data.shape) 
+            concatenated_data_ca.extend(data.reshape(-1, size, size))
+    with open('concatenated_ca.pickle', 'wb') as g:
+        pickle.dump(concatenated_data_ca, g)
+    return concatenated_data_ca 
+
+def concatenate_pickle_mean():
+    # Mean
+    pickle_files_mean = [os.path.join(f"{work_dir}/Matrices_Mean", file) for file in os.listdir(f"{work_dir}/Matrices_Mean") if file.endswith('.pickle')]
+    concatenated_data_mean = []
+    for file_name in pickle_files_mean:
+        with open(file_name, 'rb') as f:
+            data_m = np.array([pickle.load(f)])
+            #print(data_m.shape) 
+            concatenated_data_mean.extend(data_m.reshape(-1, size, size))
+    with open('concatenated_mean.pickle', 'wb') as f:
+        pickle.dump(concatenated_data_mean, f)
+
+    return concatenated_data_mean
 
 def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   
-  import feature_extraction
-  interacting_prot = feature_extraction.main(processed_sample, size)
+  
+  feature_extraction.main(processed_sample, size)
   ranges= 2000
   int = 500
   loss_history = LossHistory()
-  re_a = mean_matrix_vec(interacting_prot, size)
-  ca_a =ca_matrix_vec(interacting_prot, size)
+  me_a  = concatenate_pickle_mean()
+  ca_a = concatenate_pickle_ca()
   
-  dist_ca_train = np.array(re_a)
+ 
+  
+  dist_ca_train = np.array(me_a)
   dist_ca_test =  np.array(ca_a)
   dist_ca_train = dist_ca_train.astype('float32') / 255.
   dist_ca_test = dist_ca_test.astype('float32') / 255.
-  #print (dist_ca_train.shape)
-  #print (dist_ca_test.shape)
+  print (dist_ca_train.shape)
+  print (dist_ca_test.shape)
   shape = dist_ca_train.shape[1:]
+
   if os.path.exists(model_name):
     autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
   else: 
@@ -191,10 +224,9 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
     autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
   
   encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
-  #print(encoded_vectors_train.shape)
+  print(encoded_vectors_train.shape)
   #print(encoded_vectors_train)
   encoded_vectors_test = autoencoder.encoder(dist_ca_test).numpy()
-
   #print(dist_ca_train.shape)
   #print(encoded_vectors_train.shape)
 
@@ -205,7 +237,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   print(correlation, p_value, correlation2, p_value2 )
   print(correlation_test, p_value_test, correlation2_test, p_value2_test )
 
-  plot(encoded_vectors_train, model_name)
+  #plot(encoded_vectors_train, model_name)
   
   if SAVE:
     tf.saved_model.save(autoencoder, model_name)

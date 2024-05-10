@@ -95,7 +95,7 @@ from transformers import BertTokenizer
 # Load the BERT tokenizer.
 print('Loading BERT tokenizer...')
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-from transformers import BertForSequenceClassification
+from transformers import BertForSequenceClassification  
 
 # Load BertForSequenceClassification, the pretrained BERT model with a single 
 # linear classification layer on top. 

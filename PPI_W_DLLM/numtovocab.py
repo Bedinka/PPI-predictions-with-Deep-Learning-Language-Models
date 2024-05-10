@@ -1,5 +1,5 @@
 import numpy as np
-import YangLabIntern.PPI_W_DLLM.Autoencoder.data_autoencoding as data_autoencoding
+import YangLabIntern.PPI_W_DLLM.data_autoencoding as data_autoencoding
 from transformers import BertConfig, BertTokenizer, BertModel
 config = BertConfig.from_pretrained('bert-base-cased')
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased')

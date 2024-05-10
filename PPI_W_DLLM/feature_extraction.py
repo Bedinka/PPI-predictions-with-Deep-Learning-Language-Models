@@ -113,22 +113,22 @@ class Chain:
         pass
 
     def addCAMatrix (self, chains_CA , dist_mat , size, overlap ):
-        aDistMatrix = Matrix(size, size)
-        aDistMatrix.cadistmatrix = dist_mat
-        self.distance_matrices_CA_AB = aDistMatrix.cadistmatrix
+        """aDistMatrix = Matrix(size, size)
+        aDistMatrix.cadistmatrix = dist_mat"""
+        self.distance_matrices_CA_AB = dist_mat
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
+        self.ca_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap )
         pass
 
     def addMeanMatrix (self, chains_CA , dist_mat , size, overlap):
-        aDistMatrix = Matrix(size, size)
-        aDistMatrix.meandistmatrix = dist_mat
-        self.distance_matrices_mean_AB = aDistMatrix.meandistmatrix
+        """aDistMatrix = Matrix(size, size)
+        aDistMatrix.meandistmatrix = dist_mat"""
+        self.distance_matrices_mean_AB = dist_mat
         #self.mean_submatrices = aDistMatrix.submatrixes(chains_CA, dist_mat , size, overlap)
         #CAREFULL: ADDING SUB MATRIX WITHOUT CREATING A MATRIX OBJECT
-        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap , self.aa_dict)
-        self.sub_res_index , self.sub_res_name = sub_residuses (self.residues, self.residue_indexes, size)
+        self.mean_submatrices = create_fixedsize_submatrix(dist_mat, size, overlap )
+        #self.sub_res_index , self.sub_res_name = sub_residuses (self.residues, self.residue_indexes, size)
         #NEED THE SUB nemas and indexes here too!!
         pass
         
@@ -297,7 +297,7 @@ def create_distance_matrix(chains, _chainA, _chainB, get_atom_distance):
     return distance_matrix
 
 # Sub Matrix creation , Dina version
-def create_fixedsize_submatrix(distmat, sub_size, overlap, aa_dict):
+def create_fixedsize_submatrix(distmat, sub_size, overlap):
     sub_mat = []
     rows, cols = distmat.shape  
     for i in range(0, rows - sub_size + 1, overlap):
@@ -379,7 +379,7 @@ def ca_dist_calc(chains_CA, size, overlap ):
     distance_matrix_CA__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_CA_distance)
     chains_CA[chainID1].addCAMatrix(chains_CA, distance_matrix_CA__A_A, size , overlap ) # AB was chaged to AA
     chains_CA[chainID2].addCAMatrix(chains_CA, distance_matrix_CA__B_B, size , overlap )# AB was chaged to BB
-    return distance_matrix_CA__A_B
+
 
 def mean_dist_calc(chains_CA, size, overlap):
     #print("AA'S ATOMS DISTANCE CALCULATION")
@@ -391,7 +391,7 @@ def mean_dist_calc(chains_CA, size, overlap):
     distance_matrix_mean__A_B = create_distance_matrix(chains_CA, chainID1, chainID2, get_mean_distance)
     chains_CA[chainID1].addMeanMatrix(chains_CA, distance_matrix_mean__A_A, size , overlap )# AB was chaged to AA
     chains_CA[chainID2].addMeanMatrix(chains_CA, distance_matrix_mean__B_B, size , overlap )# AB was chaged to BB
-    return distance_matrix_mean__A_B
+
     
 def interacting_res (chains_CA, distance_matrix_CA__A_B , distance_matrix_mean__A_B):
     [chainID1, chainID2] = chains_CA.keys()
@@ -415,11 +415,9 @@ def create_positive_data_tsv(chains_CA):
     data = []
     [chainID1, chainID2] = chains_CA.keys()
     prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
-    residue_indexes = f"{chains_CA[chainID1].residue_indexes}_{chains_CA[chainID2].residue_indexes}" 
     aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
     dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
     dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
-    dssp_onehot = f"{chains_CA[chainID1].dssp_onehot}_{chains_CA[chainID2].dssp_onehot}" 
     if chains_CA[chainID1].residue_indexes[-1] + 1 == chains_CA[chainID2].residue_indexes[0]:
         interact = 1
     else:
@@ -427,15 +425,13 @@ def create_positive_data_tsv(chains_CA):
     data.append({
         'Protein ID': prot_id,
         'Interact': interact,
-        'Residue Indexes': residue_indexes,
         'Residues' : aa,
         'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index,
-        'DSSP Onehot': dssp_onehot
+        'DSSP Index': dssp_index
 
     })
     
-    file_path = "bert_train_6.tsv"
+    file_path = "bert_train_7.tsv"
     df = pd.DataFrame(data)
     if not os.path.isfile(file_path):
         df.to_csv(file_path, sep='\t', index=False)
@@ -448,11 +444,9 @@ def create_negative_data_tsv(interacting_proteins):
     chains_CA = random.sample(interacting_proteins, 2)
     chainID1, chainID2 = chains_CA[0].chainID, chains_CA[1].chainID
     prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
-    residue_indexes = f"{chains_CA[0].residue_indexes}_{chains_CA[1].residue_indexes}" 
     aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
     dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
     dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
-    dssp_onehot = f"{chains_CA[0].dssp_onehot}_{chains_CA[1].dssp_onehot}" 
     if chains_CA[0].residue_indexes[-1] + 1 == chains_CA[1].residue_indexes[0]:
         interact = 1
     else:
@@ -461,15 +455,13 @@ def create_negative_data_tsv(interacting_proteins):
     data.append({
         'Protein ID': prot_id,
         'Interact': interact,
-        'Residue Indexes': residue_indexes,
         'Residues' : aa,
         'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index,
-        'DSSP Onehot': dssp_onehot
+        'DSSP Index': dssp_index
 
     })
     
-    file_path = "bert_train_6.tsv"
+    file_path = "bert_train_7.tsv"
     df = pd.DataFrame(data)
     if not os.path.isfile(file_path):
             df.to_csv(file_path, sep='\t', index=False)
@@ -494,6 +486,18 @@ def pdb_to_fasta(pdb_file):
                         sequence_B += seq1(residue.get_resname())
     return sequence_A, sequence_B
 
+def matrix_pickle(chain_CA):
+    import pickle
+    for i in chain_CA:
+        file_ca = './Matrices_CA/m_ca_%s.pickle' % (chain_CA[i].prot_id)
+        with open(file_ca, 'wb') as f:
+            pickle.dump( chain_CA[i].ca_submatrices, f)
+        file_mean = './Matrices_Mean/m_mean_%s.pickle' % (chain_CA[i].prot_id)
+        with open(file_mean, 'wb') as k:
+            pickle.dump( chain_CA[i].mean_submatrices, k)
+
+
+
 sample_counter = 1
 def main(processed_sample, size):
 
@@ -513,9 +517,9 @@ def main(processed_sample, size):
         if chainID1 not in chains_CA[chainID2].int_prots  :
             chains_CA[chainID2].interact = 1
             chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
-        ca_dist = ca_dist_calc(chains_CA, size, overlap)
-        mean_dist = mean_dist_calc(chains_CA, size, overlap)
-        int_res = interacting_res(chains_CA, ca_dist, mean_dist )
+        ca_dist_calc(chains_CA, size, overlap)
+        mean_dist_calc(chains_CA, size, overlap)
+        #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
         sequence_A, sequence_B = pdb_to_fasta(pdb_file)
         chains_CA[chainID1].aa.append(sequence_A)
         chains_CA[chainID2].aa.append(sequence_B)
@@ -535,6 +539,7 @@ def main(processed_sample, size):
         
         create_positive_data_tsv(chains_CA)
         create_negative_data_tsv(interacting_proteins)
+        matrix_pickle(chains_CA)
 
         if i == processed_sample:
             break 
@@ -542,8 +547,6 @@ def main(processed_sample, size):
         #print(i)
         i += 1
 
-
-    return interacting_proteins
 
 if __name__ == "__main__":
     
