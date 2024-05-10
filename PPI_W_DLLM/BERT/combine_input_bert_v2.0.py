@@ -1,28 +1,11 @@
 import pandas as pd
 
-"""def create_dataframe(interacting_prot):
-    data = []
-    for protein in interacting_prot:
-        data.append({
-            'Protein ID': protein.prot_id,
-            'Interacting Chain': protein.int_prots,
-            'Interact': protein.interact,
-            'Residue Indexes': protein.residue_indexes,
-            'Amino Acid Dictionary': protein.aa_dict,
-            'DSSP Structure': protein.dssp_struct,
-            'DSSP Index': protein.dssp_index,
-            'DSSP Onehot': protein.dssp_onehot
 
-        })
-    
-    df = pd.DataFrame(data)
-    df.to_csv("bert_train.tsv", sep='\t', index=False)
-   """
-
+model name = 'bert_model_v6.pth'
 processed_sample = 100
 size = 7
 
-data_df = pd.read_csv('bert_train_2.tsv', sep='\t')
+data_df = pd.read_csv('bert_train_5.tsv', sep='\t')
 data_df.head()
 # This will hold all of the dataset samples, as strings.
 sen_w_feats = []
@@ -472,7 +455,7 @@ df_stats = df_stats.set_index('epoch')
 
 # A hack to force the column headers to wrap (doesn't seem to work in Colab).
 #df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
-
+torch.save(model.state_dict(), model_name )
 import matplotlib.pyplot as plt
 
 

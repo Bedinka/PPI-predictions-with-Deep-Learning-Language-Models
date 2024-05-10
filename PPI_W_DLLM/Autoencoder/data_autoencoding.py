@@ -86,18 +86,6 @@ def ca_matrix_vec(proteins, size):
       ca.extend(sub_values.reshape(-1, size, size))
   return ca
 
-def one_hot_encoding(submatrix):
-  encoder = OneHotEncoder()
-  one_hot_encoded = encoder.fit_transform(submatrix).toarray()
-  print(submatrix)
-  print(one_hot_encoded)
-  np.savetxt('onehot.txt', one_hot_encoded)
-  return one_hot_encoded
-
-def blosum():
-  matrix = bl.BLOSUM(62)
-  val = matrix["A"]["Y"]
-
 def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
   X = []
   Y = []
@@ -216,7 +204,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   print("#################", model_name)
   print(correlation, p_value, correlation2, p_value2 )
   print(correlation_test, p_value_test, correlation2_test, p_value2_test )
-  #one_hot_train = one_hot_encoding(encoded_vectors_train)
+
   plot(encoded_vectors_train, model_name)
   
   if SAVE:

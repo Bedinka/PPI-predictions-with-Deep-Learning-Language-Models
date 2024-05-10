@@ -9,28 +9,7 @@ import torch
 import pydssp
 import pickle
 
-amino_acids_dict = {
-    'ALA': 1,
-    'ARG': 2,
-    'ASN': 3,
-    'ASP': 4,
-    'CYS': 5,
-    'GLN': 6,
-    'GLU': 7,
-    'GLY': 8,
-    'HIS': 9,
-    'ILE': 10,
-    'LEU': 11,
-    'LYS': 12,
-    'MET': 13,
-    'PHE': 14,
-    'PRO': 15,
-    'SER': 16,
-    'THR': 17,
-    'TRP': 18,
-    'TYR': 19,
-    'VAL': 20
-}
+
 work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
 
 # Extracting protein IDs to a txt file 
@@ -98,7 +77,8 @@ class Chain:
         self.chainID = chainID
         self.residues = {}
         self.residue_indexes = []
-        self.aa_dict = []    
+        self.aa_dict = []
+        self.aa = []    
         self.prot_id = []
         self.dssp_struct = []
         self.dssp_index = []
@@ -330,15 +310,7 @@ def create_fixedsize_submatrix(distmat, sub_size, overlap, aa_dict):
             sub_matrix[1:, 1:] = distmat[i:i+sub_size, j:j+sub_size]
             '''
             sub_mat.append(sub_matrix)
-    '''for i in range(0, rows - sub_size +1, overlap):
-        for j in range(0, cols - sub_size +1, overlap):
-            sub_matrix = distmat[i:i+sub_size, j:j+sub_size]
-            #sub_matrix = Matrix(sub_size, sub_size)
-            #sub_matrix.matrix = distmat_AB[i:i+sub_size, j:j+sub_size]
-            #sub_matrix.i = i + 1  
-            #sub_matrix.j = j + 1  
-            aa_slice = aa_dict[i:i+sub_size]  
-            sub_mat.append((sub_matrix, aa_slice)) # residue_indexes'''
+
     return sub_mat
 
 def get_submatrix(distance_matrix,i,j, size):
@@ -444,7 +416,7 @@ def create_positive_data_tsv(chains_CA):
     [chainID1, chainID2] = chains_CA.keys()
     prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
     residue_indexes = f"{chains_CA[chainID1].residue_indexes}_{chains_CA[chainID2].residue_indexes}" 
-    aa_dict = f"{chains_CA[chainID1].aa_dict}_{chains_CA[chainID2].aa_dict}" 
+    aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
     dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
     dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
     dssp_onehot = f"{chains_CA[chainID1].dssp_onehot}_{chains_CA[chainID2].dssp_onehot}" 
@@ -456,14 +428,14 @@ def create_positive_data_tsv(chains_CA):
         'Protein ID': prot_id,
         'Interact': interact,
         'Residue Indexes': residue_indexes,
-        'Residues' : aa_dict,
+        'Residues' : aa,
         'DSSP Structure': dssp_struct,
         'DSSP Index': dssp_index,
         'DSSP Onehot': dssp_onehot
 
     })
     
-    file_path = "bert_train_2.tsv"
+    file_path = "bert_train_6.tsv"
     df = pd.DataFrame(data)
     if not os.path.isfile(file_path):
         df.to_csv(file_path, sep='\t', index=False)
@@ -477,7 +449,7 @@ def create_negative_data_tsv(interacting_proteins):
     chainID1, chainID2 = chains_CA[0].chainID, chains_CA[1].chainID
     prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
     residue_indexes = f"{chains_CA[0].residue_indexes}_{chains_CA[1].residue_indexes}" 
-    aa_dict = f"{chains_CA[0].aa_dict}_{chains_CA[1].aa_dict}" 
+    aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
     dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
     dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
     dssp_onehot = f"{chains_CA[0].dssp_onehot}_{chains_CA[1].dssp_onehot}" 
@@ -490,19 +462,37 @@ def create_negative_data_tsv(interacting_proteins):
         'Protein ID': prot_id,
         'Interact': interact,
         'Residue Indexes': residue_indexes,
-        'Residues' : aa_dict,
+        'Residues' : aa,
         'DSSP Structure': dssp_struct,
         'DSSP Index': dssp_index,
         'DSSP Onehot': dssp_onehot
 
     })
     
-    file_path = "bert_train_2.tsv"
+    file_path = "bert_train_6.tsv"
     df = pd.DataFrame(data)
     if not os.path.isfile(file_path):
             df.to_csv(file_path, sep='\t', index=False)
     else:
             df.to_csv(file_path, sep='\t', index=False, header=False, mode='a')
+
+def pdb_to_fasta(pdb_file):
+    from Bio.SeqUtils import seq1
+    parser = PDBParser()
+    structure = parser.get_structure('structure', pdb_file)
+    sequence_A = ''
+    sequence_B = ''
+    for model in structure:
+        for chain in model:
+            if chain.get_id() == 'A':
+                for residue in chain:
+                    if residue.get_id()[0] == ' ':
+                        sequence_A += seq1(residue.get_resname())
+            elif chain.get_id() == 'B':
+                for residue in chain:
+                    if residue.get_id()[0] == ' ':
+                        sequence_B += seq1(residue.get_resname())
+    return sequence_A, sequence_B
 
 sample_counter = 1
 def main(processed_sample, size):
@@ -526,7 +516,9 @@ def main(processed_sample, size):
         ca_dist = ca_dist_calc(chains_CA, size, overlap)
         mean_dist = mean_dist_calc(chains_CA, size, overlap)
         int_res = interacting_res(chains_CA, ca_dist, mean_dist )
-        
+        sequence_A, sequence_B = pdb_to_fasta(pdb_file)
+        chains_CA[chainID1].aa.append(sequence_A)
+        chains_CA[chainID2].aa.append(sequence_B)
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
