@@ -23,7 +23,7 @@ from scipy import stats
 from random import randint
 import pickle
 import os
-size = 7
+
 work_dir = "/home/dina/Documents/PPI_WDLLM"
 
 @tf.keras.utils.register_keras_serializable()
@@ -153,28 +153,34 @@ def plot(encoded, model_name):
   except np.linalg.LinAlgError as e:
         print("Error: ", e)
 
-def concatenate_pickle_ca():
-
+def concatenate_pickle_ca(size, num_files):
+    print ('Creating CA distance data input matrixes')
     # CA
     pickle_files_ca = [os.path.join(f"{work_dir}/Matrices_CA", file) for file in os.listdir(f"{work_dir}/Matrices_CA") if file.endswith('.pickle')]
+        
+    if num_files is not None:
+        pickle_files_ca = pickle_files_ca[:num_files]
+        
     concatenated_data_ca = []
+    
     for file_name in pickle_files_ca:
         with open(file_name, 'rb') as g:
             data = np.array([pickle.load(g)])
-            print(data.shape) 
             concatenated_data_ca.extend(data.reshape(-1, size, size))
     with open('concatenated_ca.pickle', 'wb') as g:
         pickle.dump(concatenated_data_ca, g)
     return concatenated_data_ca 
 
-def concatenate_pickle_mean():
+def concatenate_pickle_mean(size, num_files):
     # Mean
+    print ('Creating Mean distance data input matrixes')
     pickle_files_mean = [os.path.join(f"{work_dir}/Matrices_Mean", file) for file in os.listdir(f"{work_dir}/Matrices_Mean") if file.endswith('.pickle')]
+    if num_files is not None:
+        pickle_files_mean = pickle_files_mean[:num_files]
     concatenated_data_mean = []
     for file_name in pickle_files_mean:
         with open(file_name, 'rb') as f:
             data_m = np.array([pickle.load(f)])
-            #print(data_m.shape) 
             concatenated_data_mean.extend(data_m.reshape(-1, size, size))
     with open('concatenated_mean.pickle', 'wb') as f:
         pickle.dump(concatenated_data_mean, f)
@@ -183,22 +189,22 @@ def concatenate_pickle_mean():
 
 def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   
-  
-  feature_extraction.main(processed_sample, size)
+  print('Running Autoencoder...')
+
+  #feature_extraction.main(processed_sample, size)
   ranges= 2000
   int = 500
   loss_history = LossHistory()
-  me_a  = concatenate_pickle_mean()
-  ca_a = concatenate_pickle_ca()
-  
- 
+  num_files = processed_sample
+  me_a  = concatenate_pickle_mean(size, num_files)
+  ca_a = concatenate_pickle_ca(size, num_files)
   
   dist_ca_train = np.array(me_a)
   dist_ca_test =  np.array(ca_a)
   dist_ca_train = dist_ca_train.astype('float32') / 255.
   dist_ca_test = dist_ca_test.astype('float32') / 255.
-  print (dist_ca_train.shape)
-  print (dist_ca_test.shape)
+  print (f'Train input shape: {dist_ca_train.shape}')
+  print (f'Test input shape: {dist_ca_test.shape}')
   shape = dist_ca_train.shape[1:]
 
   if os.path.exists(model_name):
@@ -222,7 +228,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
                     callbacks=[loss_history])
   else:  
     autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
-  
+  print('Training ....')
   encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
   print(encoded_vectors_train.shape)
   #print(encoded_vectors_train)
@@ -238,23 +244,13 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
   print(correlation_test, p_value_test, correlation2_test, p_value2_test )
 
   #plot(encoded_vectors_train, model_name)
-  
+
+  directory_path = '/home/dina/Documents/PPI_WDLLM/workdirautoencodermodelsbychain'
+  model_name_with_path = os.path.join(directory_path, model_name)
+  print('Saving model...')
   if SAVE:
-    tf.saved_model.save(autoencoder, model_name)
-  
-  collected_data = {
-     "model_name": model_name,
-     "epochs" : epoch,
-     "latent_dim" : latent_dim,
-     "matrix_size" : size,
-     "processed_sample" : processed_sample,
-     "train_losses": loss_history.train_losses,
-      "val_losses": loss_history.val_losses,
-      "spearman_correlation": correlation ,
-      "spearman_p_value": p_value,
-      "spearman_correlation_dim1_2": correlation2,
-      "spearman_p_value_dim1_2": p_value2
-    }
+    tf.saved_model.save(autoencoder, model_name_with_path)
+  print('Done!')
   
   return encoded_vectors_train #, collected_data
 

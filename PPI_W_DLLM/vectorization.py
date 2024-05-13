@@ -6,7 +6,7 @@ def main():
     processed_sample_values = [500]  
     latent_dim_values = [2]  
     size_values = [7]  
-    epochs = [1]
+    epochs = [10]
     results = {}
     pd_results = []
     SAVE=True
@@ -36,7 +36,6 @@ def main():
     tsv = 'train_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.tsv' % (processed_sample, latent_dim, size, epoch , i )
     df.to_csv( tsv , sep='\t', index=False) 
 
-    return df
 
 
 if __name__ == "__main__":
