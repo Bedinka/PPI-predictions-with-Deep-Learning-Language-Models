@@ -1,4 +1,4 @@
-from Bio.PDB import PDBParser
+
 import tarfile
 import os
 import numpy as np
@@ -195,10 +195,18 @@ class Matrix:
         self.submatrix =submatrix
         #print("Created fixed sized matrixes and got the starting residues")
         return submatrix
-       
+
+
+
 # Parsing the PDB files 
 def parsePDB(pdb_file, sample_counter):
+    from Bio.PDB import PDBParser 
+    from Bio.SeqUtils import seq1
+    import warnings
+    warnings.filterwarnings("ignore")
     chains = {}
+    parser = PDBParser()
+    structure = parser.get_structure('structure', pdb_file)
     parts = pdb_file.split('/')
     filename = parts[-1]
     filename_parts = filename.split('-')
@@ -229,7 +237,26 @@ def parsePDB(pdb_file, sample_counter):
             if resnum not in chains[chainID].residues:
                 chains[chainID].addResidue( aa, resnum)                
             chains[chainID].residues[resnum].addAtom( atom_name, x, y, z ) # .addCA(aa, resnum, x, y, z)  
-
+        for model in structure:
+            for chain in model:
+                chainID = chain.get_id()
+                if chainID == 'A':
+                    prot_id = first_part
+                elif chainID == 'B':
+                    prot_id = second_part
+                else:
+                    continue
+                
+                if chainID not in chains:
+                    chains[chainID] = {'prot_id': prot_id, 'residues': {}, 'aa': []}
+                    
+                sequence = ''
+                for residue in chain:
+                    if residue.get_id()[0] == ' ':
+                        aa = seq1(residue.get_resname())
+                        sequence += aa
+                
+                chains[chainID].aa.append(sequence)
     return chains 
 
 # Calculating distance 
@@ -411,7 +438,7 @@ def spearman():
         print(stats.spearmanr(distance_matrix_CA__A_B.flatten(), distance_matrix_mean__A_B.flatten()))
         print(np.mean(abs(distance_matrix_CA__A_B-distance_matrix_mean__A_B)))   
 """
-def create_positive_data_tsv(chains_CA):
+def create_positive_data_tsv(chains_CA, tsv_path):
     data = []
     [chainID1, chainID2] = chains_CA.keys()
     prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
@@ -431,14 +458,13 @@ def create_positive_data_tsv(chains_CA):
 
     })
     
-    file_path = "bert_train_7.tsv"
     df = pd.DataFrame(data)
-    if not os.path.isfile(file_path):
-        df.to_csv(file_path, sep='\t', index=False)
+    if not os.path.isfile(tsv_path):
+        df.to_csv(tsv_path, sep='\t', index=False)
     else:
-        df.to_csv(file_path, sep='\t', index=False, header=False, mode='a')
+        df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
 
-def create_negative_data_tsv(interacting_proteins):
+def create_negative_data_tsv(interacting_proteins, tsv_path):
     data = []
     import random
     chains_CA = random.sample(interacting_proteins, 2)
@@ -447,28 +473,25 @@ def create_negative_data_tsv(interacting_proteins):
     aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
     dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
     dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
-    if chains_CA[0].residue_indexes[-1] + 1 == chains_CA[1].residue_indexes[0]:
+    if isinstance(chains_CA[0].int_prots, list) and chains_CA[1].prot_id in chains_CA[0].int_prots:
         interact = 1
     else:
         interact = 0 
+        data.append({
+            'Protein ID': prot_id,
+            'Interact': interact,
+            'Residues' : aa,
+            'DSSP Structure': dssp_struct,
+            'DSSP Index': dssp_index
+        })
+        
+        df = pd.DataFrame(data)
+        if not os.path.isfile(tsv_path):
+                df.to_csv(tsv_path, sep='\t', index=False)
+        else:
+                df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
 
-    data.append({
-        'Protein ID': prot_id,
-        'Interact': interact,
-        'Residues' : aa,
-        'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index
-
-    })
-    
-    file_path = "bert_train_7.tsv"
-    df = pd.DataFrame(data)
-    if not os.path.isfile(file_path):
-            df.to_csv(file_path, sep='\t', index=False)
-    else:
-            df.to_csv(file_path, sep='\t', index=False, header=False, mode='a')
-
-def pdb_to_fasta(pdb_file):
+"""def pdb_to_fasta(pdb_file):
     from Bio.SeqUtils import seq1
     parser = PDBParser()
     structure = parser.get_structure('structure', pdb_file)
@@ -484,7 +507,7 @@ def pdb_to_fasta(pdb_file):
                 for residue in chain:
                     if residue.get_id()[0] == ' ':
                         sequence_B += seq1(residue.get_resname())
-    return sequence_A, sequence_B
+    return sequence_A, sequence_B"""
 
 def matrix_pickle(chain_CA):
     import pickle
@@ -496,11 +519,9 @@ def matrix_pickle(chain_CA):
         with open(file_mean, 'wb') as k:
             pickle.dump( chain_CA[i].mean_submatrices, k)
 
-
-
 sample_counter = 1
-def main(processed_sample, size):
-
+def main(processed_sample, size, tsv_path ):
+    print('Running Feature Extraction...')
     processed_pdb_files = [os.path.join(f"{work_dir}/interactions_001", file) for file in os.listdir(f"{work_dir}/interactions_001") if file.endswith('.pdb')]
    #processed_pdb_files = process_tgz_files_in_directory(work_dir)
 
@@ -520,9 +541,9 @@ def main(processed_sample, size):
         ca_dist_calc(chains_CA, size, overlap)
         mean_dist_calc(chains_CA, size, overlap)
         #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
-        sequence_A, sequence_B = pdb_to_fasta(pdb_file)
+        """sequence_A, sequence_B = pdb_to_fasta(pdb_file)
         chains_CA[chainID1].aa.append(sequence_A)
-        chains_CA[chainID2].aa.append(sequence_B)
+        chains_CA[chainID2].aa.append(sequence_B)"""
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
@@ -537,8 +558,8 @@ def main(processed_sample, size):
             if chain not in interacting_proteins:
                 interacting_proteins.append(chain)
         
-        create_positive_data_tsv(chains_CA)
-        create_negative_data_tsv(interacting_proteins)
+        create_positive_data_tsv(chains_CA, tsv_path)
+        create_negative_data_tsv(interacting_proteins, tsv_path)
         matrix_pickle(chains_CA)
 
         if i == processed_sample:
@@ -546,7 +567,7 @@ def main(processed_sample, size):
         
         #print(i)
         i += 1
-
+    print('Featur extraction : Done...')
 
 if __name__ == "__main__":
     

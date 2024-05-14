@@ -1,11 +1,7 @@
 import pandas as pd
 
+def main( model_name , tsv_path, combined_fields ): 
 
-
-
-def main( model_name , tsv_path ): 
-
-    model_name = 'bert_model_v6.pth'
     data_df = pd.read_csv( tsv_path , sep='\t')
     data_df.head()
     # This will hold all of the dataset samples, as strings.
@@ -51,14 +47,17 @@ def main( model_name , tsv_path ):
     # For each of the samples...
     for index, row in data_df.iterrows():
 
-        # Piece it together...    
+        """# Piece it together...    
         combined = ""
         
         #combined += "The ID of this item is {:}, ".format(row["Clothing ID"])
-        combined += "{:}[SEP]{:}".format(row["Protein ID"], 
-                                                        row["Residues"])
-
-        
+        combined += "{:}[SEP]{:}[SEP]{:}".format(row["Protein ID"],
+                                                                row["Residues"],
+                                                                row["DSSP Structure"])
+"""
+        fields = [str(row[field]) for field in combined_fields]
+        combined = '[SEP]'.join(fields)
+        #print(combined)
         # Add the combined text to the list.
         sen_w_feats.append(combined)
 
@@ -121,6 +120,8 @@ def main( model_name , tsv_path ):
 
         # Update the maximum sentence length.
         max_len = max(max_len, len(input_ids))
+        if max_len >= 512:
+            max_len =512
 
     print('Max sentence length: ', max_len)
 
@@ -141,7 +142,7 @@ def main( model_name , tsv_path ):
         encoded_dict = tokenizer.encode_plus(
                             sent,                      # Sentence to encode.
                             add_special_tokens = True, # Add '[CLS]' and '[SEP]'
-                            max_length = 512,           # Pad & truncate all sentences.
+                            max_length = max_len,           # Pad & truncate all sentences.
                             truncation = True,
                             padding = 'max_length',
                             return_attention_mask = True,   # Construct attn. masks.
@@ -442,7 +443,6 @@ def main( model_name , tsv_path ):
 
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time()-total_t0)))
 
-
     # Create a DataFrame from our training statistics.
     df_stats = pd.DataFrame(data=training_stats)
 
@@ -451,11 +451,13 @@ def main( model_name , tsv_path ):
 
     # A hack to force the column headers to wrap (doesn't seem to work in Colab).
     #df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
-    torch.save(model.state_dict(), model_name )
+    """try:
+        torch.save(model.state_dict(), model_name)
+        print(f"Model saved as {model_name}")
+    except Exception as e:
+        print(f"Error saving model: {e}")"""
 
     import matplotlib.pyplot as plt
-
-
     import seaborn as sns
 
     # Use plot styling from seaborn.
@@ -475,15 +477,14 @@ def main( model_name , tsv_path ):
     plt.ylabel("Loss")
     plt.legend()
     plt.xticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-
-    plt.show()
+    plt.savefig(model_name.replace('.pth', '.png'))
 
     # Create a DataLoader to batch our test samples for us. We'll use a sequential
     # sampler this time--don't need this to be random!
     prediction_sampler = SequentialSampler(test_dataset)
     prediction_dataloader = DataLoader(test_dataset, sampler=prediction_sampler, batch_size=batch_size)
 
-    print('Predicting labels for {:,} test sentences...'.format(len(test_dataset)))
+    print('Predicting labels for {:,} test sequences...'.format(len(test_dataset)))
 
     # Put model in evaluation mode
     model.eval()
@@ -534,8 +535,21 @@ def main( model_name , tsv_path ):
     # Calculate the F1
     f1 = f1_score(flat_true_labels, flat_predictions)
 
+
     print('F1 Score: %.3f' % f1)
+    df_stats = pd.DataFrame(data=training_stats)
+    df_stats['F1 Score'] = f1
+    df_stats = df_stats.set_index('epoch')
+
+    return df_stats
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) < 4:
+        print("Usage: python train_bert.py <model_name> <tsv_path> <combined_field1> [<combined_field2> ...]")
+        sys.exit(1)
+    model_name = sys.argv[1]
+    tsv_path = sys.argv[2]
+    combined_fields = sys.argv[3:]
+    main(model_name, tsv_path, combined_fields)
