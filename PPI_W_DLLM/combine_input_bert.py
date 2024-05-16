@@ -494,30 +494,30 @@ def main( model_name , tsv_path, combined_fields ):
 
     # Predict 
     for batch in prediction_dataloader:
-    # Add batch to GPU
+        # Add batch to GPU
         batch = tuple(t.to(device) for t in batch)
     
-    # Unpack the inputs from our dataloader
-    b_input_ids, b_input_mask, b_labels = batch
-    
-    # Telling the model not to compute or store gradients, saving memory and 
-    # speeding up prediction
-    with torch.no_grad():
-        # Forward pass, calculate logit predictions.
-        result = model(b_input_ids, 
-                        token_type_ids=None, 
-                        attention_mask=b_input_mask,
-                        return_dict=True)
+        # Unpack the inputs from our dataloader
+        b_input_ids, b_input_mask, b_labels = batch
+        
+        # Telling the model not to compute or store gradients, saving memory and 
+        # speeding up prediction
+        with torch.no_grad():
+            # Forward pass, calculate logit predictions.
+            result = model(b_input_ids, 
+                            token_type_ids=None, 
+                            attention_mask=b_input_mask,
+                            return_dict=True)
 
-    logits = result.logits
+        logits = result.logits
 
-    # Move logits and labels to CPU
-    logits = logits.detach().cpu().numpy()
-    label_ids = b_labels.to('cpu').numpy()
-    
-    # Store predictions and true labels
-    predictions.append(logits)
-    true_labels.append(label_ids)
+        # Move logits and labels to CPU
+        logits = logits.detach().cpu().numpy()
+        label_ids = b_labels.to('cpu').numpy()
+        
+        # Store predictions and true labels
+        predictions.append(logits)
+        true_labels.append(label_ids)
 
     print('    DONE.')
 
@@ -534,7 +534,6 @@ def main( model_name , tsv_path, combined_fields ):
 
     # Calculate the F1
     f1 = f1_score(flat_true_labels, flat_predictions)
-
 
     print('F1 Score: %.3f' % f1)
     df_stats = pd.DataFrame(data=training_stats)

@@ -1,19 +1,20 @@
 import feature_extraction
 import data_autoencoding
 import combine_input_bert
+import redundancy_remove
 
 import pandas as pd
 
 # Running feature extraction
 # Creates the classes, the training .tsv , 
-F_RUN = False
+F_RUN = False 
 sample = 2000
 sub_size = 7
 work_dir_f = "/home/dina/Documents/PPI_WDLLM/workdir"
-tsv_path = "bert_train_8.tsv"
+tsv_f = "bert_train_9.tsv"
 # Running Feature extraction
 if F_RUN == True:
-    feature_extraction.main(sample, sub_size, tsv_path)
+    feature_extraction.main(sample, sub_size, tsv_f)
 
 # Autoencoder 
 A_RUN = False
@@ -59,19 +60,30 @@ df = pd.DataFrame(pd_results)
 tsv = 'train_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.tsv' % (processed_sample, latent_dim, size, epoch , i )
 df.to_csv( tsv , sep='\t', index=False) 
 
+
+# Removing non representative sequences
+S_REMOVE = False
+if S_REMOVE == True :
+    input_file = tsv_f
+    interactome_file = 'interactom_nonredundant'
+    output_file = 'filtered_file_v9.tsv'
+    redundancy_remove.main(input_file, interactome_file ,output_file)
+
 #BERT 
 B_RUN = True
+out_csv = 'BERT_training_stats_filteredandnonfitered.tsv'
+tsv_path = tsv_f
 if B_RUN == True :
     tsv_num = 8
-    tsv_path = 'bert_train_%d.tsv' % (tsv_num)
-    combined_fields = ["Protein ID","Residues","DSSP Structure","DSSP Index"]
+    #tsv_path = 'bert_train_%d.tsv' % (tsv_num)
+    combined_fields = ["Residues","DSSP Structure","DSSP Index"]
     try:
-        full_df = pd.read_csv('BERT_training_stats_v1.tsv', sep='\t')
+        full_df = pd.read_csv(out_csv, sep='\t')
     except FileNotFoundError:
         full_df = pd.DataFrame()
 
     for i in range(1, len(combined_fields) + 1):
-        bert_model_name = 'bert_model_attrnum_%d_tsvnum_%d.pth' % (i, tsv_num )
+        bert_model_name = 'bert_attrnum_%d_no_%d.pth' % (i, tsv_num )
         print(f'Running model name : {bert_model_name}')
         fields_to_combine = combined_fields[:i]
         df_stats = combine_input_bert.main(bert_model_name, tsv_path, fields_to_combine)
@@ -83,5 +95,4 @@ if B_RUN == True :
         full_df = pd.concat([full_df, df_stats], ignore_index=True)
 
     # Save the full DataFrame back to the TSV file
-    full_df.to_csv('BERT_training_stats_v1.tsv', sep='\t', index=False)
-
+    full_df.to_csv(out_csv, sep='\t', index=False)
