@@ -1,16 +1,15 @@
 # FROM : https://www.tensorflow.org/tutorials/generative/autoencoder 
 #https://www.tensorflow.org/tutorials/keras/save_and_load 
 
-import feature_extraction
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import os
 import torch 
 from scipy import stats
+from random import randint
+import pickle
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import OneHotEncoder
-import blosum as bl
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
@@ -19,10 +18,7 @@ from tensorflow.keras.models import Model
 from keras.callbacks import Callback
 from sklearn.decomposition import PCA
 
-from scipy import stats
-from random import randint
-import pickle
-import os
+
 
 work_dir = "/home/dina/Documents/PPI_WDLLM"
 
@@ -187,87 +183,106 @@ def concatenate_pickle_mean(size, num_files):
 
     return concatenated_data_mean
 
-def main(latent_dim, model_name, processed_sample, size, SAVE, epoch):
+def main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST, unseen_data_path):
   
   print('Running Autoencoder...')
 
-  #feature_extraction.main(processed_sample, size)
-  ranges= 2000
-  int = 500
-  loss_history = LossHistory()
-  num_files = processed_sample
-  me_a  = concatenate_pickle_mean(size, num_files)
-  ca_a = concatenate_pickle_ca(size, num_files)
+  if TEST == True:
+    print('Loading trained model...')
+    autoencoder = tf.keras.models.load_model(model_name_test, custom_objects={"Autoencoder": Autoencoder})
+    if unseen_data_path is None:
+        raise ValueError("Path to unseen data must be provided for testing.")
+    with open(unseen_data_path, 'rb') as f:
+        unseen_data = np.array([pickle.load(f)])
+    unseen_data = unseen_data.reshape(-1, size, size).astype('float32') / 255.
+
+    print('Testing with unseen data...')
+    encoded_vectors_unseen = autoencoder.encoder(unseen_data).numpy()
+    print(encoded_vectors_unseen.shape)
+    
+    ranges = 100
+    interval = 10
+    x_unseen, y_unseen, correlation_unseen, p_value_unseen, correlation2_unseen, p_value2_unseen = spearman(unseen_data, encoded_vectors_unseen, ranges, interval)
+    
+    print("#################", model_name_test)
+    print(correlation_unseen, p_value_unseen, correlation2_unseen, p_value2_unseen)
+
+    plot(encoded_vectors_unseen, model_name_test + "_unseen")
+
+    return encoded_vectors_unseen
   
-  dist_ca_train = np.array(me_a)
-  dist_ca_test =  np.array(ca_a)
-  dist_ca_train = dist_ca_train.astype('float32') / 255.
-  dist_ca_test = dist_ca_test.astype('float32') / 255.
-  print (f'Train input shape: {dist_ca_train.shape}')
-  print (f'Test input shape: {dist_ca_test.shape}')
-  shape = dist_ca_train.shape[1:]
+  else:
+    model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d.keras' % (processed_sample, latent_dim, size, epoch)
+    ranges= 2000
+    int = 500
+    loss_history = LossHistory()
+    num_files = processed_sample
+    me_a  = concatenate_pickle_mean(size, num_files)
+    ca_a = concatenate_pickle_ca(size, num_files)
+    
+    dist_ca_train = np.array(me_a)
+    dist_ca_test =  np.array(ca_a)
+    dist_ca_train = dist_ca_train.astype('float32') / 255.
+    dist_ca_test = dist_ca_test.astype('float32') / 255.
+    print (f'Train input shape: {dist_ca_train.shape}')
+    print (f'Test input shape: {dist_ca_test.shape}')
+    shape = dist_ca_train.shape[1:]
 
-  if os.path.exists(model_name):
-    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
-  else: 
-    autoencoder = Autoencoder(latent_dim, shape)
-    autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-    autoencoder.fit(dist_ca_train, dist_ca_train,
-                    epochs=epoch,
-                    shuffle=True,
-                    validation_data=(dist_ca_test, dist_ca_test),
-                    callbacks=[loss_history])
+    if os.path.exists(model_name):
+      autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
+    else: 
+      autoencoder = Autoencoder(latent_dim, shape)
+      autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+      autoencoder.fit(dist_ca_train, dist_ca_train,
+                      epochs=epoch,
+                      shuffle=True,
+                      validation_data=(dist_ca_test, dist_ca_test),
+                      callbacks=[loss_history])
 
-  """if SAVE:
-    autoencoder = Autoencoder(latent_dim, shape)
-    autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-    autoencoder.fit(dist_ca_train, dist_ca_train,
-                    epochs=epoch,
-                    shuffle=True,
-                    validation_data=(dist_ca_test, dist_ca_test),
-                    callbacks=[loss_history])
-  else:  
-    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
-  print('Training ....')
-  encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
-  print(encoded_vectors_train.shape)
-  #print(encoded_vectors_train)
-  encoded_vectors_test = autoencoder.encoder(dist_ca_test).numpy()
-  #print(dist_ca_train.shape)
-  #print(encoded_vectors_train.shape)
+    """if SAVE:
+      autoencoder = Autoencoder(latent_dim, shape)
+      autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+      autoencoder.fit(dist_ca_train, dist_ca_train,
+                      epochs=epoch,
+                      shuffle=True,
+                      validation_data=(dist_ca_test, dist_ca_test),
+                      callbacks=[loss_history])
+    else:  
+      autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
+    print('Training ....')
+    encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
+    print(encoded_vectors_train.shape)
+    #print(encoded_vectors_train)
+    encoded_vectors_test = autoencoder.encoder(dist_ca_test).numpy()
+    #print(dist_ca_train.shape)
+    #print(encoded_vectors_train.shape)
 
-  x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
-  x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
-  
-  print("#################", model_name)
-  print(correlation, p_value, correlation2, p_value2 )
-  print(correlation_test, p_value_test, correlation2_test, p_value2_test )
+    x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_ca_train, encoded_vectors_train , ranges , int )
+    x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
+    
+    print("#################", model_name)
+    print(correlation, p_value, correlation2, p_value2 )
+    print(correlation_test, p_value_test, correlation2_test, p_value2_test )
 
   #plot(encoded_vectors_train, model_name)
 
-  directory_path = '/home/dina/Documents/PPI_WDLLM/workdirautoencodermodelsbychain'
-  model_name_with_path = os.path.join(directory_path, model_name)
-  print('Saving model...')
-  if SAVE:
-    tf.saved_model.save(autoencoder, model_name_with_path)
-  print('Done!')
-  
-  return encoded_vectors_train #, collected_data
+    directory_path = '/home/dina/Documents/PPI_WDLLM/workdirautoencodermodelsbychain'
+    model_name_with_path = os.path.join(directory_path, model_name)
+    print('Saving model...')
+    if SAVE:
+      tf.saved_model.save(autoencoder, model_name_with_path)
+
+    print('Done!')
+    
+    return encoded_vectors_train #, collected_data
 
 if __name__ == "__main__":
-    '''latent_dim = 
-    model_name = 'dina_model_js.keras'
-    processed_sample = 1
-    size = 10'''
-    #SAVE = True
-
-    '''fout = open("summary.txt", "a")
-    for i in range(10):
-      model_path = 'dina_model_sample_%d_dim_%d_size_%d_index_%d.keras' % (processed_sample, latent_dim, size, i)
-      print(model_path)
-      fout.write(model_path+"\n")
-      collected_data = main(latent_dim ,model_path, processed_sample ,size, SAVE ) #latent_dim ,model_path, processed_sample ,size
-      print(collected_data)
-      fout.write(str(collected_data)+"\n"+"\n")
-    fout.close()'''
-    main()
+  latent_dim = 2 
+  processed_sample = 1000
+  size = 7
+  SAVE = True
+  epoch = 10
+  TEST = False
+  unseen_data_path = 'Matrices_CA/m_ca_Q99961.pickle'  # Provide the path to your unseen data
+  model_name_test = 'dina_model_sample_10_dim_2_size_7_epochs_10_index_0.keras'
+  main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST, unseen_data_path)
