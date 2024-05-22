@@ -38,7 +38,7 @@ def main(input_file, interactome_file, output_file):
                         writer.writerow(row)
                     else:
                         removed_sequences += 1
-                        #print(f"Non-representative sequence was removed {prot_ID}")
+                        print (f"Non-representative sequence was removed {prot_ID}")
 
     print("Redundancy removal: DONE ...")
     
@@ -53,5 +53,5 @@ def main(input_file, interactome_file, output_file):
 if __name__ == "__main__":
     input_file = 'bert_train_9.tsv'
     interactome_file = 'interactom_nonredundant'
-    output_file = 'filtered_first_file.tsv'
+    output_file = 'bert_filtered_file.tsv'
     main(input_file, interactome_file, output_file)

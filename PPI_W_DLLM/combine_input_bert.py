@@ -1,5 +1,8 @@
 import pandas as pd
 
+BERT_TEST = True  # Set this based on your requirement
+TEST_MODEL_NAME = "your_test_model_name" 
+
 def main( model_name , tsv_path, combined_fields ): 
 
     data_df = pd.read_csv( tsv_path , sep='\t')
@@ -58,10 +61,8 @@ def main( model_name , tsv_path, combined_fields ):
         fields = [str(row[field]) for field in combined_fields]
         combined = '[SEP]'.join(fields)
         #print(combined)
-        # Add the combined text to the list.
-        sen_w_feats.append(combined)
 
-        # Also record the sample's label.
+        sen_w_feats.append(combined)
         labels.append(row["Interact"])
 
     print('  DONE.')
@@ -451,11 +452,12 @@ def main( model_name , tsv_path, combined_fields ):
 
     # A hack to force the column headers to wrap (doesn't seem to work in Colab).
     #df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
-    """try:
-        torch.save(model.state_dict(), model_name)
+    try:
+        #torch.save(model.state_dict(), model_name)
+        model.save_pretrained('bert')
         print(f"Model saved as {model_name}")
     except Exception as e:
-        print(f"Error saving model: {e}")"""
+        print(f"Error saving model: {e}")
 
     import matplotlib.pyplot as plt
     import seaborn as sns

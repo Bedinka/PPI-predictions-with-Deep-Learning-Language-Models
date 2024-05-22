@@ -196,8 +196,6 @@ class Matrix:
         #print("Created fixed sized matrixes and got the starting residues")
         return submatrix
 
-
-
 # Parsing the PDB files 
 def parsePDB(pdb_file, sample_counter):
     from Bio.PDB import PDBParser 
