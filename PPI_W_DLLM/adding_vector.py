@@ -3,9 +3,9 @@ import os
 import numpy as np
 import data_autoencoding
 
-df = pd.read_csv('filtered_file_v9.tsv', sep='\t')
-pickle_ca_dir = './Matrices_CA/'
-pickle_mean_dir = './Matrices_Mean/'
+df = pd.read_csv('bert_big_test.tsv', sep='\t')
+pickle_ca_dir = './Matrices_CA_test/'
+pickle_mean_dir = './Matrices_Mean_test/'
 size = 7 
 vector_ca_list = []
 
@@ -48,4 +48,4 @@ for index, row in df.iterrows():
     vector_ca_list.append(vector_ca)
 
 df['Vector'] = vector_ca_list
-df.to_csv('bert_input_with_vector_ca.tsv', sep='\t', index=False)
+df.to_csv('bert_train_with_vector_002003.tsv', sep='\t', index=False)

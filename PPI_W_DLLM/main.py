@@ -5,21 +5,24 @@ import redundancy_remove
 
 import pandas as pd
 import os
-
+F_RUN = True 
+B_RUN = False
+S_REMOVE = False
+A_RUN = False
 # Running feature extraction
 # Creates the classes, the training .tsv , 
-F_RUN = False 
-sample = 2000
+
+sample = 50
 sub_size = 7
 work_dir_f = "/home/dina/Documents/PPI_WDLLM/workdir"
-tsv_f = "bert_train_10.tsv"
+tsv_f = "bert_small_test.tsv"
 # Running Feature extraction
 if F_RUN == True:
     feature_extraction.main(sample, sub_size, tsv_f)
 
 
 # Removing non representative sequences
-S_REMOVE = False
+
 if S_REMOVE == True :
     input_file = tsv_f
     interactome_file = 'interactom_nonredundant'
@@ -27,7 +30,7 @@ if S_REMOVE == True :
     redundancy_remove.main(input_file, interactome_file ,output_file)
 
 # Autoencoder 
-A_RUN = False
+
 work_dir = "/home/dina/Documents/PPI_WDLLM"
 processed_sample_values = [2000]
 size_values = [7]
@@ -105,26 +108,25 @@ if A_RUN == True:
 
 
 #BERT 
-B_RUN = True
-out_csv = 'BERT_training_stats_withvectors.tsv'
-tsv_path = 'bert_input_with_vector_ca.tsv'
+
+out_csv = 'BERT_training_stats_withvectors_004.tsv'
+tsv_path = 'concatenated_file_v1.tsv'
 if B_RUN == True :
-    tsv_num = 8
+    info = 'rep01020304'
     combined_fields = ["Residues","DSSP Structure","DSSP Index", "Vector"]
     try:
         full_df = pd.read_csv(out_csv, sep='\t')
     except FileNotFoundError:
         full_df = pd.DataFrame()
 
-    #for i in range(1, len(combined_fields) + 1):
-    i = 4
-    bert_model_name = 'bert_attrnum_%d_no_%d.pth' % (i, tsv_num )
-    print(f'Running model name : {bert_model_name}')
-    fields_to_combine = combined_fields[:i]
-    df_stats = combine_input_bert.main(bert_model_name, tsv_path, fields_to_combine)
-    #tsv_output_path = model_name.replace('.pth', '_training_stats.tsv')
-    #df_stats.to_csv('BERT_training_stats.tsv', sep='\t')
-    df_stats.loc[0, 'model_name'] = bert_model_name
-    full_df = pd.concat([full_df, df_stats], ignore_index=True)
+    for i in range(1, len(combined_fields) + 1):
+        bert_model_name = 'bert_attrnum_%d_no_%s' % (i, info )
+        print(f'Running model name : {bert_model_name}')
+        fields_to_combine = combined_fields[:i]
+        df_stats = combine_input_bert.main(bert_model_name, tsv_path, fields_to_combine)
+        #tsv_output_path = model_name.replace('.pth', '_training_stats.tsv')
+        #df_stats.to_csv('BERT_training_stats.tsv', sep='\t')
+        df_stats.loc[0, 'model_name'] = bert_model_name
+        full_df = pd.concat([full_df, df_stats], ignore_index=True)
     full_df.to_csv(out_csv, sep='\t', index=False)
 

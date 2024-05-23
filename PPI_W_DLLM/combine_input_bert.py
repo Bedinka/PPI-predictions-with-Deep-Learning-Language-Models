@@ -449,13 +449,19 @@ def main( model_name , tsv_path, combined_fields ):
 
     # Use the 'epoch' as the row index.
     df_stats = df_stats.set_index('epoch')
-
+    import os
     # A hack to force the column headers to wrap (doesn't seem to work in Colab).
     #df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
+    directory = os.path.join(os.getcwd(), model_name)
+
+# Create the directory if it does not exist
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     try:
-        #torch.save(model.state_dict(), model_name)
-        model.save_pretrained('bert')
-        print(f"Model saved as {model_name}")
+        # Save the model in the specified directory
+        model.save_pretrained(directory)
+        print(f"Model saved as {model_name} in directory {directory}")
     except Exception as e:
         print(f"Error saving model: {e}")
 

@@ -510,17 +510,17 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
 def matrix_pickle(chain_CA):
     import pickle
     for i in chain_CA:
-        file_ca = './Matrices_CA/m_ca_%s.pickle' % (chain_CA[i].prot_id)
+        file_ca = './Matrices_CA_test/m_ca_%s.pickle' % (chain_CA[i].prot_id)
         with open(file_ca, 'wb') as f:
             pickle.dump( chain_CA[i].ca_submatrices, f)
-        file_mean = './Matrices_Mean/m_mean_%s.pickle' % (chain_CA[i].prot_id)
+        file_mean = './Matrices_Mean_test/m_mean_%s.pickle' % (chain_CA[i].prot_id)
         with open(file_mean, 'wb') as k:
             pickle.dump( chain_CA[i].mean_submatrices, k)
 
 sample_counter = 1
 def main(processed_sample, size, tsv_path ):
     print('Running Feature Extraction...')
-    processed_pdb_files = [os.path.join(f"{work_dir}/interactions_001", file) for file in os.listdir(f"{work_dir}/interactions_001") if file.endswith('.pdb')]
+    processed_pdb_files = [os.path.join(f"{work_dir}/interactions_6", file) for file in os.listdir(f"{work_dir}/interactions_6") if file.endswith('.pdb')]
    #processed_pdb_files = process_tgz_files_in_directory(work_dir)
 
     interacting_proteins = []
