@@ -1,28 +1,9 @@
 import torch
 import pandas as pd
+import os
 from transformers import BertTokenizer, BertForSequenceClassification
 from sklearn.metrics import roc_curve, auc, accuracy_score
 import matplotlib.pyplot as plt
-
-# Load data
-tsv_path = 'bert_test_with_vector_004.tsv'
-data_df = pd.read_csv(tsv_path, sep='\t')
-data_df = data_df.fillna("")
-
-sen_w_feats = []
-labels = []
-combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
-
-for index, row in data_df.iterrows():
-    fields = [str(row[field]) for field in combined_fields]
-    combined = '[SEP]'.join(fields)
-    sen_w_feats.append(combined)
-    labels.append(row["Interact"])  
-
-# Load tokenizer and model
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-model_path = 'bert_attrnum_4_no_rep01020304'  
-model = BertForSequenceClassification.from_pretrained(model_path)
 
 def process_sequence(sequence):
     encoded_dict = tokenizer.encode_plus(
@@ -36,63 +17,84 @@ def process_sequence(sequence):
     )
     return encoded_dict
 
-# Move model to appropriate device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+# Load data
+tsv_path = 'bert_test_with_vector_005.tsv'
+data_df = pd.read_csv(tsv_path, sep='\t')
+data_df = data_df.fillna("")
 
-# Make predictions
-predicted_labels = []
-logit_list = []
-for seq in sen_w_feats:
-    encoded_dict = process_sequence(seq)
-    input_ids = encoded_dict['input_ids'].to(device)
-    attention_mask = encoded_dict['attention_mask'].to(device)
 
-    with torch.no_grad():
-        outputs = model(input_ids, token_type_ids=None, attention_mask=attention_mask)
-        logits = outputs.logits
-    predicted_label = torch.argmax(logits).item()
-    predicted_labels.append(predicted_label)
-    logit_list.append(logits.cpu().numpy())
+combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
+for i in range(1, len(combined_fields) + 1):
+    fields_to_combine = combined_fields[:i]
+    sen_w_feats = []
+    labels = []
 
-# Calculate accuracy
-accuracy = accuracy_score(labels, predicted_labels)
-print(f"Accuracy: {accuracy:.4f}")
+    for index, row in data_df.iterrows():
+        fields = [str(row[field]) for field in fields_to_combine]
+        combined = '[SEP]'.join(fields)
+        #print(combined)
+        sen_w_feats.append(combined)
+        labels.append(row["Interact"])  
 
-# Calculate misclassifications
-misclassified_as_0 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 0 and actual == 1)
-misclassified_as_1 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 1 and actual == 0)
-total_1s = sum(1 for label in labels if label == 1)
-total_0s = sum(1 for label in labels if label == 0)
+        # Load tokenizer and model
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    bert_dir = './BERT/'
+    model_name = 'bert_attrnum_%d_no_rep01020304'  %(i) 
+    directory = os.path.join(bert_dir, model_name)
+    print(model_name)
+    model = BertForSequenceClassification.from_pretrained(directory)
+    # Move model to appropriate device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-percent_1_labeled_as_0 = (misclassified_as_0 / total_1s) * 100 if total_1s != 0 else 0
-percent_0_labeled_as_1 = (misclassified_as_1 / total_0s) * 100 if total_0s != 0 else 0
+    # Make predictions
+    predicted_labels = []
+    logit_list = []
+    for seq in sen_w_feats:
+        encoded_dict = process_sequence(seq)
+        input_ids = encoded_dict['input_ids'].to(device)
+        attention_mask = encoded_dict['attention_mask'].to(device)
 
-print(f"Percentage of 1s labeled as 0: {percent_1_labeled_as_0:.2f}%")
-print(f"Percentage of 0s labeled as 1: {percent_0_labeled_as_1:.2f}%")
+        with torch.no_grad():
+            outputs = model(input_ids, token_type_ids=None, attention_mask=attention_mask)
+            logits = outputs.logits
+        predicted_label = torch.argmax(logits).item()
+        predicted_labels.append(predicted_label)
+        logit_list.append(logits.cpu().numpy())
 
-# Calculate ROC Curve and AUC
-logit_list = [logit[0] for logit in logit_list]  # Remove unnecessary dimensions
-logit_scores = [logit[1] for logit in logit_list]  # Get the logit scores for the positive class
+    # Calculate accuracy
+    accuracy = accuracy_score(labels, predicted_labels)
+    print(f"Accuracy: {accuracy:.4f}")
 
-fpr, tpr, _ = roc_curve(labels, logit_scores)
-roc_auc = auc(fpr, tpr)
+    # Calculate misclassifications
+    misclassified_as_0 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 0 and actual == 1)
+    misclassified_as_1 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 1 and actual == 0)
+    total_1s = sum(1 for label in labels if label == 1)
+    total_0s = sum(1 for label in labels if label == 0)
 
-print(f"AUC: {roc_auc:.4f}")
+    percent_1_labeled_as_0 = (misclassified_as_0 / total_1s) * 100 if total_1s != 0 else 0
+    percent_0_labeled_as_1 = (misclassified_as_1 / total_0s) * 100 if total_0s != 0 else 0
 
-# Plot ROC Curve
-plt.figure()
-plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
-plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic')
-plt.legend(loc="lower right")
-plt.show()
+    print(f"Percentage of 1s labeled as 0: {percent_1_labeled_as_0:.2f}%")
+    print(f"Percentage of 0s labeled as 1: {percent_0_labeled_as_1:.2f}%")
 
-# Print individual predictions
-'''for predicted_label, actual_label in zip(predicted_labels, labels):
-    print(f"Predicted label: {predicted_label}, Actual label: {actual_label}")
-'''
+    # Calculate ROC Curve and AUC
+    logit_list = [logit[0] for logit in logit_list]  # Remove unnecessary dimensions
+    logit_scores = [logit[1] for logit in logit_list]  # Get the logit scores for the positive class
+
+    fpr, tpr, _ = roc_curve(labels, logit_scores)
+    roc_auc = auc(fpr, tpr)
+
+    print(f"AUC: {roc_auc:.4f}")
+
+    # Plot ROC Curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.show()

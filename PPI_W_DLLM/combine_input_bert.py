@@ -452,7 +452,8 @@ def main( model_name , tsv_path, combined_fields ):
     import os
     # A hack to force the column headers to wrap (doesn't seem to work in Colab).
     #df = df.style.set_table_styles([dict(selector="th",props=[('max-width', '70px')])])
-    directory = os.path.join(os.getcwd(), model_name)
+    bert_dir = './BERT/'
+    directory = os.path.join(bert_dir, model_name)
 
 # Create the directory if it does not exist
     if not os.path.exists(directory):

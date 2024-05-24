@@ -1,3 +1,8 @@
+#FEATURE EXTRACTION 
+#Processing .pbd:
+#Creating chain objects, creating CA and Mean distance matrix, creating CA and Mean submatrixes, .pickle from submatrixes
+#Calculating RSA and DSSP 
+#Creating .tsv from result with + and - samples
 
 import tarfile
 import os
@@ -7,7 +12,7 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
-import pickle
+
 
 
 work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
@@ -507,20 +512,26 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
                         sequence_B += seq1(residue.get_resname())
     return sequence_A, sequence_B"""
 
-def matrix_pickle(chain_CA):
+def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
+    
     import pickle
     for i in chain_CA:
-        file_ca = './Matrices_CA_test/m_ca_%s.pickle' % (chain_CA[i].prot_id)
-        with open(file_ca, 'wb') as f:
+        file_ca = 'm_ca_%s.pickle' % (chain_CA[i].prot_id)
+        ca = os.path.join( pickle_ca_path, file_ca)
+        with open(ca, 'wb') as f:
             pickle.dump( chain_CA[i].ca_submatrices, f)
-        file_mean = './Matrices_Mean_test/m_mean_%s.pickle' % (chain_CA[i].prot_id)
-        with open(file_mean, 'wb') as k:
+        file_mean = 'm_mean_%s.pickle' % (chain_CA[i].prot_id)
+        mean = os.path.join( pickle_mean_path, file_mean)
+        with open(mean, 'wb') as k:
             pickle.dump( chain_CA[i].mean_submatrices, k)
 
 sample_counter = 1
-def main(processed_sample, size, tsv_path ):
+
+
+def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path):
     print('Running Feature Extraction...')
-    processed_pdb_files = [os.path.join(f"{work_dir}/interactions_6", file) for file in os.listdir(f"{work_dir}/interactions_6") if file.endswith('.pdb')]
+    interactions = 'interactions_6'
+    processed_pdb_files = [os.path.join(f"{work_dir}/{interactions}", file) for file in os.listdir(f"{work_dir}/{interactions}") if file.endswith('.pdb')]
    #processed_pdb_files = process_tgz_files_in_directory(work_dir)
 
     interacting_proteins = []
@@ -528,6 +539,7 @@ def main(processed_sample, size, tsv_path ):
     i = 1 # number of processed sample 
 
     for pdb_file in processed_pdb_files:
+        print(pdb_file)
         chains_CA = parsePDB(pdb_file, sample_counter)
         [chainID1, chainID2] = chains_CA.keys()
         if chainID2 not in  chains_CA[chainID1].int_prots:
@@ -547,26 +559,35 @@ def main(processed_sample, size, tsv_path ):
         dir_name = os.path.dirname(pdb_file)
         
         splitted_files = splitPDBbyChain(pdb_file, dir_name)
-
-        for prot in splitted_files:
-            #rsa(prot, chains_CA, work_dir)
-            dssp(chains_CA, prot)     
+        import traceback
+        try:
+            for prot in splitted_files:
+                rsa(prot, chains_CA, work_dir)
+                dssp(chains_CA, prot)
+        except Exception as e:
+            print(f"Error processing file {prot}: {e}")
+            print(traceback.format_exc())
         
         for chain in chains_CA.values():
             if chain not in interacting_proteins:
                 interacting_proteins.append(chain)
         
         create_positive_data_tsv(chains_CA, tsv_path)
-        create_negative_data_tsv(interacting_proteins, tsv_path)
-        matrix_pickle(chains_CA)
+
+        matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
 
         if i == processed_sample:
             break 
-        
-        #print(i)
         i += 1
+
+    create_negative_data_tsv(interacting_proteins, tsv_path)
     print('Featur extraction : Done...')
+    
 
 if __name__ == "__main__":
-    
-    main()
+    processed_sample = 1000
+    size= 7
+    tsv_path = ''
+    pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
+    pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
+    main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path)
