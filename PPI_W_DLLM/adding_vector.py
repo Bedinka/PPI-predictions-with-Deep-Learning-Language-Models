@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
-import run_autoencoder
+import test_autoencoder
 
 
 def main(pickle_dir, sub_size, input_tsv_for_vec, encode_test_model_name, vectorized_tsv ):
@@ -13,11 +13,11 @@ def main(pickle_dir, sub_size, input_tsv_for_vec, encode_test_model_name, vector
         protein_ids = row['Protein ID'].split('_')
         pickle_1 = f'm_ca_{protein_ids[0]}.pickle'
         path = os.path.join(pickle_dir, pickle_1)
-        encoded_vecstor_1= run_autoencoder.main(encode_test_model_name, sub_size, path)
+        encoded_vector_1= test_autoencoder.main(encode_test_model_name, sub_size, path)
 
         pickle_2 = f'm_ca_{protein_ids[1]}.pickle'
         path = os.path.join(pickle_dir, pickle_2)
-        encoded_vector_2= run_autoencoder.main(encode_test_model_name, sub_size, path)
+        encoded_vector_2= test_autoencoder.main(encode_test_model_name, sub_size, path)
 
         ca1, ca2 = None, None
         if encoded_vector_1 is not None:

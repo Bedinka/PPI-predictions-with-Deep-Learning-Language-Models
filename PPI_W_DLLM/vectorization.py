@@ -1,4 +1,4 @@
-import data_autoencoding    
+import YangLabIntern.PPI_W_DLLM.train_autoencoding as train_autoencoding    
 import pandas as pd
 
 def main():
@@ -19,7 +19,7 @@ def main():
                         print(model_name)
                         #fout.write(model_path+"\n")
                         print(f"Running with latent_dim={latent_dim}, epoch={epoch} , processed_sample_num={processed_sample} , matrix_size = {size} x {size}")
-                        collected_data = data_autoencoding.main(latent_dim, model_name, processed_sample , size , SAVE , epoch )
+                        collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample , size , SAVE , epoch )
                         #creating pandas dataframe for heatmap
                         pd_results.append({
                             "Model": model_name,  

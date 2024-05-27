@@ -19,18 +19,23 @@ def pdb_to_fasta(pdb_file):
                         sequence_B += seq1(residue.get_resname())
     return sequence_A, sequence_B
 
-work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
-processed_pdb_files = [os.path.join(f"{work_dir}/interactions_001", file) for file in os.listdir(f"{work_dir}/interactions_001") if file.endswith('.pdb')]
+def main(pdb,interactom_fasta):
+    work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
+    processed_pdb_files = [os.path.join(f"{work_dir}/{pdb}", file) for file in os.listdir(f'{work_dir}/{pdb}') if file.endswith('.pdb')]
 
-# Open the output file in append mode ('a')
-with open('interactom.fasta', 'a') as f:
-    for pdb_file in processed_pdb_files:
-        sequence_A, sequence_B = pdb_to_fasta(pdb_file)
-
-        # Append sequences to the output file
-        f.write('>pdb:A\n')
-        f.write(f'>{os.path.basename(pdb_file)}_Chain_A\n')
-        f.write(sequence_A + '\n')
-        f.write('>pdb:B\n')
-        f.write(f'>{os.path.basename(pdb_file)}_Chain_B\n')
-        f.write(sequence_B + '\n')
+    # Open the output file in append mode ('a')
+    with open(interactom_fasta, 'a') as f:
+        for pdb_file in processed_pdb_files:
+            sequence_A, sequence_B = pdb_to_fasta(pdb_file)
+            f.write('>pdb:A\n')
+            f.write(f'>{os.path.basename(pdb_file)}_Chain_A\n')
+            f.write(sequence_A + '\n')
+            f.write('>pdb:B\n')
+            f.write(f'>{os.path.basename(pdb_file)}_Chain_B\n')
+            f.write(sequence_B + '\n')
+            
+if __name__ == "__main__":
+    pdb=''
+    interactom_fasta=''
+    main(pdb, interactom_fasta)
+    

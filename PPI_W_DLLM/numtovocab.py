@@ -1,5 +1,5 @@
 import numpy as np
-import YangLabIntern.PPI_W_DLLM.data_autoencoding as data_autoencoding
+import YangLabIntern.PPI_W_DLLM.train_autoencoding as train_autoencoding
 from transformers import BertConfig, BertTokenizer, BertModel
 config = BertConfig.from_pretrained('bert-base-cased')
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
@@ -16,7 +16,7 @@ def main():
     processed_sample=5
 
     # Example numerical matrix input
-    numerical_matrix = np.array(data_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch))
+    numerical_matrix = np.array(train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch))
     print(numerical_matrix.shape)
     # Convert numerical matrix to string representation
     text_data = [[str(num) for num in row] for row in numerical_matrix]

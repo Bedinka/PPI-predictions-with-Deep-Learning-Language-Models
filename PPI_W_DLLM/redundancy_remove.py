@@ -1,6 +1,6 @@
 import csv
 
-def main(input_file, interactome_file, output_file. run_directory):
+def main(input_file, interactome_file, output_file):
     representative_sequences = set()
     with open(interactome_file, 'r') as file:
         sequence_id = None
@@ -54,4 +54,4 @@ if __name__ == "__main__":
     input_file = 'bert_train_9.tsv'
     interactome_file = 'interactom_nonredundant'
     output_file = 'bert_filtered_file.tsv'
-    main(input_file, interactome_file, output_file, run_directory)
+    main(input_file, interactome_file, output_file)

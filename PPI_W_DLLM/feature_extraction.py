@@ -513,25 +513,34 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
     return sequence_A, sequence_B"""
 
 def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
-    
     import pickle
     for i in chain_CA:
         file_ca = 'm_ca_%s.pickle' % (chain_CA[i].prot_id)
-        ca = os.path.join( pickle_ca_path, file_ca)
-        with open(ca, 'wb') as f:
-            pickle.dump( chain_CA[i].ca_submatrices, f)
+        ca = os.path.join(pickle_ca_path, file_ca)
+
+        if not os.path.exists(ca):
+            with open(ca, 'wb') as f:
+                pickle.dump(chain_CA[i].ca_submatrices, f)
+            print(f"Created CA pickle file for {chain_CA[i].prot_id}")
+        else:
+            print(f"CA pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
+
         file_mean = 'm_mean_%s.pickle' % (chain_CA[i].prot_id)
-        mean = os.path.join( pickle_mean_path, file_mean)
-        with open(mean, 'wb') as k:
-            pickle.dump( chain_CA[i].mean_submatrices, k)
+        mean = os.path.join(pickle_mean_path, file_mean)
+
+        if not os.path.exists(mean):
+            with open(mean, 'wb') as k:
+                pickle.dump(chain_CA[i].mean_submatrices, k)
+            print(f"Created mean pickle file for {chain_CA[i].prot_id}")
+        else:
+            print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
 
 sample_counter = 1
 
 
-def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path):
+def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb):
     print('Running Feature Extraction...')
-    interactions = 'interactions_6'
-    processed_pdb_files = [os.path.join(f"{work_dir}/{interactions}", file) for file in os.listdir(f"{work_dir}/{interactions}") if file.endswith('.pdb')]
+    processed_pdb_files = [os.path.join(f"{work_dir}/{pdb}", file) for file in os.listdir(f"{work_dir}/{pdb}") if file.endswith('.pdb')]
    #processed_pdb_files = process_tgz_files_in_directory(work_dir)
 
     interacting_proteins = []
@@ -549,11 +558,8 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path):
             chains_CA[chainID2].interact = 1
             chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
         ca_dist_calc(chains_CA, size, overlap)
-        mean_dist_calc(chains_CA, size, overlap)
+        #mean_dist_calc(chains_CA, size, overlap)
         #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
-        """sequence_A, sequence_B = pdb_to_fasta(pdb_file)
-        chains_CA[chainID1].aa.append(sequence_A)
-        chains_CA[chainID2].aa.append(sequence_B)"""
 
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
@@ -562,7 +568,7 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path):
         import traceback
         try:
             for prot in splitted_files:
-                rsa(prot, chains_CA, work_dir)
+                #rsa(prot, chains_CA, work_dir)
                 dssp(chains_CA, prot)
         except Exception as e:
             print(f"Error processing file {prot}: {e}")
@@ -590,4 +596,4 @@ if __name__ == "__main__":
     tsv_path = ''
     pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
     pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
-    main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path)
+    main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb)

@@ -11,6 +11,7 @@ from random import randint
 import pickle
 import matplotlib.pyplot as plt
 
+from autoencoder import Autoencoder
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, losses, callbacks
@@ -22,7 +23,7 @@ from sklearn.decomposition import PCA
 
 work_dir = "/home/dina/Documents/PPI_WDLLM"
 
-@tf.keras.utils.register_keras_serializable()
+'''@tf.keras.utils.register_keras_serializable()
 class Autoencoder(Model):
 
     def __init__(self, latent_dim, shape, **kwargs):
@@ -55,7 +56,7 @@ class Autoencoder(Model):
     
     def custom_objects():
     
-      return {"Autoencoder": Autoencoder}
+      return {"Autoencoder": Autoencoder}'''
     
 class LossHistory(callbacks.Callback):
     def __init__(self):
