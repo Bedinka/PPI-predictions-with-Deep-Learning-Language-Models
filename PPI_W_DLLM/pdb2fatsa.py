@@ -1,8 +1,11 @@
 from Bio.PDB import PDBParser
 from Bio.SeqUtils import seq1
 import os 
+import warnings
 
 def pdb_to_fasta(pdb_file):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
     parser = PDBParser()
     structure = parser.get_structure('structure', pdb_file)
     sequence_A = ''

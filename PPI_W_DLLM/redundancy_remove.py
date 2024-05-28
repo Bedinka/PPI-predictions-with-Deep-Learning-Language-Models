@@ -1,8 +1,10 @@
 import csv
+import os 
 
-def main(input_file, interactome_file, output_file):
+def main(input_file, interactome_file, output_file, dir ):
     representative_sequences = set()
-    with open(interactome_file, 'r') as file:
+    input_path = os.path.join( dir, input_file )
+    with open(interactome_file , 'r') as file:
         sequence_id = None
         for line in file:
             if line.startswith(">"):
@@ -10,7 +12,7 @@ def main(input_file, interactome_file, output_file):
             else:
                 sequence = line.strip()
                 representative_sequences.add(sequence)
-    print(len(representative_sequences))
+    print(f'Representative sequences:{len(representative_sequences)}')
     total_sequences = 0
     removed_sequences = 0
 
@@ -54,4 +56,4 @@ if __name__ == "__main__":
     input_file = 'bert_train_9.tsv'
     interactome_file = 'interactom_nonredundant'
     output_file = 'bert_filtered_file.tsv'
-    main(input_file, interactome_file, output_file)
+    main(input_file, interactome_file, output_file, dir)

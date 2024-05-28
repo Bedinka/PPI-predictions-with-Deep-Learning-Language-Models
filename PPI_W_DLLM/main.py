@@ -13,6 +13,12 @@ import adding_vector
 import pdb2fatsa
 import cd_hit
 
+import warnings
+from Bio.PDB.PDBParser import PDBConstructionWarning
+
+# Set up a filter to ignore warnings from the pdb2fasta module
+warnings.filterwarnings("ignore", category=PDBConstructionWarning)
+
 # Setup LoggerWriter to redirect print statements to logging
 class LoggerWriter:
     def __init__(self, level):
@@ -41,12 +47,14 @@ sys.stdout = LoggerWriter(logging.info)
 sys.stderr = LoggerWriter(logging.error)
 
 logging.info("Run directory created at %s", run_directory)
-os.chdir(run_directory)
+#os.chdir(run_directory)
 
 F_RUN = False 
-S_REMOVE = True
+S_REMOVE = False
+PDB2FASTA = False
 A_RUN = True
 A_TEST = False
+VECTOR = False
 B_RUN = False
 B_TEST = False
 
@@ -77,17 +85,18 @@ if F_RUN:
 
 ###############################################
 # PDB to fasta
-interactom_fasta = 'interactom_train_2000_ca.fasta'
-logging.info("Running PDB to fasta conversion with pdb=%s, interactom_fasta=%s", pdb, interactom_fasta)
-pdb2fatsa.main(pdb, interactom_fasta)
-
-with open('/dev/null', 'w') as devnull:
-    sys.stderr = devnull
+if PDB2FASTA:
+    interactom_fasta = 'interactom_train_2000_ca.fasta'
+    logging.info("Running PDB to fasta conversion with pdb=%s, interactom_fasta=%s", pdb, interactom_fasta)
     pdb2fatsa.main(pdb, interactom_fasta)
-    sys.stderr = LoggerWriter(logging.error)
 
-output_nr_file = 'nonredundant'
-cd_hit.main(interactom_fasta , output_nr_file )
+    with open('/dev/null', 'w') as devnull:
+        sys.stderr = devnull
+        pdb2fatsa.main(pdb, interactom_fasta)
+        sys.stderr = LoggerWriter(logging.error)
+
+    output_nr_file = 'nonredundant'
+    cd_hit.main(interactom_fasta , output_nr_file )
 
 
 ###############################################
@@ -97,7 +106,7 @@ if S_REMOVE:
     interactome_file = output_nr_file
     re_output_file = 'filtered_file_train_2000_ca.tsv'
     logging.info("Removing non-representative sequences with input_file=%s, interactome_file=%s, re_output_file=%s", input_file, interactome_file, re_output_file)
-    redundancy_remove.main(input_file, interactome_file, re_output_file)
+    redundancy_remove.main(input_file, interactome_file, re_output_file, run_directory) 
 
 ################################################
 # Autoencoder TRAINing
@@ -160,11 +169,11 @@ if A_TEST:
 
 ################################################
 # Vector append
-
-input_tsv_for_vec = ''  # Define input TSV file for vector
-vectorized_tsv_name = 'bert_test_with_vector_005'
-logging.info("Appending vector with input_tsv_for_vec=%s, encode_test_model_name=%s, vectorized_tsv_name=%s", input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
-adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
+if VECTOR:
+    input_tsv_for_vec = ''  # Define input TSV file for vector
+    vectorized_tsv_name = 'bert_test_with_vector_005'
+    logging.info("Appending vector with input_tsv_for_vec=%s, encode_test_model_name=%s, vectorized_tsv_name=%s", input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
+    adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
 
 ################################################
 # BERT Training

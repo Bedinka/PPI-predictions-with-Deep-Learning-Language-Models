@@ -23,40 +23,6 @@ from sklearn.decomposition import PCA
 
 work_dir = "/home/dina/Documents/PPI_WDLLM"
 
-'''@tf.keras.utils.register_keras_serializable()
-class Autoencoder(Model):
-
-    def __init__(self, latent_dim, shape, **kwargs):
-        super(Autoencoder, self).__init__(**kwargs)
-        self.latent_dim = latent_dim
-        self.shape = shape
-        self.encoder = tf.keras.Sequential([
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(latent_dim, activation='relu'),
-        ])
-        self.decoder = tf.keras.Sequential([
-            tf.keras.layers.Dense(tf.math.reduce_prod(shape).numpy(), activation='sigmoid'),
-            tf.keras.layers.Reshape(shape)
-        ])
-
-    def call(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return decoded
-    
-    def get_config(self):
-      config = super().get_config()
-      config.update(
-          {
-            "latent_dim": self.latent_dim,
-            "shape": self.shape
-          }
-      )
-      return config
-    
-    def custom_objects():
-    
-      return {"Autoencoder": Autoencoder}'''
     
 class LossHistory(callbacks.Callback):
     def __init__(self):
@@ -67,16 +33,6 @@ class LossHistory(callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.train_losses.append(logs.get('loss'))
         self.val_losses.append(logs.get('val_loss'))
-   
-"""def mean_matrix_vec(interacting_prot, size): 
-  re = []
-  for protein in interacting_prot:
-    sub_values= np.array([protein.mean_submatrices])
-    #print(sub_values.shape)
-    re.extend(sub_values.reshape(-1, size, size))
-    #sub_index.append(np.array([protein.sub_res_index]))
-    
-  return re"""
 
 def spearman(dist_ca_train,encoded_vectors_train, ranges , int  ):
   try:
@@ -150,8 +106,8 @@ def split_data(data, train_size=0.8):
     indices = np.arange(total_size)
     np.random.shuffle(indices)
     
-    train_idx = indices[:train_end]
-    test_idx = indices[train_end:]
+    train_idx = indices[:train_end].astype(int)
+    test_idx = indices[train_end:].astype(int)
     
     train_data = data[train_idx]
     test_data = data[test_idx]
@@ -159,17 +115,19 @@ def split_data(data, train_size=0.8):
     return train_data, test_data
 
 def concatenate_pickle(size, num_files, pickle_path):
-    print ('Create distance data input matrixes as pickle')
+
+    print('Create distance data input matrices as pickle')
     pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')]
-    if num_files is not None:
-        pickle_files= pickle_files[:num_files]
+    
+    if len(pickle_files) < num_files:
+        print(f'Warning: Requested {num_files} files, but only {len(pickle_files)} available.')
+        num_files = len(pickle_files)
+    
     concatenated_data = []
-    for file_name in pickle_files:
+    for file_name in pickle_files[:num_files]:
         with open(file_name, 'rb') as f:
             data_m = np.array([pickle.load(f)])
-            concatenated_data.extend(data_m.reshape(-1, size, size))
-    with open('concatenated.pickle', 'wb') as f:
-        pickle.dump(concatenated_data, f)
+            concatenated_data.extend(np.array(data_m.reshape(-1, size, size)))
     return concatenated_data
 
 def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size , auto_dir , pickle_path):
@@ -186,7 +144,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
   model_dir = os.path.join(work_dir, auto_dir)
   os.makedirs(model_dir, exist_ok=True)
   model_path = os.path.join(model_dir, model_name)
-  
+    
   data  = concatenate_pickle(size, num_files, pickle_path)
   train_data, test_data = split_data(data)
   #ca_a = concatenate_pickle_ca(size, num_files)
@@ -256,11 +214,13 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
 
 if __name__ == "__main__":
   latent_dim = 2 
-  processed_sample = 1000
+  processed_sample = 1600
   batch_size= 32
   size = 7
   SAVE = True
   epoch = 10
   auto_dir = './autoencoder_dina_models'
-  model_name = 'dina_model_v1.keras'
+  model_name = 'dina_model_v2.keras'
+  pickle_path = pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/train'
+
   main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_dir, pickle_path )
