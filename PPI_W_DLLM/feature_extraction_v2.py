@@ -13,6 +13,7 @@ import freesasa
 import torch 
 import pydssp
 
+
 work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
 
 class Chain:
@@ -141,41 +142,63 @@ class Matrix:
         return submatrix
 
 # Parsing the PDB files 
-def parsePDB(pdb_file, sample_counter):
+def parsePDB(pdb_file_A, pdb_file_B, sample_counter):
     from Bio.PDB import PDBParser 
     from Bio.SeqUtils import seq1
     import warnings
     warnings.filterwarnings("ignore")
-    
     chains = {}
-    parser = PDBParser()
-    structure = parser.get_structure('structure', pdb_file)
-    
-    parts = pdb_file.split('/')
-    filename = parts[-1]
-    filename_parts = filename.split('-')
-    prot_id = filename_parts[0]  # Assuming protein ID is the filename prefix
-    
-    with open(pdb_file, 'r') as f:
-        chainID = 'A'  # Assuming single-chain files will be assigned chain ID 'A'
-        
-        chains[chainID] = Chain(chainID, sample_counter)
-        chains[chainID].prot_id = prot_id
-        
-        for line in f:
-            if line.startswith("ATOM"):
+
+    def extract_protein_id(pdb_file):
+        with open(pdb_file, 'r') as f:
+            title_count = 0
+            for line in f:
+                if line.startswith("TITLE"):
+                    parts = line.split("(")
+                    if len(parts) >= 2:
+                        protein_id = parts[1].split(")")[0]
+                        return protein_id.strip()
+    def process_pdb_file(pdb_file, chain_label, sample_counter):
+        parser = PDBParser()
+        structure = parser.get_structure('structure', pdb_file)
+        prot_id = extract_protein_id(pdb_file)
+        local_counter = sample_counter  # Create a local copy of sample_counter
+        with open(pdb_file, 'r') as f:
+            for line in f:
+                if line.startswith("ATOM") == False:
+                    continue
                 x = float(line[30:38])
                 y = float(line[38:46])
                 z = float(line[46:54])
                 aa = line[17:20] 
                 atom_name = line[12:16].strip()
                 resnum = int(line[22:26]) 
-                
+                chainID = chain_label
+                if chainID not in chains:
+                    chains[chainID] = Chain(chainID, sample_counter)
+                    chains[chainID].prot_id = prot_id
+                    sample_counter += 1
                 if resnum not in chains[chainID].residues:
                     chains[chainID].addResidue(aa, resnum)
-                
                 chains[chainID].residues[resnum].addAtom(atom_name, x, y, z)
-                
+            for model in structure:
+                for chain in model:
+                    chainID = chain.get_id()
+                    if chainID == chain_label:
+                        if chain_label not in chains:
+                            chains[chain_label] = {'prot_id': prot_id, 'residues': {}, 'aa': []}
+                        sequence = ''
+                        for residue in chain:
+                            if residue.get_id()[0] == ' ':
+                                aa = seq1(residue.get_resname())
+                                sequence += aa
+                        chains[chain_label].aa.append(sequence)
+
+
+
+    process_pdb_file(pdb_file_A, 'A', sample_counter)
+    process_pdb_file(pdb_file_B, 'B', sample_counter)
+
     return chains
 
 # Calculating distance 
@@ -418,21 +441,6 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
         else:
             print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
 
-
-def load_pdb_files_for_pairs(pair_file, pdb_dir):
-    pdb_files = []
-    with open(pair_file, 'r') as f:
-        for line in f:
-            pair = line.strip().split('\t')
-            pdb1_protein_id = pair[0]
-            pdb2_protein_id = pair[1]
-            pdb1_file = find_pdb_file(pdb1_protein_id, pdb_dir)
-            pdb2_file = find_pdb_file(pdb2_protein_id, pdb_dir)
-            if pdb1_file is not None and pdb2_file is not None:
-                pdb_files.append((pdb1_file, pdb2_file))
-            #print(pdb_files)
-    return pdb_files
-
 def find_pdb_file(protein_id, pdb_dir):
     for file in os.listdir(pdb_dir):
         if protein_id in file:
@@ -447,7 +455,6 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
     pair_file_p = 'positive_pairs.txt'
     i = 1 # number of processed sample 
     interacting_proteins = []
-    pdb_files = []
     with open(pair_file_p, 'r') as f:
         for line in f:
             pair = line.strip().split('\t')
@@ -455,62 +462,51 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
             pdb2_protein_id = pair[1]
             pdb1_file = find_pdb_file(pdb1_protein_id, pdb)
             pdb2_file = find_pdb_file(pdb2_protein_id, pdb)
-            if pdb1_file is not None and pdb2_file is not None:
-                pdb_files.append((pdb1_file, pdb2_file))
+            chains_CA = parsePDB(pdb1_file,pdb2_file, sample_counter) 
             #print(pdb_files)
             overlap = 1 
-            for pdb_file_pair in pdb_files:
-                pdb_file1, pdb_file2 = pdb_file_pair
-                
-                # Assuming parsePDB takes only the PDB file as argument
-                chains_CA1 = parsePDB(pdb_file1)
-                chains_CA2 = parsePDB(pdb_file2)
-                
-                chainID1 = list(chains_CA1.keys())[0]  # Assuming only one chain is parsed
-                chainID2 = list(chains_CA2.keys())[0]  # Assuming only one chain is parsed
-                
-                if chainID2 not in chains_CA1[chainID1].int_prots:
-                    chains_CA1[chainID1].interact = 1
-                    chains_CA1[chainID1].int_prots.append(chains_CA2[chainID2].prot_id)
-                if chainID1 not in chains_CA2[chainID2].int_prots:
-                    chains_CA2[chainID2].interact = 1
-                    chains_CA2[chainID2].int_prots.append(chains_CA1[chainID1].prot_id)
-                
-                # Perform calculations for both PDB files
-                ca_dist_calc(chains_CA1, size, overlap)
-                mean_dist_calc(chains_CA1, size, overlap)
-                ca_dist_calc(chains_CA2, size, overlap)
-                mean_dist_calc(chains_CA2, size, overlap)
-                
-                import traceback
-                try:
-                    #rsa(pdb_file, chains_CA, work_dir)
-                    dssp(chains_CA1, pdb_file1)
-                    dssp(chains_CA2, pdb_file2)
-                except Exception as e:
-                    print(f"Error processing file : {e}")
-                    print(traceback.format_exc())
-                
-               
-                interacting_proteins.append((pdb1_file, pdb2_file))
-                
-                create_positive_data_tsv(chains_CA, tsv_path)
+            print(pdb1_file, pdb2_file)
+            [chainID1, chainID2] = chains_CA.keys()
+            if chainID2 not in  chains_CA[chainID1].int_prots:
+                chains_CA[chainID1].interact = 1
+                chains_CA[chainID1].int_prots.append(chains_CA[chainID2].prot_id)
+            if chainID1 not in chains_CA[chainID2].int_prots  :
+                chains_CA[chainID2].interact = 1
+                chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
+            ca_dist_calc(chains_CA, size, overlap)
+            mean_dist_calc(chains_CA, size, overlap)
+            #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
+            
+            import traceback
+            try:
+                #rsa(pdb_file, chains_CA, work_dir)
+                dssp(chains_CA, pdb1_file)
+                dssp(chains_CA, pdb2_file)
+            except Exception as e:
+                print(f"Error processing file : {e}")
+                print(traceback.format_exc())
+            
+            for chain in chains_CA.values():
+                if chain not in interacting_proteins:
+                    interacting_proteins.append(chain)
+            
+            create_positive_data_tsv(chains_CA, tsv_path)
 
-                matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
+            matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
 
-                if i == processed_sample:
-                    break 
-                i += 1
+            if i == processed_sample:
+                break 
+            i += 1
 
-    create_negative_data_tsv(interacting_proteins, tsv_path)
-    print('Featur extraction : Done...')
+        create_negative_data_tsv(interacting_proteins, tsv_path)
+        print('Featur extraction : Done...')
     
 
 if __name__ == "__main__":
     processed_sample = 4000
     size= 7
     tsv_path = 'bert_train_HuRI.tsv'
-    pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
-    pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
+    pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/new/'
+    pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/new/'
     pdb = '/home/dina/Documents/PPI_WDLLM/workdir/Alpha_pdb'
     main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb)

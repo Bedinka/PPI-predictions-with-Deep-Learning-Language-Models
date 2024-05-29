@@ -18,6 +18,10 @@ from Bio.PDB.PDBParser import PDBConstructionWarning
 
 # Set up a filter to ignore warnings from the pdb2fasta module
 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
+# Suppress TensorFlow logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf_logger = logging.getLogger('tensorflow')
+tf_logger.setLevel(logging.ERROR)
 
 # Setup LoggerWriter to redirect print statements to logging
 class LoggerWriter:
@@ -144,6 +148,7 @@ if A_RUN:
                                 "Spearman Correlation Dim1_2": collected_data["spearman_correlation_dim1_2"],
                                 "Spearman p-value Dim1_2": collected_data["spearman_p_value_dim1_2"]
                             })
+                            logging.info("Epoch %d/%d completed for model %s", epoch, epochs, model_name)
                         except IndexError as e:
                             logging.error("An IndexError occurred: %s. Skipping to the next iteration.", e)
                             continue
@@ -151,6 +156,7 @@ if A_RUN:
     tsv = 'autoencoder_train_sample_%d_dim_%d_size_%d_epochs_%d.tsv' % (processed_sample, latent_dim, size, epoch)
     df.to_csv(tsv, sep='\t', index=False)
     logging.info("Autoencoder training results saved to %s", tsv)
+    logging.info("Autoencoder training results: %s", pd_results)
 
 ################################################
 # Autoencoder TESTing

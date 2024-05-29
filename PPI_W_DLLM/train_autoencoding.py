@@ -99,36 +99,61 @@ def plot(encoded, model_name):
   except np.linalg.LinAlgError as e:
         print("Error: ", e)
 
-def split_data(data, train_size=0.8):
-    total_size = len(data)
+def split_data(file_list, train_size=0.8):
+    total_size = len(file_list)
     train_end = int(train_size * total_size)
     
     indices = np.arange(total_size)
     np.random.shuffle(indices)
     
-    train_idx = indices[:train_end].astype(int)
-    test_idx = indices[train_end:].astype(int)
+    train_idx = indices[:train_end]
+    test_idx = indices[train_end:]
     
-    train_data = data[train_idx]
-    test_data = data[test_idx]
+    train_files = [file_list[i] for i in train_idx]
+    test_files = [file_list[i] for i in test_idx]
     
-    return train_data, test_data
+    return train_files, test_files
 
-def concatenate_pickle(size, num_files, pickle_path):
+'''def concatenate_pickle(size, num_files, pickle_path):
 
     print('Create distance data input matrices as pickle')
     pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')]
-    
-    if len(pickle_files) < num_files:
-        print(f'Warning: Requested {num_files} files, but only {len(pickle_files)} available.')
-        num_files = len(pickle_files)
-    
+    concatenated_pickle = 'concatenated_subs.pickle'
+    if num_files is not None:
+          pickle_files = pickle_files[:num_files]
     concatenated_data = []
-    for file_name in pickle_files[:num_files]:
+    for file_name in pickle_files:
         with open(file_name, 'rb') as f:
             data_m = np.array([pickle.load(f)])
-            concatenated_data.extend(np.array(data_m.reshape(-1, size, size)))
-    return concatenated_data
+            concatenated_data.extend(data_m.reshape(-1, size, size))
+    with open(concatenated_pickle, 'wb') as f:
+      pickle.dump(concatenated_data, f)
+    concatenated_data = np.array(concatenated_data)
+    return  concatenated_data'''
+
+
+def create_tf_dataset(pickle_files, batch_size, size):
+    print('Loading in the pickle files..')
+    def data_generator():
+        for file_name in pickle_files:
+            with open(file_name, 'rb') as f:
+                data = np.array(pickle.load(f)).reshape(-1, size, size).astype('float32') / 255.
+                num_batches = len(data) // batch_size
+                for i in range(num_batches):
+                    batch_data = data[i * batch_size:(i + 1) * batch_size]
+                    yield batch_data, batch_data
+
+    dataset = tf.data.Dataset.from_generator(
+        data_generator,
+        output_signature=(
+            tf.TensorSpec(shape=(batch_size, size, size), dtype=tf.float32),
+            tf.TensorSpec(shape=(batch_size, size, size), dtype=tf.float32)
+        )
+    )
+    return dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size , auto_dir , pickle_path):
   
@@ -141,44 +166,43 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
   int = 500
   loss_history = LossHistory()
   num_files = processed_sample
+  
+  pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')][:processed_sample]
+  load_batch_size = 128
+  train_files, test_files = split_data(pickle_files)
+
+  train_dataset = create_tf_dataset(train_files, load_batch_size, size)
+  test_dataset = create_tf_dataset(test_files, load_batch_size, size)
+
   model_dir = os.path.join(work_dir, auto_dir)
   os.makedirs(model_dir, exist_ok=True)
   model_path = os.path.join(model_dir, model_name)
-    
-  data  = concatenate_pickle(size, num_files, pickle_path)
-  train_data, test_data = split_data(data)
-  #ca_a = concatenate_pickle_ca(size, num_files)
-  
-  dist_train = np.array(train_data)
-  dist_test =  np.array(test_data)
-  dist_train = dist_train.astype('float32') / 255.
-  dist_test = dist_test.astype('float32') / 255.
-  print (f'Train input shape: {dist_train.shape}')
-  print (f'Test input shape: {dist_test.shape}')
-  shape = dist_train.shape[1:]
 
   if os.path.exists(model_path):
-    autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
-    print("Loaded existing model.")
-  else: 
-    autoencoder = Autoencoder(latent_dim, shape)
-    autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-    autoencoder.fit(dist_train, dist_train,
-                      batch_size=batch_size,
+      autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder})
+      print("Loaded existing model.")
+  else:
+      autoencoder = Autoencoder(latent_dim, (size, size))
+      autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+      autoencoder.fit(train_dataset,
                       epochs=epoch,
-                      shuffle=True,
-                      validation_data=(dist_test, dist_test),
-                      callbacks=[loss_history])
+                      validation_data=test_dataset,
+                      callbacks=[loss_history],
+                      verbose=1)
+ 
   print('Training ....')
-  encoded_vectors_train = autoencoder.encoder(dist_train).numpy()
+  train_data = np.concatenate([x for x, _ in train_dataset], axis=0)
+  test_data = np.concatenate([x for x, _ in test_dataset], axis=0)
+  
+  encoded_vectors_train = autoencoder.encoder(train_data).numpy()
   print(encoded_vectors_train.shape)
   #print(encoded_vectors_train)
-  encoded_vectors_test = autoencoder.encoder(dist_test).numpy()
+  encoded_vectors_test = autoencoder.encoder(test_data).numpy()
   #print(dist_ca_train.shape)
   #print(encoded_vectors_train.shape)
 
-  x, y , correlation, p_value, correlation2, p_value2  = spearman ( dist_train, encoded_vectors_train , ranges , int )
-  x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( dist_ca_test, encoded_vectors_test , ranges , int )
+  x, y , correlation, p_value, correlation2, p_value2  = spearman ( train_data, encoded_vectors_train , ranges , int )
+  x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( test_data, encoded_vectors_test , ranges , int )
   
   print("#################", model_name)
   print(correlation, p_value, correlation2, p_value2 )
@@ -214,7 +238,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
 
 if __name__ == "__main__":
   latent_dim = 2 
-  processed_sample = 1600
+  processed_sample = 2000
   batch_size= 32
   size = 7
   SAVE = True
