@@ -3,57 +3,14 @@ import sys
 import datetime
 import logging
 import pandas as pd
-
-import feature_extraction
-import train_autoencoding
-import test_autoencoder
-import combine_input_bert
-import redundancy_remove
-import adding_vector
-import pdb2fatsa
-import cd_hit
-
 import warnings
 from Bio.PDB.PDBParser import PDBConstructionWarning
 
-# Set up a filter to ignore warnings from the pdb2fasta module
-warnings.filterwarnings("ignore", category=PDBConstructionWarning)
-# Suppress TensorFlow logging
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf_logger = logging.getLogger('tensorflow')
-tf_logger.setLevel(logging.ERROR)
+import setup_run
 
-# Setup LoggerWriter to redirect print statements to logging
-class LoggerWriter:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message.strip():
-            self.level(message)
-
-    def flush(self):
-        pass
-
-# Initialize logging
-run_directory = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-if not os.path.exists(run_directory):
-    os.makedirs(run_directory)
-    
-
-log_file = os.path.join(run_directory, 'run.log')
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
-    logging.FileHandler(log_file),
-    logging.StreamHandler()
-])
-
-sys.stdout = LoggerWriter(logging.info)
-sys.stderr = LoggerWriter(logging.error)
-
-logging.info("Run directory created at %s", run_directory)
-#os.chdir(run_directory)
-
-F_RUN = False 
+# setting what script to run 
+F1_RUN = False 
+F2_RUN = False 
 S_REMOVE = False
 PDB2FASTA = False
 A_RUN = True
@@ -62,52 +19,96 @@ VECTOR = False
 B_RUN = False
 B_TEST = False
 
-pdb = 'TRAIN'
-auto_dir = './autoencoder_dina_models/'
+#Extra valuese for use 
+time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+info = 'autotesting_interactions'
+# Set up a filter to ignore warnings from the pdb2fasta module
+warnings.filterwarnings("ignore", category=PDBConstructionWarning)
+# Suppress TensorFlow logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf_logger = logging.getLogger('tensorflow')
+tf_logger.setLevel(logging.ERROR)
+
+# Setup the run directory
+    # Setup LoggerWriter to redirect print statements to logging
+run_directory = setup_run.setup_run_directory()
+
+#PDB files directory
+pdb_file_dir = 'interactions'
+#Autoencoder models directory
+auto_model_dir = './autoencoder_dina_models/'
 
 # Setting pickle directory
 pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
 pickle_dir_mean = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
-p_file = 'train'
-pickle_ca_path = os.path.join(pickle_dir_ca, p_file)
-pickle_mean_path = os.path.join(pickle_dir_mean, p_file)
+p_file_dir = 'train'
+pickle_ca_path = os.path.join(pickle_dir_ca, p_file_dir)
+pickle_mean_path = os.path.join(pickle_dir_mean, p_file_dir)
 
-# CHOOSE CA OR MEAN
+# CHOOSE CA OR MEAN for amino acid  for computing 
 pickle_dir = pickle_ca_path
+logging.info("######################") 
+logging.info("Run with pickle directory : " , pickle_dir)
 
-# COMMON ATTRIBUTES
-
-###############################################
-# Running Feature extraction
+##############################################################################################
+#Feature extractions attributes: process sample number , sub matrix size (x,x)
 sample = 2000
 sub_size = 7
-feature_tsv = "bert_train_2000_ca.tsv"
 
-if F_RUN:
-    logging.info("Starting feature extraction with sample=%d, sub_size=%d, feature_tsv=%s", sample, sub_size, feature_tsv)
-    feature_extraction.main(sample, sub_size, feature_tsv, pickle_ca_path, pickle_mean_path, pdb)
+
+###############################################
+# Running Feature extraction for single pdb (1 chain), need a positiv pairs txt to create the interactions 
+
+feature1_tsv_output_name  = "%s_%s.tsv" % (time, info)
+positive_pairs_txt = 'positive_pairs.txt'
+if F1_RUN:
+    import feature_extraction_v2
+    logging.info("Starting feature extraction for SINGLE chain with:\n"
+        "sample_batch=%d\n"
+        "sub_size=%d\n"
+        "feature_tsv=%s", sample, sub_size, feature1_tsv_output_name)
+    feature_extraction_v2.main(sample, sub_size, feature1_tsv_output_name, pickle_ca_path, pickle_mean_path, pdb_file_dir, positive_pairs_txt)
+
+###############################################
+# Running Feature extraction for interactom pdb ( 2 chains)
+
+feature2_tsv_output_name = "%s_%s.tsv" % (time, info)
+
+if F2_RUN:
+    import feature_extraction
+    logging.info("Starting feature extraction for DOUBLE chain with:\n"
+        "sample_batch=%d\n"
+        "sub_size=%d\n"
+        "feature_tsv=%s", sample, sub_size, feature2_tsv_output_name)
+    feature_extraction.main(sample, sub_size, feature2_tsv_output_name, pickle_ca_path, pickle_mean_path, pdb_file_dir)
 
 ###############################################
 # PDB to fasta
 if PDB2FASTA:
-    interactom_fasta = 'interactom_train_2000_ca.fasta'
-    logging.info("Running PDB to fasta conversion with pdb=%s, interactom_fasta=%s", pdb, interactom_fasta)
-    pdb2fatsa.main(pdb, interactom_fasta)
+    import pdb2fatsa
+    import cd_hit
+
+    interactom_fasta_output_name = 'interactom_train_%s_%s_ca.fasta' % (time, info)
+    logging.info("Running PDB to fasta conversion with pdb=%s\n"", interactom_fasta=%s", pdb_file_dir, interactom_fasta_output_name)
+    pdb2fatsa.main(pdb_file_dir, interactom_fasta_output_name)
 
     with open('/dev/null', 'w') as devnull:
         sys.stderr = devnull
-        pdb2fatsa.main(pdb, interactom_fasta)
-        sys.stderr = LoggerWriter(logging.error)
+        pdb2fatsa.main(pdb_file_dir, interactom_fasta_output_name)
 
-    output_nr_file = 'nonredundant'
-    cd_hit.main(interactom_fasta , output_nr_file )
+    output_nr_file_name  = 'nonredundant%s_%s' % (time, info)
+    cd_hit.main(interactom_fasta_output_name , output_nr_file_name )
 
 
 ###############################################
 # Removing non-representative sequences
 if S_REMOVE:
-    input_file = feature_tsv
-    interactome_file = output_nr_file
+    import redundancy_remove
+    if F1_RUN:
+        input_file = feature1_tsv_output_name
+    else:
+        input_file = feature2_tsv_output_name
+    interactome_file = output_nr_file_name
     re_output_file = 'filtered_file_train_2000_ca.tsv'
     logging.info("Removing non-representative sequences with input_file=%s, interactome_file=%s, re_output_file=%s", input_file, interactome_file, re_output_file)
     redundancy_remove.main(input_file, interactome_file, re_output_file, run_directory) 
@@ -127,6 +128,7 @@ epochs = [10]
 ranges = 3
 
 if A_RUN:
+    import train_autoencoding
     logging.info("Starting Autoencoder training")
     for processed_sample in processed_sample_values:
         for latent_dim in latent_dim_values:
@@ -134,9 +136,9 @@ if A_RUN:
                 for epoch in epochs:
                     for i in range(ranges):
                         model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.keras' % (processed_sample, latent_dim, size, epoch, i)
-                        logging.info("Training model %s with latent_dim=%d, epoch=%d, processed_sample_num=%d, matrix_size=%dx%d", model_name, latent_dim, epoch, processed_sample, size, size)
+                        logging.info("Training model %s with latent_dim=%d,\n"" epoch=%d,\n"" processed_sample_num=%d,\n"" matrix_size=%dx%d", model_name, latent_dim, epoch, processed_sample, size, size)
                         try:
-                            encoded_vector, collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_dir, pickle_dir)
+                            encoded_vector, collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_dir)
                             pd_results.append({
                                 "Model": model_name,
                                 "Latent Dimension": latent_dim,
@@ -148,7 +150,8 @@ if A_RUN:
                                 "Spearman Correlation Dim1_2": collected_data["spearman_correlation_dim1_2"],
                                 "Spearman p-value Dim1_2": collected_data["spearman_p_value_dim1_2"]
                             })
-                            logging.info("Epoch %d/%d completed for model %s", epoch, epochs, model_name)
+                            logging.info("Epoch %d completed for model %s", epoch, model_name)
+                            logging.info("Autoencoder training results: %s", pd_results)
                         except IndexError as e:
                             logging.error("An IndexError occurred: %s. Skipping to the next iteration.", e)
                             continue
@@ -156,30 +159,33 @@ if A_RUN:
     tsv = 'autoencoder_train_sample_%d_dim_%d_size_%d_epochs_%d.tsv' % (processed_sample, latent_dim, size, epoch)
     df.to_csv(tsv, sep='\t', index=False)
     logging.info("Autoencoder training results saved to %s", tsv)
-    logging.info("Autoencoder training results: %s", pd_results)
 
 ################################################
 # Autoencoder TESTing
 
 # Test attributes
 if A_TEST:
+    import test_autoencoder
     logging.info("Starting Autoencoder testing")
     pickle_data = [os.path.join(pickle_dir, file) for file in os.listdir(pickle_dir) if file.endswith('.pickle')]
+    
     for p in pickle_data:
         encode_test_model_name = ''  # Define model name accordingly
+        auto_model_path = os.path.join(auto_model_dir, encode_test_model_name)
         logging.info("Testing model %s with unseen data from %s", encode_test_model_name, p)
         try:
-            encoded_vector_test = test_autoencoder.main(encode_test_model_name, sub_size, pickle_dir)
+            encoded_vector_test = test_autoencoder.main(auto_model_path, sub_size, pickle_dir)
         except IndexError as e:
             logging.error("An IndexError occurred: %s. Skipping to the next iteration.", e)
 
 ################################################
 # Vector append
 if VECTOR:
+    import adding_vector
     input_tsv_for_vec = ''  # Define input TSV file for vector
     vectorized_tsv_name = 'bert_test_with_vector_005'
-    logging.info("Appending vector with input_tsv_for_vec=%s, encode_test_model_name=%s, vectorized_tsv_name=%s", input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
-    adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
+    logging.info("Appending vector with input_tsv_for_vec=%s,\n"" encode_test_model_name=%s,\n"" vectorized_tsv_name=%s", input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
+    adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, auto_model_dir, encode_test_model_name, vectorized_tsv_name)
 
 ################################################
 # BERT Training
@@ -188,7 +194,7 @@ output_stat_tsv = 'BERT_training_stats_withvectors_004.tsv'
 train_input_tsv = 'concatenated_file_v1.tsv'  # Define vectorized TSV name
 
 if B_RUN:
-    info = 'rep01020304'
+    import combine_input_bert
     combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
     try:
         full_df = pd.read_csv(output_stat_tsv, sep='\t')

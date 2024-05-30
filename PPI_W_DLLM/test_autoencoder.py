@@ -96,42 +96,6 @@ def plot(encoded, model_name):
         print("Error: ", e)
 
 
-def concatenate_pickle_ca(size, num_files):
-    print ('Creating CA distance data input matrixes')
-    # CA
-    pickle_files_ca = [os.path.join(f"{work_dir}/Matrices_CA", file) for file in os.listdir(f"{work_dir}/Matrices_CA") if file.endswith('.pickle')]
-        
-    if num_files is not None:
-        pickle_files_ca = pickle_files_ca[:num_files]
-        
-    concatenated_data_ca = []
-    
-    for file_name in pickle_files_ca:
-        with open(file_name, 'rb') as g:
-            data = np.array([pickle.load(g)])
-            concatenated_data_ca.extend(data.reshape(-1, size, size))
-    with open('concatenated_ca.pickle', 'wb') as g:
-        pickle.dump(concatenated_data_ca, g)
-
-    concatenated_data_ca = np.array(concatenated_data_ca)
-    return  concatenated_data_ca
-
-def concatenate_pickle_mean(size, num_files):
-    # Mean
-    print ('Creating Mean distance data input matrixes')
-    pickle_files_mean = [os.path.join(f"{work_dir}/Matrices_Mean", file) for file in os.listdir(f"{work_dir}/Matrices_Mean") if file.endswith('.pickle')]
-    if num_files is not None:
-        pickle_files_mean = pickle_files_mean[:num_files]
-    concatenated_data_mean = []
-    for file_name in pickle_files_mean:
-        with open(file_name, 'rb') as f:
-            data_m = np.array([pickle.load(f)])
-            concatenated_data_mean.extend(data_m.reshape(-1, size, size))
-    with open('concatenated_mean.pickle', 'wb') as f:
-        pickle.dump(concatenated_data_mean, f)
-
-    return concatenated_data_mean
-
 collected_data =[]
 
 def main(model_name, size, unseen_data_path ):
@@ -151,7 +115,6 @@ def main(model_name, size, unseen_data_path ):
     
     ranges = 100
     interval = 10
-    
     
     print("#################", model_name)
     try:

@@ -450,12 +450,11 @@ def find_pdb_file(protein_id, pdb_dir):
 sample_counter = 1
 
 
-def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb):
+def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb, positive_pairs_txt):
     print('Running Feature Extraction...')
-    pair_file_p = 'positive_pairs.txt'
     i = 1 # number of processed sample 
     interacting_proteins = []
-    with open(pair_file_p, 'r') as f:
+    with open(positive_pairs_txt, 'r') as f:
         for line in f:
             pair = line.strip().split('\t')
             pdb1_protein_id = pair[0]
@@ -509,4 +508,5 @@ if __name__ == "__main__":
     pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/new/'
     pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/new/'
     pdb = '/home/dina/Documents/PPI_WDLLM/workdir/Alpha_pdb'
-    main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb)
+    positive_pairs_txt = 'positive_pairs.txt'
+    main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb,positive_pairs_txt)

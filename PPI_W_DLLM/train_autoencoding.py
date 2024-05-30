@@ -114,7 +114,7 @@ def split_data(file_list, train_size=0.8):
     
     return train_files, test_files
 
-'''def concatenate_pickle(size, num_files, pickle_path):
+def concatenate_pickle(size, num_files, pickle_path):
 
     print('Create distance data input matrices as pickle')
     pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')]
@@ -129,7 +129,7 @@ def split_data(file_list, train_size=0.8):
     with open(concatenated_pickle, 'wb') as f:
       pickle.dump(concatenated_data, f)
     concatenated_data = np.array(concatenated_data)
-    return  concatenated_data'''
+    return  concatenated_data
 
 
 def create_tf_dataset(pickle_files, batch_size, size):
@@ -188,7 +188,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
                       epochs=epoch,
                       validation_data=test_dataset,
                       callbacks=[loss_history],
-                      verbose=1)
+                      verbose=0)
  
   print('Training ....')
   train_data = np.concatenate([x for x, _ in train_dataset], axis=0)
