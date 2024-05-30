@@ -124,4 +124,4 @@ def main(model_name, size, unseen_data_path ):
     except:
       print('Unable to Spearman or plot.')
 
-    return encoded_vectors_unseen
+    return encoded_vectors_unseen, correlation_unseen

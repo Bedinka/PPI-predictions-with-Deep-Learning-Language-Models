@@ -442,9 +442,10 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
             print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
 
 def find_pdb_file(protein_id, pdb_dir):
-    for file in os.listdir(pdb_dir):
+    dir = os.path.join(work_dir, pdb_dir)
+    for file in os.listdir(dir):
         if protein_id in file:
-            return os.path.join(pdb_dir, file)
+            return os.path.join(dir, file)
     return None
 
 sample_counter = 1

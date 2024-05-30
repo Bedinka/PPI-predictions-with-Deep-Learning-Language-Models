@@ -9,19 +9,19 @@ from Bio.PDB.PDBParser import PDBConstructionWarning
 import setup_run
 
 # setting what script to run 
-F1_RUN = False 
-F2_RUN = False 
-S_REMOVE = False
-PDB2FASTA = False
+F1_RUN = False
+F2_RUN = True 
+S_REMOVE = True
+PDB2FASTA = True
 A_RUN = True
-A_TEST = False
-VECTOR = False
-B_RUN = False
+A_TEST = True
+VECTOR = True
+B_RUN = True
 B_TEST = False
 
 #Extra valuese for use 
 time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-info = 'autotesting_interactions'
+info = 'pipelin_testing_alphafoldpdbs'
 # Set up a filter to ignore warnings from the pdb2fasta module
 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
 # Suppress TensorFlow logging
@@ -34,69 +34,75 @@ tf_logger.setLevel(logging.ERROR)
 run_directory = setup_run.setup_run_directory()
 
 #PDB files directory
-pdb_file_dir = 'interactions'
+pdb_file_dir = 'TRAIN'
 #Autoencoder models directory
-auto_model_dir = './autoencoder_dina_models/'
+auto_model_dir = 'autoencoder_dina_models'
 
 # Setting pickle directory
 pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
 pickle_dir_mean = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
-p_file_dir = 'train'
-pickle_ca_path = os.path.join(pickle_dir_ca, p_file_dir)
-pickle_mean_path = os.path.join(pickle_dir_mean, p_file_dir)
+p_file_dir_train = 'train'
+p_file_dir_test = 'test'
 
 # CHOOSE CA OR MEAN for amino acid  for computing 
-pickle_dir = pickle_ca_path
+pickle_dir= pickle_dir_ca
+ca_dir_path = os.path.join(pickle_dir_ca, p_file_dir_train)
+mean_dir_path = os.path.join(pickle_dir_mean, p_file_dir_train)
+pickle_train_path = os.path.join(pickle_dir, p_file_dir_train)
+pickle_test_path = os.path.join(pickle_dir, p_file_dir_test)
+
 logging.info("######################") 
-logging.info("Run with pickle directory : " , pickle_dir)
+logging.info("Run TRAIN with pickle directory : %s" , pickle_train_path)
+logging.info("######################") 
+logging.info("Run TEST with pickle directory : %s" , pickle_test_path)
+
 
 ##############################################################################################
 #Feature extractions attributes: process sample number , sub matrix size (x,x)
-sample = 2000
+sample = 100
 sub_size = 7
+feature_tsv_output_name  = "%s_%s.tsv" % (time, info)
 
 
 ###############################################
 # Running Feature extraction for single pdb (1 chain), need a positiv pairs txt to create the interactions 
 
-feature1_tsv_output_name  = "%s_%s.tsv" % (time, info)
-positive_pairs_txt = 'positive_pairs.txt'
+
+positive_pairs_txt = '/home/dina/Documents/PPI_WDLLM/positive_pairs.txt' #% (time, info)
 if F1_RUN:
     import feature_extraction_v2
     logging.info("Starting feature extraction for SINGLE chain with:\n"
         "sample_batch=%d\n"
         "sub_size=%d\n"
-        "feature_tsv=%s", sample, sub_size, feature1_tsv_output_name)
-    feature_extraction_v2.main(sample, sub_size, feature1_tsv_output_name, pickle_ca_path, pickle_mean_path, pdb_file_dir, positive_pairs_txt)
+        "feature_tsv=%s", sample, sub_size, feature_tsv_output_name)
+    feature_extraction_v2.main(sample, sub_size, feature_tsv_output_name, ca_dir_path, mean_dir_path, pdb_file_dir, positive_pairs_txt)
 
 ###############################################
 # Running Feature extraction for interactom pdb ( 2 chains)
-
-feature2_tsv_output_name = "%s_%s.tsv" % (time, info)
 
 if F2_RUN:
     import feature_extraction
     logging.info("Starting feature extraction for DOUBLE chain with:\n"
         "sample_batch=%d\n"
         "sub_size=%d\n"
-        "feature_tsv=%s", sample, sub_size, feature2_tsv_output_name)
-    feature_extraction.main(sample, sub_size, feature2_tsv_output_name, pickle_ca_path, pickle_mean_path, pdb_file_dir)
+        "feature_tsv=%s", sample, sub_size, feature_tsv_output_name)
+    feature_extraction.main(sample, sub_size, feature_tsv_output_name, ca_dir_path, mean_dir_path, pdb_file_dir)
 
 ###############################################
 # PDB to fasta
 if PDB2FASTA:
     import pdb2fatsa
     import cd_hit
-
+    input_tsv_p2f = feature_tsv_output_name
     interactom_fasta_output_name = 'interactom_train_%s_%s_ca.fasta' % (time, info)
     logging.info("Running PDB to fasta conversion with pdb=%s\n"", interactom_fasta=%s", pdb_file_dir, interactom_fasta_output_name)
-    pdb2fatsa.main(pdb_file_dir, interactom_fasta_output_name)
+    pdb2fatsa.main(input_tsv_p2f, pdb_file_dir, interactom_fasta_output_name)
 
     with open('/dev/null', 'w') as devnull:
         sys.stderr = devnull
-        pdb2fatsa.main(pdb_file_dir, interactom_fasta_output_name)
+        pdb2fatsa.main(input_tsv_p2f,pdb_file_dir, interactom_fasta_output_name)
 
-    output_nr_file_name  = 'nonredundant%s_%s' % (time, info)
+    output_nr_file_name  = 'nonredundant_%s_%s' % (time, info)
     cd_hit.main(interactom_fasta_output_name , output_nr_file_name )
 
 
@@ -104,12 +110,9 @@ if PDB2FASTA:
 # Removing non-representative sequences
 if S_REMOVE:
     import redundancy_remove
-    if F1_RUN:
-        input_file = feature1_tsv_output_name
-    else:
-        input_file = feature2_tsv_output_name
+    input_file = feature_tsv_output_name
     interactome_file = output_nr_file_name
-    re_output_file = 'filtered_file_train_2000_ca.tsv'
+    re_output_file = 'filtered_file_train__%s_%s.tsv'  % (time, info)
     logging.info("Removing non-representative sequences with input_file=%s, interactome_file=%s, re_output_file=%s", input_file, interactome_file, re_output_file)
     redundancy_remove.main(input_file, interactome_file, re_output_file, run_directory) 
 
@@ -135,7 +138,7 @@ if A_RUN:
             for size in size_values:
                 for epoch in epochs:
                     for i in range(ranges):
-                        model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.keras' % (processed_sample, latent_dim, size, epoch, i)
+                        model_name = 'autoencoder_train__%s_%s_%d.keras' % (time, info, i) #'dina_model_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.keras' % (processed_sample, latent_dim, size, epoch, i)
                         logging.info("Training model %s with latent_dim=%d,\n"" epoch=%d,\n"" processed_sample_num=%d,\n"" matrix_size=%dx%d", model_name, latent_dim, epoch, processed_sample, size, size)
                         try:
                             encoded_vector, collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_dir)
@@ -168,30 +171,37 @@ if A_TEST:
     import test_autoencoder
     logging.info("Starting Autoencoder testing")
     pickle_data = [os.path.join(pickle_dir, file) for file in os.listdir(pickle_dir) if file.endswith('.pickle')]
-    
-    for p in pickle_data:
-        encode_test_model_name = ''  # Define model name accordingly
-        auto_model_path = os.path.join(auto_model_dir, encode_test_model_name)
-        logging.info("Testing model %s with unseen data from %s", encode_test_model_name, p)
-        try:
-            encoded_vector_test = test_autoencoder.main(auto_model_path, sub_size, pickle_dir)
-        except IndexError as e:
-            logging.error("An IndexError occurred: %s. Skipping to the next iteration.", e)
+    best_model_name = ''
+    correlation_best = 0
+    for p in pickle_data[:3]:
+        for i in range(ranges):
+            encode_test_model_name = 'autoencoder_train_%s_%s_%d.keras' % (time, info, i)  # Define model name accordingly
+            auto_model_path = os.path.join(auto_model_dir, encode_test_model_name)
+            logging.info("Testing model %s with unseen data from %s", encode_test_model_name, p)
+            try:
+                encoded_vector_test, correlation_unseen = test_autoencoder.main(auto_model_path, sub_size, pickle_dir)
+            except IndexError as e:
+                logging.error("An IndexError occurred: %s. Skipping to the next iteration.", e)
+        if correlation_unseen >= correlation_best:
+            best_model_name = encode_test_model_name
+            logging.info("Best model %s for %s file with correlation: %d ", encode_test_model_name, p,  correlation_best)
+
+        
 
 ################################################
 # Vector append
 if VECTOR:
     import adding_vector
-    input_tsv_for_vec = ''  # Define input TSV file for vector
-    vectorized_tsv_name = 'bert_test_with_vector_005'
+    input_tsv_for_vec = re_output_file  # Define input TSV file for vector
+    vectorized_tsv_name = 'bert_train_with_vector_%s_%s.tsv' % (time, info)
     logging.info("Appending vector with input_tsv_for_vec=%s,\n"" encode_test_model_name=%s,\n"" vectorized_tsv_name=%s", input_tsv_for_vec, encode_test_model_name, vectorized_tsv_name)
-    adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, auto_model_dir, encode_test_model_name, vectorized_tsv_name)
+    adding_vector.main(pickle_dir, sub_size, input_tsv_for_vec, auto_model_dir, best_model_name, vectorized_tsv_name)
 
 ################################################
 # BERT Training
 
-output_stat_tsv = 'BERT_training_stats_withvectors_004.tsv'
-train_input_tsv = 'concatenated_file_v1.tsv'  # Define vectorized TSV name
+output_stat_tsv = 'BERT_training_stats_withvectors_%s_%s.tsv' % (time, info)
+train_input_tsv = vectorized_tsv_name #'vectorized_tsv_name.tsv'  # Define vectorized TSV name
 
 if B_RUN:
     import combine_input_bert
