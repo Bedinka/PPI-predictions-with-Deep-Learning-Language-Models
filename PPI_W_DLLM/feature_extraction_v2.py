@@ -497,8 +497,8 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
             if i == processed_sample:
                 break 
             i += 1
-
-        create_negative_data_tsv(interacting_proteins, tsv_path)
+        for k in range(processed_sample):
+            create_negative_data_tsv(interacting_proteins, tsv_path)
         print('Featur extraction : Done...')
     
 

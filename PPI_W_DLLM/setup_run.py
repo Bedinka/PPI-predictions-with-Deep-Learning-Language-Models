@@ -14,12 +14,14 @@ class LoggerWriter:
     def flush(self):
         pass
 
-def setup_run_directory():
+def setup_run_directory(set , path ):
     # Create a timestamped directory for this run
-    run_directory = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    if not os.path.exists(run_directory):
-        os.makedirs(run_directory)
-    
+    if set:
+        run_directory = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        if not os.path.exists(run_directory):
+            os.makedirs(run_directory)
+    else:
+        run_directory = path 
     # Set up logging to both a file and the console
     log_file = os.path.join(run_directory, f'{run_directory}.log')
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[

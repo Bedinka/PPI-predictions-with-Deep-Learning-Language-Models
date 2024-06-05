@@ -10,6 +10,7 @@ from scipy import stats
 from random import randint
 import pickle
 import matplotlib.pyplot as plt
+from autoencoder import Autoencoder 
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
@@ -18,45 +19,8 @@ from tensorflow.keras.models import Model
 from keras.callbacks import Callback
 from sklearn.decomposition import PCA
 
-
-
 work_dir = "/home/dina/Documents/PPI_WDLLM"
-
-@tf.keras.utils.register_keras_serializable()
-class Autoencoder(Model):
-
-    def __init__(self, latent_dim, shape, **kwargs):
-        super(Autoencoder, self).__init__(**kwargs)
-        self.latent_dim = latent_dim
-        self.shape = shape
-        self.encoder = tf.keras.Sequential([
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(latent_dim, activation='relu'),
-        ])
-        self.decoder = tf.keras.Sequential([
-            tf.keras.layers.Dense(tf.math.reduce_prod(shape).numpy(), activation='sigmoid'),
-            tf.keras.layers.Reshape(shape)
-        ])
-
-    def call(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return decoded
-    
-    def get_config(self):
-      config = super().get_config()
-      config.update(
-          {
-            "latent_dim": self.latent_dim,
-            "shape": self.shape
-          }
-      )
-      return config
-    
-    def custom_objects():
-    
-      return {"Autoencoder": Autoencoder}
-    
+  
 class LossHistory(callbacks.Callback):
     def __init__(self):
         super().__init__()
@@ -131,81 +95,77 @@ def plot(encoded, model_name):
   except np.linalg.LinAlgError as e:
         print("Error: ", e)
 
-def concatenate_pickle_ca(size, num_files):
-    print ('Creating CA distance data input matrixes')
-    # CA
-    pickle_files_ca = [os.path.join(f"{work_dir}/Matrices_CA/train", file) for file in os.listdir(f"{work_dir}/Matrices_CA/train") if file.endswith('.pickle')]
-        
-    if num_files is not None:
-        pickle_files_ca = pickle_files_ca[:num_files]
-        
-    concatenated_data_ca = []
-    
-    for file_name in pickle_files_ca:
-        with open(file_name, 'rb') as g:
-            data = np.array([pickle.load(g)])
-            concatenated_data_ca.extend(data.reshape(-1, size, size))
-    with open('concatenated_ca.pickle', 'wb') as g:
-        pickle.dump(concatenated_data_ca, g)
-    return concatenated_data_ca 
 
-def concatenate_pickle_mean(size, num_files):
-    # Mean
-    print ('Creating Mean distance data input matrixes')
-    pickle_files_mean = [os.path.join(f"{work_dir}/Matrices_Mean/train", file) for file in os.listdir(f"{work_dir}/Matrices_Mean/train") if file.endswith('.pickle')]
+def split_data(file_list, train_size=0.8):
+    print('Splitting Data into training and testing..')
+    total_size = len(file_list)
+    train_end = int(train_size * total_size)
+    indices = np.arange(total_size)
+    np.random.shuffle(indices)
+    
+    train_idx = indices[:train_end]
+    test_idx = indices[train_end:]
+    
+    train_files = [file_list[i] for i in train_idx]
+    test_files = [file_list[i] for i in test_idx]
+
+    print(f'Training size: {len(train_files):,}')
+    print(f'Test size: {len(test_files):,}')
+
+    return train_files, test_files
+
+
+def concatenate_pickle(size, num_files, pickle_path):
+
+    print('Create distance data input matrices as pickle')
+    pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')]
+    concatenated_pickle = 'concatenated_subs.pickle'
     if num_files is not None:
-        pickle_files_mean = pickle_files_mean[:num_files]
-    concatenated_data_mean = []
-    for file_name in pickle_files_mean:
+          pickle_files = pickle_files[:num_files]
+    concatenated_data = []
+    for file_name in pickle_files:
         with open(file_name, 'rb') as f:
             data_m = np.array([pickle.load(f)])
-            concatenated_data_mean.extend(data_m.reshape(-1, size, size))
-    with open('concatenated_mean.pickle', 'wb') as f:
-        pickle.dump(concatenated_data_mean, f)
-
-    return concatenated_data_mean
-
-def main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST, unseen_data_path):
+            concatenated_data.extend(data_m.reshape(-1, size, size))
+    with open(concatenated_pickle, 'wb') as f:
+      pickle.dump(concatenated_data, f)
+    concatenated_data = np.array(concatenated_data)
+    return  concatenated_data
+def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_dir, pickle_path ):
   
     print('Running Autoencoder...')
     collected_data = []
-    model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d.keras' % (processed_sample, latent_dim, size, epoch)
+    model_path = os.path.join(auto_dir, model_name)
     ranges= 2000
     int = 500
+    batch_size = 32
     loss_history = LossHistory()
     num_files = processed_sample
-    me_a  = concatenate_pickle_mean(size, num_files)
-    ca_a = concatenate_pickle_ca(size, num_files)
+    #pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')][:processed_sample]
+    
+    pickle_files  = concatenate_pickle(size, num_files, pickle_path)
+    train_files, test_files = split_data(pickle_files)
 
-    dist_ca_train = np.array(me_a)
-    dist_ca_test =  np.array(ca_a)
+    dist_ca_train = np.array(train_files)
+    dist_ca_test =  np.array(test_files)
     dist_ca_train = dist_ca_train.astype('float32') / 255.
     dist_ca_test = dist_ca_test.astype('float32') / 255.
     print (f'Train input shape: {dist_ca_train.shape}')
     print (f'Test input shape: {dist_ca_test.shape}')
     shape = dist_ca_train.shape[1:]
-
-    if os.path.exists(model_name):
-        autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} )
-    else: 
-        autoencoder = Autoencoder(latent_dim, shape)
+    if os.path.exists(model_path):
+        autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder})
+        print("Loaded existing model.")
+    else:
+        autoencoder = Autoencoder(latent_dim, (size, size))
         autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-        autoencoder.fit(dist_ca_train, dist_ca_train,
+        autoencoder.fit(dist_ca_train,dist_ca_train,
                         epochs=epoch,
-                        shuffle=True,
-                        validation_data=(dist_ca_test, dist_ca_test),
-                        callbacks=[loss_history])
+                        validation_data=(dist_ca_test,dist_ca_test),
+                        callbacks=[loss_history],
+                        batch_size=batch_size, 
+                        verbose=0)
 
-    """if SAVE:
-        autoencoder = Autoencoder(latent_dim, shape)
-        autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-        autoencoder.fit(dist_ca_train, dist_ca_train,
-                        epochs=epoch,
-                        shuffle=True,
-                        validation_data=(dist_ca_test, dist_ca_test),
-                        callbacks=[loss_history])
-    else:  
-        autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder} ) """
     print('Training ....')
     encoded_vectors_train = autoencoder.encoder(dist_ca_train).numpy()
     print(encoded_vectors_train.shape)
@@ -221,13 +181,16 @@ def main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST,
     print(correlation, p_value, correlation2, p_value2 )
     print(correlation_test, p_value_test, correlation2_test, p_value2_test )
 
-    #plot(encoded_vectors_train, model_name)
+    try:
+      plot(encoded_vectors_train, model_name)
+    except:
+      print('Unable to plot.')
 
-    directory_path = '/home/dina/Documents/PPI_WDLLM/'
-    model_name_with_path = os.path.join(directory_path, model_name)
-    print('Saving model...')
+    model_name_with_path = os.path.join(auto_dir, model_name)
+    
     if SAVE:
-        tf.saved_model.save(autoencoder, model_name_with_path)
+      print('Saving model...')
+      tf.saved_model.save(autoencoder, model_name_with_path)
 
     print('Done!')
     collected_data = {
@@ -247,15 +210,17 @@ def main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST,
     tsv = 'autoencoder_train_sample_%d_dim_%d_size_%d_epochs_%d.tsv' % (processed_sample, latent_dim, size, epoch)
     df.to_csv(tsv, sep='\t', index=False)
     
-    return encoded_vectors_train #, collected_data
+    return encoded_vectors_train , collected_data
 
 if __name__ == "__main__":
   latent_dim = 2 
-  processed_sample = 200
+  processed_sample = 40
+  batch_size= 32
   size = 7
   SAVE = True
   epoch = 10
-  TEST = False
-  unseen_data_path = 'Matrices_CA/m_ca_Q99961.pickle'  # Provide the path to your unseen data
-  model_name_test = 'dina_model_sample_10_dim_2_size_7_epochs_10_index_0.keras'
-  main(latent_dim, model_name_test, processed_sample, size, SAVE, epoch, TEST, unseen_data_path)
+  auto_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
+  model_name = 'dina_model_v2.keras'
+  pickle_path = pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/train'
+
+  main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_dir, pickle_path )

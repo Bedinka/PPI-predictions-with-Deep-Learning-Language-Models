@@ -100,9 +100,9 @@ def plot(encoded, model_name):
         print("Error: ", e)
 
 def split_data(file_list, train_size=0.8):
+    print('Splitting Data into training and testing..')
     total_size = len(file_list)
     train_end = int(train_size * total_size)
-    
     indices = np.arange(total_size)
     np.random.shuffle(indices)
     
@@ -111,7 +111,10 @@ def split_data(file_list, train_size=0.8):
     
     train_files = [file_list[i] for i in train_idx]
     test_files = [file_list[i] for i in test_idx]
-    
+
+    print(f'Training size: {len(train_files):,}')
+    print(f'Test size: {len(test_files):,}')
+
     return train_files, test_files
 
 def concatenate_pickle(size, num_files, pickle_path):
@@ -173,10 +176,8 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
 
   train_dataset = create_tf_dataset(train_files, load_batch_size, size)
   test_dataset = create_tf_dataset(test_files, load_batch_size, size)
-
-  model_dir = os.path.join(work_dir, auto_dir)
-  os.makedirs(model_dir, exist_ok=True)
-  model_path = os.path.join(model_dir, model_name)
+  os.makedirs(auto_dir, exist_ok=True)
+  model_path = os.path.join(auto_dir, model_name)
 
   if os.path.exists(model_path):
       autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder})
@@ -188,6 +189,7 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
                       epochs=epoch,
                       validation_data=test_dataset,
                       callbacks=[loss_history],
+                      batch_size=batch_size, 
                       verbose=0)
  
   print('Training ....')
@@ -214,8 +216,9 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
       print('Unable to plot.')
 
   model_name_with_path = os.path.join(auto_dir, model_name)
-  print('Saving model...')
+  
   if SAVE:
+    print('Saving model...')
     tf.saved_model.save(autoencoder, model_name_with_path)
 
   print('Done!')
@@ -238,13 +241,13 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
 
 if __name__ == "__main__":
   latent_dim = 2 
-  processed_sample = 2000
+  processed_sample = 30
   batch_size= 32
   size = 7
   SAVE = True
   epoch = 10
-  auto_dir = './autoencoder_dina_models'
+  auto_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
   model_name = 'dina_model_v2.keras'
-  pickle_path = pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/train'
+  pickle_path =  '/home/dina/Documents/PPI_WDLLM/Matrices_CA/train'
 
   main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_dir, pickle_path )

@@ -162,6 +162,7 @@ def main( model_name , tsv_path, combined_fields ):
     labels = torch.tensor(labels)
 
     print('DONE.')
+    
     from torch.utils.data import TensorDataset
 
     # Split the samples, and create TensorDatasets for each split. 
@@ -366,7 +367,10 @@ def main( model_name , tsv_path, combined_fields ):
         total_eval_accuracy = 0
         total_eval_loss = 0
         nb_eval_steps = 0
-
+        
+        # Make predictions
+        predicted_labels = []
+        logit_list = []
         # Evaluate data for one epoch
         for batch in validation_dataloader:
             
@@ -401,7 +405,8 @@ def main( model_name , tsv_path, combined_fields ):
             # softmax.
             loss = result.loss
             logits = result.logits
-                
+            
+
             # Accumulate the validation loss.
             total_eval_loss += loss.item()
 
@@ -438,6 +443,7 @@ def main( model_name , tsv_path, combined_fields ):
                 'Validation Time': validation_time
             }
         )
+
 
     print("")
     print("Training complete!")
@@ -485,6 +491,7 @@ def main( model_name , tsv_path, combined_fields ):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
+    plt.tight_layout()
     plt.xticks([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     plt.savefig(model_name.replace('.pth', '.png'))
 
@@ -519,6 +526,9 @@ def main( model_name , tsv_path, combined_fields ):
                             return_dict=True)
 
         logits = result.logits
+        predicted_label = torch.argmax(logits).item()
+        predicted_labels.append(predicted_label)
+        logit_list.append(logits.cpu().numpy())
 
         # Move logits and labels to CPU
         logits = logits.detach().cpu().numpy()
@@ -529,7 +539,6 @@ def main( model_name , tsv_path, combined_fields ):
         true_labels.append(label_ids)
 
     print('    DONE.')
-
     # Combine the results across all batches. 
     flat_predictions = np.concatenate(predictions, axis=0)
 
@@ -538,6 +547,44 @@ def main( model_name , tsv_path, combined_fields ):
 
     # Combine the correct labels for each batch into a single list.
     flat_true_labels = np.concatenate(true_labels, axis=0)
+    '''     # Calculate accuracy by Dina 
+    from sklearn.metrics import roc_curve, auc, accuracy_score
+    import matplotlib.pyplot as plt
+
+    # Calculate misclassifications
+    misclassified_as_0 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 0 and actual == 1)
+    misclassified_as_1 = sum(1 for predicted, actual in zip(predicted_labels, labels) if predicted == 1 and actual == 0)
+    total_1s = sum(1 for label in labels if label == 1)
+    total_0s = sum(1 for label in labels if label == 0)
+
+    percent_1_labeled_as_0 = (misclassified_as_0 / total_1s) * 100 if total_1s != 0 else 0
+    percent_0_labeled_as_1 = (misclassified_as_1 / total_0s) * 100 if total_0s != 0 else 0
+
+    print(f"Percentage of 1s labeled as 0: {percent_1_labeled_as_0:.2f}%")
+    print(f"Percentage of 0s labeled as 1: {percent_0_labeled_as_1:.2f}%")
+
+    # Calculate ROC Curve and AUC
+    logit_list = [logit[0] for logit in logit_list]  # Remove unnecessary dimensions
+    logit_scores = [logit[1] for logit in logit_list]  # Get the logit scores for the positive class
+
+    fpr, tpr, _ = roc_curve(labels, logit_scores)
+    roc_auc = auc(fpr, tpr)
+
+    print(f"AUC: {roc_auc:.4f}")
+
+    # Plot ROC Curve
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc="lower right")
+    plt.savefig(model_name)'''
+    
+
 
     from sklearn.metrics import f1_score
 

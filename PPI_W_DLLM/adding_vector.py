@@ -41,9 +41,10 @@ def main(pickle_dir, sub_size, input_tsv_for_vec, auto_model_dir,encode_test_mod
     df.to_csv(vectorized_tsv, sep='\t', index=False)
 
 if __name__ == "__main__":
-    pickle_dir = ''
+    pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/train'
     sub_size = 7 
-    path = ''
-    encode_test_model_name = ''
-    vectorized_tsv = 'bert_test_with_vector_005.tsv'
-    main(pickle_dir, sub_size, path, auto_model_dir, encode_test_model_name, vectorized_tsv )
+    input_path = '2024-06-05_15-23-05/filtered_file_train_2024-06-05_15-23-05_300_s_wDataloader_negativex10_fortesting.tsv'
+    encode_test_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-04_17-36-41_500_s_wDataloader_2.keras'
+    vectorized_tsv = 'bert_test_with_negative10x.tsv'
+    auto_model_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
+    main(pickle_dir, sub_size, input_path, auto_model_dir, encode_test_model_name, vectorized_tsv )

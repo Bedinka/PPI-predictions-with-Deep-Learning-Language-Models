@@ -542,7 +542,8 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
     print('Running Feature Extraction...')
     processed_pdb_files = [os.path.join(f"{work_dir}/{pdb}", file) for file in os.listdir(f"{work_dir}/{pdb}") if file.endswith('.pdb')]
    #processed_pdb_files = process_tgz_files_in_directory(work_dir)
-
+    import random
+    random.shuffle(processed_pdb_files)
     interacting_proteins = []
     overlap = 1 
     i = 1 # number of processed sample 
@@ -585,8 +586,8 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
         if i == processed_sample:
             break 
         i += 1
-
-    create_negative_data_tsv(interacting_proteins, tsv_path)
+    for k in range(processed_sample):
+        create_negative_data_tsv(interacting_proteins, tsv_path)
     print('Featur extraction : Done...')
     
 

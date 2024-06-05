@@ -16,7 +16,6 @@ from tensorflow.keras.models import Model
 from keras.callbacks import Callback
 from sklearn.decomposition import PCA
 
-work_dir = "/home/dina/Documents/PPI_WDLLM"
 
 class LossHistory(callbacks.Callback):
     def __init__(self):
@@ -101,7 +100,7 @@ collected_data =[]
 def main(model_name, size, unseen_data_path ):
 
     print('Loading trained model...')
-
+    print(model_name)
     autoencoder = tf.keras.models.load_model(model_name, custom_objects={"Autoencoder": Autoencoder})
     if unseen_data_path is None:
         raise ValueError("Path to unseen data must be provided for testing.")
@@ -112,11 +111,11 @@ def main(model_name, size, unseen_data_path ):
     print('Testing with unseen data...')
     encoded_vectors_unseen = autoencoder.encoder(unseen_data).numpy()
     print(encoded_vectors_unseen.shape)
-    
-    ranges = 100
     interval = 10
+    ranges = int( encoded_vectors_unseen.shape[0]/interval )
+    print(ranges)
     
-    print("#################", model_name)
+    print("################################################### \n", model_name)
     try:
       x_unseen, y_unseen, correlation_unseen, p_value_unseen, correlation2_unseen, p_value2_unseen = spearman(unseen_data, encoded_vectors_unseen, ranges, interval)
       print(correlation_unseen, p_value_unseen, correlation2_unseen, p_value2_unseen)
@@ -125,3 +124,9 @@ def main(model_name, size, unseen_data_path ):
       print('Unable to Spearman or plot.')
 
     return encoded_vectors_unseen, correlation_unseen
+
+if __name__ == "__main__":
+  model_name ='/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-05-31_12-51-11_pipeline_testing_1.keras'
+  size = 7
+  unseen_data_path ='/home/dina/Documents/PPI_WDLLM/Matrices_CA/train/m_ca_Q9BRR9.pickle'
+  main(model_name, size, unseen_data_path )
