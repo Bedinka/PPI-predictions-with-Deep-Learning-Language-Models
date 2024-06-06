@@ -463,7 +463,9 @@ sample_counter = 1
 def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb, positive_pairs_txt):
     print('Running Feature Extraction...')
     i = 1 # number of processed sample 
-    interacting_proteins = []
+    interacting_fragments = []
+    surface_residues = {}
+    non_surface_res = {}
     with open(positive_pairs_txt, 'r') as f:
         for line in f:
             pair = line.strip().split('\t')
@@ -497,20 +499,27 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
                 print(traceback.format_exc())
             
             for chain in chains_CA.values():
-                if chain not in interacting_proteins:
-                    interacting_proteins.append(chain)
+                if chain not in interacting_fragments:
+                    interacting_fragments.append(chain)
             
-            create_positive_data_tsv(chains_CA, tsv_path)
+            
 
+
+
+
+            for chain in chains_CA.values():
+                surface_residues[chain.chainID] = [(residue.resnum, residue.is_surface) for residue in chain.residues.values() if residue.is_surface]
+                non_surface_res[chain.chainID] = [(residue.resnum, residue.is_surface) for residue in chain.residues.values() if residue.is_surface is False]
+            for chain_id, residues in surface_residues.items():
+                print(f"Chain {chain_id} surface residues: {residues}")
             matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
-
-            
+            create_positive_data_tsv(chains_CA, tsv_path)
 
             if i == processed_sample:
                 break 
             i += 1
         for k in range(processed_sample):
-            create_negative_data_tsv(interacting_proteins, tsv_path)
+            create_negative_data_tsv(interacting_fragments, tsv_path)
         print('Featur extraction : Done...')
     
 
