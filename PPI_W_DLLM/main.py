@@ -9,8 +9,8 @@ from Bio.PDB.PDBParser import PDBConstructionWarning
 import setup_run
 
 # setting what script to run 
-F1_RUN = False
-F2_RUN = True 
+F1_RUN = True
+F2_RUN = False 
 S_REMOVE = True
 PDB2FASTA = True
 A_RUN = True
@@ -21,7 +21,7 @@ B_TEST = False
 
 #Extra valuese for use 
 time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-info = '500_s_wDataloader_'
+info = '1000_s_wDataloader_aplhafold'
 # Set up a filter to ignore warnings from the pdb2fasta module
 warnings.filterwarnings("ignore", category=PDBConstructionWarning)
 # Suppress TensorFlow logging
@@ -37,7 +37,7 @@ path = ''
 run_directory = setup_run.setup_run_directory(set, path )
 
 #PDB files directory
-pdb_file_dir = 'TRAIN'
+pdb_file_dir = '/home/dina/Documents/PPI_WDLLM/workdir/Alpha_pdb'
 logging.info("Trainin directory: %s ", pdb_file_dir)
 #Autoencoder models directory
 auto_model_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
@@ -45,7 +45,7 @@ auto_model_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
 # Setting pickle directory
 pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
 pickle_dir_mean = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
-p_file_dir_train = 'train'
+p_file_dir_train = 'huri'
 p_file_dir_test = 'test'
 
 # CHOOSE CA OR MEAN for amino acid  for computing 
@@ -63,7 +63,7 @@ logging.info("Run TEST with pickle directory : %s" , pickle_test_path)
 
 ##############################################################################################
 #Feature extractions attributes: process sample number , sub matrix size (x,x)
-sample = 500
+sample = 2000
 sub_size = 7
 feature_tsv_output_name  = "%s_%s.tsv" % (time, info)
 

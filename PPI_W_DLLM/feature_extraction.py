@@ -444,15 +444,14 @@ def spearman():
 def create_positive_data_tsv(chains_CA, tsv_path):
     data = []
     [chainID1, chainID2] = chains_CA.keys()
-    prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
-    aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
-    dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
-    dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
-    if chains_CA[chainID1].residue_indexes[-1] + 1 == chains_CA[chainID2].residue_indexes[0]:
+
+    if chains_CA[chainID2].prot_id in chains_CA[chainID1].int_prots:
         interact = 1
-    else:
-        interact = 0 
-    data.append({
+        prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
+        aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
+        dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
+        dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
+        data.append({
         'Protein ID': prot_id,
         'Interact': interact,
         'Residues' : aa,
@@ -460,6 +459,7 @@ def create_positive_data_tsv(chains_CA, tsv_path):
         'DSSP Index': dssp_index
 
     })
+
     
     df = pd.DataFrame(data)
     if not os.path.isfile(tsv_path):
@@ -471,15 +471,14 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
     data = []
     import random
     chains_CA = random.sample(interacting_proteins, 2)
-    chainID1, chainID2 = chains_CA[0].chainID, chains_CA[1].chainID
-    prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
-    aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
-    dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
-    dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
-    if isinstance(chains_CA[0].int_prots, list) and chains_CA[1].prot_id in chains_CA[0].int_prots:
+    if chains_CA[1].prot_id in chains_CA[0].int_prots:
         interact = 1
     else:
         interact = 0 
+        prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
+        aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
+        dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
+        dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
         data.append({
             'Protein ID': prot_id,
             'Interact': interact,

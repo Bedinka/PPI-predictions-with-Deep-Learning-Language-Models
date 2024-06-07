@@ -16,6 +16,20 @@ import pydssp
 
 work_dir = "/home/dina/Documents/PPI_WDLLM/workdir"
 
+progress_log = 'progress.log'
+
+def save_progress(sample_index, chains_CA, pickle_ca_path, pickle_mean_path):
+    with open(progress_log, 'w') as log:
+        log.write(f"{sample_index}\n")
+    matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
+
+def load_progress():
+    if os.path.exists(progress_log):
+        with open(progress_log, 'r') as log:
+            last_sample_index = int(log.readline().strip())
+            return last_sample_index
+    return 0
+
 class Chain:
     def __init__(self, chainID, sample_number):
         self.samplenum = sample_number
@@ -369,25 +383,22 @@ def interacting_res (chains_CA, distance_matrix_CA__A_B , distance_matrix_mean__
 def create_positive_data_tsv(chains_CA, tsv_path):
     data = []
     [chainID1, chainID2] = chains_CA.keys()
-    prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
-    aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
-    dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
-    dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
-    rsa = f"{chains_CA[0].rsa_value}_{chains_CA[1].rsa_value}" 
-    if chains_CA[chainID1].residue_indexes[-1] + 1 == chains_CA[chainID2].residue_indexes[0]:
+    print(chains_CA[chainID1].int_prots)
+    #rsa = f"{chains_CA[0].rsa_value}_{chains_CA[1].rsa_value}" 
+    if chains_CA[chainID2].prot_id in chains_CA[chainID1].int_prots:
         interact = 1
-    else:
-        interact = 0 
-    data.append({
+        prot_id =  f"{chains_CA[chainID1].prot_id}_{chains_CA[chainID2].prot_id}" 
+        aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
+        dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
+        dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
+        data.append({
         'Protein ID': prot_id,
         'Interact': interact,
         'Residues' : aa,
         'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index,
-        'RSA' : rsa
+        'DSSP Index': dssp_index
+        })
 
-    })
-    
     df = pd.DataFrame(data)
     if not os.path.isfile(tsv_path):
         df.to_csv(tsv_path, sep='\t', index=False)
@@ -398,29 +409,30 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
     data = []
     import random
     chains_CA = random.sample(interacting_proteins, 2)
-    if isinstance(chains_CA[0].int_prots, list) and chains_CA[1].prot_id in chains_CA[0].int_prots:
+    if chains_CA[1].prot_id in chains_CA[0].int_prots.key:
         interact = 1
     else:
+        interact = 0 
         prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
         aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
         dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
         dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
-        rsa = f"{chains_CA[0].rsa_value}_{chains_CA[1].rsa_value}" 
-        interact = 0 
+        #rsa = f"{chains_CA[0].rsa_value}_{chains_CA[1].rsa_value}" 
+        
         data.append({
             'Protein ID': prot_id,
             'Interact': interact,
             'Residues' : aa,
             'DSSP Structure': dssp_struct,
             'DSSP Index': dssp_index,
-            'RSA' : rsa
+            #'RSA' : rsa
         })
         
-        df = pd.DataFrame(data)
-        if not os.path.isfile(tsv_path):
-                df.to_csv(tsv_path, sep='\t', index=False)
-        else:
-                df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
+    df = pd.DataFrame(data)
+    if not os.path.isfile(tsv_path):
+            df.to_csv(tsv_path, sep='\t', index=False)
+    else:
+            df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
 
 def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
     import pickle
@@ -463,55 +475,62 @@ sample_counter = 1
 def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb, positive_pairs_txt):
     print('Running Feature Extraction...')
     i = 1 # number of processed sample 
+    start_index = load_progress()
+    i = start_index
     interacting_proteins = []
     with open(positive_pairs_txt, 'r') as f:
         for line in f:
             pair = line.strip().split('\t')
             pdb1_protein_id = pair[0]
             pdb2_protein_id = pair[1]
+
             pdb1_file = find_pdb_file(pdb1_protein_id, pdb)
             pdb2_file = find_pdb_file(pdb2_protein_id, pdb)
-            chains_CA = parsePDB(pdb1_file,pdb2_file, sample_counter) 
-            #print(pdb_files)
-            overlap = 1 
-            print(pdb1_file, pdb2_file)
-            [chainID1, chainID2] = chains_CA.keys()
-            if chainID2 not in  chains_CA[chainID1].int_prots:
-                chains_CA[chainID1].interact = 1
+            if pdb1_file and pdb2_file:
+                chains_CA = parsePDB(pdb1_file,pdb2_file, sample_counter) 
+                #print(pdb_files)
+                overlap = 1 
+                print(pdb1_file, pdb2_file)
+                [chainID1, chainID2] = chains_CA.keys()
                 chains_CA[chainID1].int_prots.append(chains_CA[chainID2].prot_id)
-            if chainID1 not in chains_CA[chainID2].int_prots  :
-                chains_CA[chainID2].interact = 1
-                chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
-            ca_dist_calc(chains_CA, size, overlap)
-            mean_dist_calc(chains_CA, size, overlap)
-            #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
-            
-            import traceback
-            try:
-                rsa(pdb1_file, chains_CA, work_dir)
-                rsa(pdb2_file, chains_CA, work_dir)
-                dssp(chains_CA, pdb1_file)
-                dssp(chains_CA, pdb2_file)
-            except Exception as e:
-                print(f"Error processing file : {e}")
-                print(traceback.format_exc())
-            
-            for chain in chains_CA.values():
-                if chain not in interacting_proteins:
-                    interacting_proteins.append(chain)
-            
-            create_positive_data_tsv(chains_CA, tsv_path)
+                if chainID2 not in  chains_CA[chainID1].int_prots:
+                    chains_CA[chainID1].int_prots.append(chains_CA[chainID2].prot_id)
 
-            matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
+                if chainID1 not in chains_CA[chainID2].int_prots  :
+                    chains_CA[chainID2].int_prots.append(chains_CA[chainID1].prot_id)
 
-            
+                ca_dist_calc(chains_CA, size, overlap)
+                mean_dist_calc(chains_CA, size, overlap)
+                #int_res = interacting_res(chains_CA, ca_dist, mean_dist )
+                
+                import traceback
+                try:
+                    #rsa(pdb1_file, chains_CA, work_dir)
+                    #rsa(pdb2_file, chains_CA, work_dir)
+                    dssp(chains_CA, pdb1_file)
+                    dssp(chains_CA, pdb2_file)
+                except Exception as e:
+                    print(f"Error processing file : {e}")
+                    print(traceback.format_exc())
+                
+                for chain in chains_CA.values():
 
-            if i == processed_sample:
-                break 
-            i += 1
-        for k in range(processed_sample):
-            create_negative_data_tsv(interacting_proteins, tsv_path)
-        print('Featur extraction : Done...')
+                    if chain not in interacting_proteins:
+                        interacting_proteins.append(chain)
+                
+                create_positive_data_tsv(chains_CA, tsv_path)
+
+                matrix_pickle(chains_CA, pickle_ca_path, pickle_mean_path)
+
+                if i == processed_sample:
+                    break 
+                i += 1
+                # Update progress after each sample
+                save_progress(i, chains_CA, pickle_ca_path, pickle_mean_path)  # Save progress after each sample
+        
+    for k in range(processed_sample):
+        create_negative_data_tsv(interacting_proteins, tsv_path)
+    print('Featur extraction : Done...')
     
 
 if __name__ == "__main__":
