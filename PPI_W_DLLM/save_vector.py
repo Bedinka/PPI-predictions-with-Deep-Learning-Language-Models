@@ -21,7 +21,7 @@ def save_vectors_as_pickle(pickle_dir, sub_size, input_tsv_for_vec, auto_model_d
         
         if encoded_vector_1 is not None and encoded_vector_2 is not None:
             vector = np.concatenate((encoded_vector_1, encoded_vector_2))
-            vector_pickle_path = os.path.join(vector_pickle_dir, f'vector_{index}.pickle')
+            vector_pickle_path = os.path.join(vector_pickle_dir, f'vector_{protein_ids[0]}_{protein_ids[1]}.pickle')
             with open(vector_pickle_path, 'wb') as f:
                 pickle.dump(vector, f)
 
@@ -30,6 +30,6 @@ if __name__ == "__main__":
     sub_size = 7 
     input_tsv_for_vec = '2024-06-05_15-23-05/filtered_file_train_2024-06-05_15-23-05_300_s_wDataloader_negativex10_fortesting.tsv'
     encode_test_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-04_17-36-41_500_s_wDataloader_2.keras'
-    vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Vector_Pickles'
+    vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle'
     os.makedirs(vector_pickle_dir, exist_ok=True)
     save_vectors_as_pickle(pickle_dir, sub_size, input_tsv_for_vec, auto_model_dir, encode_test_model_name, vector_pickle_dir)

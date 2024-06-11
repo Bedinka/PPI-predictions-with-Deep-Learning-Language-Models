@@ -102,6 +102,7 @@ class Chain:
         self.interactions_m_mean =[]
         self.int_prots = []
         self.interact = 0
+        self.rsa = []
           
 
     def addResidue(self, aa, resnum):
@@ -364,16 +365,20 @@ def sub_residuses( residues_list, residue_indexes, size ):
 def rsa(pdb_file, chains_CA, work_dir): 
     try:
         #print(f"run FreeSASA on : {pdb_file}")
+        
         structure = freesasa.Structure(pdb_file)
         result = freesasa.calc(structure)
         area_classes = freesasa.classifyResults(result, structure)
         result.write_pdb(os.path.basename(pdb_file))
         for chain in chains_CA.values():
+            rsa =[]
             if str(pdb_file).endswith(chain.chainID):
                 for residue in chain.residues.values():
                     all = result.residueAreas()               
                     residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                    residue.addRSA(residue_sasa)        
+                    residue.addRSA(residue_sasa)
+                    rsa.append(residue_sasa)
+            chain.rsa = rsa        
     except Exception as e:
         print(f"An error occurred while processing {pdb_file}: {e}")         
 
@@ -451,12 +456,15 @@ def create_positive_data_tsv(chains_CA, tsv_path):
         aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
         dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
         dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
+        rsa = f"{chains_CA[chainID1].rsa}_{chains_CA[chainID2].rsa}" 
+
         data.append({
         'Protein ID': prot_id,
         'Interact': interact,
         'Residues' : aa,
         'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index
+        'DSSP Index': dssp_index,
+        'RSA' : rsa
 
     })
 
@@ -479,12 +487,14 @@ def create_negative_data_tsv(interacting_proteins, tsv_path):
         aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
         dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
         dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
+        rsa = f"{chains_CA[0].rsa}_{chains_CA[1].rsa}" 
         data.append({
             'Protein ID': prot_id,
             'Interact': interact,
             'Residues' : aa,
             'DSSP Structure': dssp_struct,
-            'DSSP Index': dssp_index
+            'DSSP Index': dssp_index,
+            'RSA' : rsa
         })
         
         df = pd.DataFrame(data)
@@ -533,6 +543,9 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
             print(f"Created mean pickle file for {chain_CA[i].prot_id}")
         else:
             print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
+        chain_CA[i].ca_submatrices = None
+        chain_CA[i].mean_submatrices = None
+        print(f"Deleted ca_submatrices and mean_submatrices for {chain_CA[i].prot_id}")
 
 sample_counter = 1
 
@@ -568,7 +581,7 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
         import traceback
         try:
             for prot in splitted_files:
-                #rsa(prot, chains_CA, work_dir)
+                rsa(prot, chains_CA, work_dir)
                 dssp(chains_CA, prot)
         except Exception as e:
             print(f"Error processing file {prot}: {e}")

@@ -108,7 +108,7 @@ def main(model_name, size, unseen_data_path ):
         unseen_data = np.array([pickle.load(f)])
     unseen_data = unseen_data.reshape(-1, size, size).astype('float32') / 255.
 
-    print('Testing with unseen data...')
+    print('Encoding data...')
     encoded_vectors_unseen = autoencoder.encoder(unseen_data).numpy()
     print(encoded_vectors_unseen.shape)
     interval = 10

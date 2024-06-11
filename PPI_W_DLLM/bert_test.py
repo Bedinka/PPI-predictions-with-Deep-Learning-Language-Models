@@ -37,33 +37,47 @@ def process_sequence(sequence):
     )
     return encoded_dict
 
+def load_vectors_for_bert(input_tsv, vector_pickle_dir):
+    df = pd.read_csv(input_tsv, sep='\t')
+    vectors = []
+    import pickle
+    for index, row in df.iterrows():
+        vector_pickle_path = os.path.join(vector_pickle_dir, f'vector_{row["Protein ID"]}.pickle')
+        if os.path.exists(vector_pickle_path):
+            with open(vector_pickle_path, 'rb') as f:
+                vector = pickle.load(f)
+            vectors.append(vector)
+        else:
+            vectors.append(None)  # or handle missing vectors appropriately
+    
+    df['Vector'] = vectors
+    return df
+
 set = False 
-path = './2024-06-05_15-23-05' 
+path = './2024-06-11_12-36-28'
 run_directory = setup_run.setup_run_directory(set, path)
 
 # Logger 
 time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 
-# Suppress TensorFlow logging
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf_logger = logging.getLogger('tensorflow')
-tf_logger.setLevel(logging.ERROR)
-
 # Load data
-tsv_path = '/home/dina/Documents/PPI_WDLLM/2024-06-05_15-23-05/bert_train_with_vector_2024-06-05_15-23-05_300_s_wDataloader_negativex10_fortesting.tsv'
-data_df = pd.read_csv(tsv_path, sep='\t')
+vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle'
+tsv_path = '/home/dina/Documents/PPI_WDLLM/2024-06-10_09-29-35/filtered_file_train_2024-06-10_09-29-35_2000_s_wDataloader_interactom.tsv'
+#data_df = pd.read_csv(tsv_path, sep='\t')
+data_df = load_vectors_for_bert(tsv_path, vector_pickle_dir)
 data_df = data_df.fillna("")
 
 # Model choice
 combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
+logging.info('Testing BERT with %s , in path %s and with pickle load' , tsv_path, path)
 
 for i in range(1, len(combined_fields) + 1):
     fields_to_combine = combined_fields[:i]
     sen_w_feats = [] 
     labels = []
-    bert_dir = '/home/dina/Documents/PPI_WDLLM/2024-06-05_12-18-19/BERT/'
-    model_name = 'bert_attrnum_%d_no_500_s_wDataloader_negativex2'  %(i)
+    bert_dir = '/home/dina/Documents/PPI_WDLLM/2024-06-11_12-36-28/BERT/'
+    model_name = 'bert_attrnum_%d_no_1300_s_wDataloader_interactom'  %(i)
     logging.info( "#" * 50 )
     logging.info( "# BERT TESTING \n" "%s" , model_name )
     

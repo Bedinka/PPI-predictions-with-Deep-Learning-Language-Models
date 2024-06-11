@@ -1,11 +1,29 @@
 import pandas as pd
+import os
+import pickle
 
-BERT_TEST = True  # Set this based on your requirement
-TEST_MODEL_NAME = "your_test_model_name" 
 
-def main( model_name , tsv_path, combined_fields ): 
 
-    data_df = pd.read_csv( tsv_path , sep='\t')
+def load_vectors_for_bert(input_tsv, vector_pickle_dir):
+    df = pd.read_csv(input_tsv, sep='\t')
+    vectors = []
+
+    for index, row in df.iterrows():
+        vector_pickle_path = os.path.join(vector_pickle_dir, f'vector_{row["Protein ID"]}.pickle')
+        if os.path.exists(vector_pickle_path):
+            with open(vector_pickle_path, 'rb') as f:
+                vector = pickle.load(f)
+            vectors.append(vector)
+        else:
+            vectors.append(None)  # or handle missing vectors appropriately
+    
+    df['Vector'] = vectors
+    return df
+
+
+def main( model_name , tsv_path, combined_fields ,vector_pickle_dir ): 
+    data_df = load_vectors_for_bert(tsv_path, vector_pickle_dir)
+    #data_df = pd.read_csv( tsv_path , sep='\t')
     data_df.head()
     # This will hold all of the dataset samples, as strings.
     sen_w_feats = []

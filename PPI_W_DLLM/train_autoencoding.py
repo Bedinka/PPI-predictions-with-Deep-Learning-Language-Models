@@ -22,6 +22,10 @@ from sklearn.decomposition import PCA
 
 
 work_dir = "/home/dina/Documents/PPI_WDLLM"
+import logging
+
+# Set up logging configuration
+logging.basicConfig(filename='autoencoder.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     
 class LossHistory(callbacks.Callback):
@@ -129,8 +133,8 @@ def concatenate_pickle(size, num_files, pickle_path):
         with open(file_name, 'rb') as f:
             data_m = np.array([pickle.load(f)])
             concatenated_data.extend(data_m.reshape(-1, size, size))
-    with open(concatenated_pickle, 'wb') as f:
-      pickle.dump(concatenated_data, f)
+    '''with open(concatenated_pickle, 'wb') as f:
+      pickle.dump(concatenated_data, f)'''
     concatenated_data = np.array(concatenated_data)
     return  concatenated_data
 
@@ -155,7 +159,6 @@ def create_tf_dataset(pickle_files, batch_size, size):
     )
     return dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size , auto_dir , pickle_path):
@@ -163,80 +166,83 @@ def main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size
   print('Running Autoencoder Training...')
 
   #TRAIN
-
-  #model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d.keras' % (processed_sample, latent_dim, size, epoch)
-  ranges= 2000
-  int = 500
-  loss_history = LossHistory()
-  num_files = processed_sample
-  
-  pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')][:processed_sample]
-  load_batch_size = 128
-  train_files, test_files = split_data(pickle_files)
-
-  train_dataset = create_tf_dataset(train_files, load_batch_size, size)
-  test_dataset = create_tf_dataset(test_files, load_batch_size, size)
-  os.makedirs(auto_dir, exist_ok=True)
-  model_path = os.path.join(auto_dir, model_name)
-
-  if os.path.exists(model_path):
-      autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder})
-      print("Loaded existing model.")
-  else:
-      autoencoder = Autoencoder(latent_dim, (size, size))
-      autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
-      autoencoder.fit(train_dataset,
-                      epochs=epoch,
-                      validation_data=test_dataset,
-                      callbacks=[loss_history],
-                      batch_size=batch_size, 
-                      verbose=0)
- 
-  print('Training ....')
-  train_data = np.concatenate([x for x, _ in train_dataset], axis=0)
-  test_data = np.concatenate([x for x, _ in test_dataset], axis=0)
-  
-  encoded_vectors_train = autoencoder.encoder(train_data).numpy()
-  print(encoded_vectors_train.shape)
-  #print(encoded_vectors_train)
-  encoded_vectors_test = autoencoder.encoder(test_data).numpy()
-  #print(dist_ca_train.shape)
-  #print(encoded_vectors_train.shape)
-
-  x, y , correlation, p_value, correlation2, p_value2  = spearman ( train_data, encoded_vectors_train , ranges , int )
-  x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( test_data, encoded_vectors_test , ranges , int )
-  
-  print("#################", model_name)
-  print(correlation, p_value, correlation2, p_value2 )
-  print(correlation_test, p_value_test, correlation2_test, p_value2_test )
-
   try:
-      plot(encoded_vectors_train, model_name)
-  except:
-      print('Unable to plot.')
-
-  model_name_with_path = os.path.join(auto_dir, model_name)
-  
-  if SAVE:
-    print('Saving model...')
-    tf.saved_model.save(autoencoder, model_name_with_path)
-
-  print('Done!')
-
+    #model_name = 'dina_model_sample_%d_dim_%d_size_%d_epochs_%d.keras' % (processed_sample, latent_dim, size, epoch)
+    ranges= 2000
+    int = 500
+    loss_history = LossHistory()
+    num_files = processed_sample
     
-  collected_data = {
-    "model_name": model_name,
-    "epochs" : epoch,
-    "latent_dim" : latent_dim,
-    "matrix_size" : size,
-    "processed_sample" : processed_sample,
-    "train_losses": loss_history.train_losses,
-    "val_losses": loss_history.val_losses,
-    "spearman_correlation": correlation ,
-    "spearman_p_value": p_value,
-    "spearman_correlation_dim1_2": correlation2,
-    "spearman_p_value_dim1_2": p_value2
-  }
+    pickle_files = [os.path.join(pickle_path, file) for file in os.listdir(pickle_path) if file.endswith('.pickle')][:processed_sample]
+    load_batch_size = 128
+    train_files, test_files = split_data(pickle_files)
+
+    train_dataset = create_tf_dataset(train_files, load_batch_size, size)
+    test_dataset = create_tf_dataset(test_files, load_batch_size, size)
+    os.makedirs(auto_dir, exist_ok=True)
+    model_path = os.path.join(auto_dir, model_name)
+
+    if os.path.exists(model_path):
+        autoencoder = tf.keras.models.load_model(model_path, custom_objects={"Autoencoder": Autoencoder})
+        print("Loaded existing model.")
+    else:
+        autoencoder = Autoencoder(latent_dim, (size, size))
+        autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+        autoencoder.fit(train_dataset,
+                        epochs=epoch,
+                        validation_data=test_dataset,
+                        callbacks=[loss_history],
+                        batch_size=batch_size, 
+                        verbose=0)
+  
+    print('Training ....')
+    train_data = np.concatenate([x for x, _ in train_dataset], axis=0)
+    test_data = np.concatenate([x for x, _ in test_dataset], axis=0)
+    
+    encoded_vectors_train = autoencoder.encoder(train_data).numpy()
+    print(encoded_vectors_train.shape)
+    #print(encoded_vectors_train)
+    encoded_vectors_test = autoencoder.encoder(test_data).numpy()
+    #print(dist_ca_train.shape)
+    #print(encoded_vectors_train.shape)
+
+    x, y , correlation, p_value, correlation2, p_value2  = spearman ( train_data, encoded_vectors_train , ranges , int )
+    x_test, y_test , correlation_test, p_value_test, correlation2_test, p_value2_test  = spearman ( test_data, encoded_vectors_test , ranges , int )
+    
+    print("#################", model_name)
+    print(correlation, p_value, correlation2, p_value2 )
+    print(correlation_test, p_value_test, correlation2_test, p_value2_test )
+
+    try:
+        plot(encoded_vectors_train, model_name)
+    except:
+        print('Unable to plot.')
+
+    model_name_with_path = os.path.join(auto_dir, model_name)
+    
+    if SAVE:
+      print('Saving model...')
+      tf.saved_model.save(autoencoder, model_name_with_path)
+
+    print('Done!')
+
+      
+    collected_data = {
+      "model_name": model_name,
+      "epochs" : epoch,
+      "latent_dim" : latent_dim,
+      "matrix_size" : size,
+      "processed_sample" : processed_sample,
+      "train_losses": loss_history.train_losses,
+      "val_losses": loss_history.val_losses,
+      "spearman_correlation": correlation ,
+      "spearman_p_value": p_value,
+      "spearman_correlation_dim1_2": correlation2,
+      "spearman_p_value_dim1_2": p_value2
+    }
+  except Exception as e:
+      logging.exception("An error occurred in main function: %s", e)
+
   return encoded_vectors_train, collected_data
 
 if __name__ == "__main__":

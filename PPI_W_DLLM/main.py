@@ -9,26 +9,20 @@ from Bio.PDB.PDBParser import PDBConstructionWarning
 import setup_run
 
 # setting what script to run 
-F1_RUN = True
-F2_RUN = False 
+F1_RUN = False
+F2_RUN = True 
 S_REMOVE = True
 PDB2FASTA = True
 A_RUN = True
 A_TEST = True
-VECTOR = True
+VECTOR = False
+VECTOR_SAVE = True
 B_RUN = True
 B_TEST = False
 
 #Extra valuese for use 
 time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-info = '1000_s_wDataloader_aplhafold'
-# Set up a filter to ignore warnings from the pdb2fasta module
-warnings.filterwarnings("ignore", category=PDBConstructionWarning)
-# Suppress TensorFlow logging
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf_logger = logging.getLogger('tensorflow')
-tf_logger.setLevel(logging.ERROR)
-
+info = '1300_s_wDataloader_interactom'
 
 set = True # if true it will set up a new run directory 
 path = ''
@@ -37,7 +31,7 @@ path = ''
 run_directory = setup_run.setup_run_directory(set, path )
 
 #PDB files directory
-pdb_file_dir = '/home/dina/Documents/PPI_WDLLM/workdir/Alpha_pdb'
+pdb_file_dir = 'TRAIN'
 logging.info("Trainin directory: %s ", pdb_file_dir)
 #Autoencoder models directory
 auto_model_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
@@ -45,7 +39,7 @@ auto_model_dir = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models'
 # Setting pickle directory
 pickle_dir_ca = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/'
 pickle_dir_mean = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/'
-p_file_dir_train = 'huri'
+p_file_dir_train = 'train'
 p_file_dir_test = 'test'
 
 # CHOOSE CA OR MEAN for amino acid  for computing 
@@ -63,7 +57,7 @@ logging.info("Run TEST with pickle directory : %s" , pickle_test_path)
 
 ##############################################################################################
 #Feature extractions attributes: process sample number , sub matrix size (x,x)
-sample = 2000
+sample = 1300
 sub_size = 7
 feature_tsv_output_name  = "%s_%s.tsv" % (time, info)
 
@@ -126,7 +120,7 @@ if S_REMOVE:
 
 # Train attributes
 SAVE = True
-batch_size = 32
+batch_size = 64
 pd_results = []
 processed_sample_values = [sample]
 size_values = [7]
@@ -135,8 +129,8 @@ epochs = [10]
 ranges = 4
 
 if A_RUN:
-    import train_autoencoding
-    #import old_autoencoding
+    import old_autoencoding
+    #import train_autoencoding
     logging.info("-" * 100)
     logging.info("Starting Autoencoder training")
     for processed_sample in processed_sample_values:
@@ -147,7 +141,7 @@ if A_RUN:
                         model_name = 'autoencoder_trained_%s_%s_%d.keras' % (time, info, i) #'dina_model_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.keras' % (processed_sample, latent_dim, size, epoch, i)
                         logging.info("Training model %s with latent_dim=%d,\n"" epoch=%d,\n"" processed_sample_num=%d,\n"" matrix_size=%dx%d", model_name, latent_dim, epoch, processed_sample, size, size)
                         try:
-                            encoded_vector, collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_train_path)
+                            encoded_vector, collected_data = old_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_train_path)
                             pd_results.append({
                                 "Model": model_name,
                                 "Latent Dimension": latent_dim,
@@ -212,16 +206,62 @@ if A_TEST:
 
 ################################################
 # Vector append
+#best_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-10_16-53-06_1300_s_wDataloader_interactom_0.keras' 
+input_tsv_for_vec = re_output_file #'/home/dina/Documents/PPI_WDLLM/2024-06-10_16-53-06/bert_train_with_vector_2024-06-10_16-53-06_1300_s_wDataloader_interactom.tsv'   # Define input TSV file for vector
+vectorized_tsv_name = 'bert_train_with_vector_%s_%s.tsv' % (time, info)
 if VECTOR:
     import adding_vector
-    best_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-04_17-36-41_500_s_wDataloader_2.keras'
-    input_tsv_for_vec = re_output_file  # Define input TSV file for vector
-    vectorized_tsv_name = 'bert_train_with_vector_%s_%s.tsv' % (time, info)
     logging.info("-" * 100)
     logging.info("Appending vector with input_tsv_for_vec=%s,\n"" encode_test_model_name=%s,\n"" vectorized_tsv_name=%s", input_tsv_for_vec, best_model_name, vectorized_tsv_name)
     adding_vector.main(pickle_train_path, sub_size, input_tsv_for_vec, auto_model_dir, best_model_name, vectorized_tsv_name)
 
 ################################################
+# Vector save
+
+vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle'
+if VECTOR_SAVE:
+    import save_vector
+    save_vector.save_vectors_as_pickle(pickle_train_path, sub_size, input_tsv_for_vec, auto_model_dir, best_model_name, vector_pickle_dir)
+    logging.info("-" * 100)
+    logging.info("Saving vectors from pickle files for input_tsv_for_vec=%s,\nvector_pickle_dir=%s,\nvectorized_tsv_name=%s", input_tsv_for_vec, vector_pickle_dir, vectorized_tsv_name)
+
+    
+# BERT Training section
+output_stat_tsv = 'BERT_training_stats_withvectors_%s_%s.tsv' % (time, info)
+train_input_tsv = vectorized_tsv_name  # Define vectorized TSV name
+import itertools
+input_fields = ["Residues", "DSSP Structure", "DSSP Index", "RSA", "Vector"]
+
+# Generate all combinations of input fields
+field_combinations = []
+for r in range(1, len(input_fields) + 1):
+    field_combinations.extend(itertools.combinations(input_fields, r))
+
+
+if B_RUN:
+    import combine_input_bert
+    #combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
+    try:
+        full_df = pd.read_csv(output_stat_tsv, sep='\t')
+    except FileNotFoundError:
+        full_df = pd.DataFrame()
+#tesztelni minden opciót és val halmazt 
+    for fields_to_combine in field_combinations:
+        bert_model_name = 'bert_combined_fields_%s_%s' % (info, '_'.join(fields_to_combine))
+        logging.info("-" * 100)
+        logging.info("Running BERT model %s with combined fields: %s", bert_model_name, fields_to_combine)
+        df_stats = combine_input_bert.main(bert_model_name, train_input_tsv, fields_to_combine, vector_pickle_dir)
+        df_stats.loc[0, 'model_name'] = bert_model_name
+        full_df = pd.concat([full_df, df_stats], ignore_index=True)
+    full_df.to_csv(output_stat_tsv, sep='\t', index=False)
+    logging.info("BERT training stats saved to %s", output_stat_tsv)
+
+
+'''################################################
+# BERT old Testing
+if B_TEST:
+    logging.info("------------------------------------------------------------------------------------------------")
+    logging.info("Starting BERT testing")
 # BERT Training
 
 output_stat_tsv = 'BERT_training_stats_withvectors_%s_%s.tsv' % (time, info)
@@ -244,10 +284,4 @@ if B_RUN:
         df_stats.loc[0, 'model_name'] = bert_model_name
         full_df = pd.concat([full_df, df_stats], ignore_index=True)
     full_df.to_csv(output_stat_tsv, sep='\t', index=False)
-    logging.info("BERT training stats saved to %s", output_stat_tsv)
-
-################################################
-# BERT Testing
-if B_TEST:
-    logging.info("------------------------------------------------------------------------------------------------")
-    logging.info("Starting BERT testing")
+    logging.info("BERT training stats saved to %s", output_stat_tsv)'''
