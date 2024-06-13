@@ -66,15 +66,16 @@ def splitPDBbyChain(filename, output_dir):
     output_subdir = os.path.join(output_dir, f"{basename}_splitted")
     os.makedirs(output_subdir, exist_ok=True)
 
+    chain_files = []
     for chainID in chains:
         chain_filename = os.path.join(output_subdir, f"{basename}-{chainID}.pdb")
         with open(chain_filename, "w") as fout:
             fout.writelines(first_three_lines)
             for line in chains[chainID]:
                 fout.write(line)
-        splitted_files.append(chain_filename)
-
-    return splitted_files 
+        chain_files.append(chain_filename)
+    
+    return chain_files[0], chain_files[1]
 
 class Chain:
     def __init__(self, chainID, sample_number):
@@ -362,47 +363,42 @@ def sub_residuses( residues_list, residue_indexes, size ):
     return sub_residues , sub_names
 
     
-def rsa(pdb_file, chains_CA, work_dir): 
+def rsa(pdb_file, chain): 
     try:
         #print(f"run FreeSASA on : {pdb_file}")
-        
         structure = freesasa.Structure(pdb_file)
         result = freesasa.calc(structure)
         area_classes = freesasa.classifyResults(result, structure)
-        result.write_pdb(os.path.basename(pdb_file))
-        for chain in chains_CA.values():
-            rsa =[]
-            if str(pdb_file).endswith(chain.chainID):
-                for residue in chain.residues.values():
-                    all = result.residueAreas()               
-                    residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                    residue.addRSA(residue_sasa)
-                    rsa.append(residue_sasa)
-            chain.rsa = rsa        
+        rsa =[]
+        for residue in chain.residues.values():
+            all = result.residueAreas()               
+            residue_sasa = all[chain.chainID][str(residue.resnum)].total
+            residue.addRSA(residue_sasa)
+            rsa.append(residue_sasa)
+        chain.rsa = rsa        
     except Exception as e:
         print(f"An error occurred while processing {pdb_file}: {e}")         
 
-def dssp(chain_CA, pdb):
-    for chain in chain_CA.values():
-    ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
-        coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
-    # hydrogene bond matrix
-        hbond_matrix = pydssp.get_hbond_map(coord)
-        # should be (batch, length, length)
-    # getting scondary struct 
-        dssp_struct = pydssp.assign(coord, out_type='c3')
-        chain.dssp_struct = dssp_struct
-    # To get secondary str. as index
-        dssp_index = pydssp.assign(coord, out_type='index')
-        chain.dssp_index = dssp_index
-        ## 0: loop,  1: alpha-helix,  2: beta-strand
-    # To get secondary str. as onehot representation
-        dssp_onhot = pydssp.assign(coord, out_type='onehot')
-        chain.dssp_onehot = dssp_onhot
-        ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
-        with open(output_file, 'w') as f:
-            f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
+def dssp(pdb,chain):
+## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
+    coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
+# hydrogene bond matrix
+    hbond_matrix = pydssp.get_hbond_map(coord)
+    # should be (batch, length, length)
+# getting scondary struct 
+    dssp_struct = pydssp.assign(coord, out_type='c3')
+    chain.dssp_struct = dssp_struct
+# To get secondary str. as index
+    dssp_index = pydssp.assign(coord, out_type='index')
+    chain.dssp_index = dssp_index
+    ## 0: loop,  1: alpha-helix,  2: beta-strand
+# To get secondary str. as onehot representation
+    dssp_onhot = pydssp.assign(coord, out_type='onehot')
+    chain.dssp_onehot = dssp_onhot
+    ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
+    output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
+    with open(output_file, 'w') as f:
+        f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
 
 def ca_dist_calc(chains_CA, size, overlap ):
     #print("CA DISTANCE CALCULATION") 
@@ -577,14 +573,19 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
         # splitting chains and calculating the rsa on them 
         dir_name = os.path.dirname(pdb_file)
         
-        splitted_files = splitPDBbyChain(pdb_file, dir_name)
+        prot1, prot2 = splitPDBbyChain(pdb_file, dir_name)
         import traceback
         try:
-            for prot in splitted_files:
-                rsa(prot, chains_CA, work_dir)
-                dssp(chains_CA, prot)
+            rsa( prot1,chains_CA[chainID1])
+            dssp(prot1,chains_CA[chainID1])
         except Exception as e:
-            print(f"Error processing file {prot}: {e}")
+            print(f"Error processing file {prot1}: {e}")
+            print(traceback.format_exc())
+        try:
+            rsa( prot1,chains_CA[chainID2])
+            dssp(prot1,chains_CA[chainID2])
+        except Exception as e:
+            print(f"Error processing file {prot2}: {e}")
             print(traceback.format_exc())
         
         for chain in chains_CA.values():

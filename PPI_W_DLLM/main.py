@@ -57,7 +57,7 @@ logging.info("Run TEST with pickle directory : %s" , pickle_test_path)
 
 ##############################################################################################
 #Feature extractions attributes: process sample number , sub matrix size (x,x)
-sample = 1300
+sample = 1400
 sub_size = 7
 feature_tsv_output_name  = "%s_%s.tsv" % (time, info)
 
@@ -120,7 +120,7 @@ if S_REMOVE:
 
 # Train attributes
 SAVE = True
-batch_size = 64
+batch_size = 32
 pd_results = []
 processed_sample_values = [sample]
 size_values = [7]
@@ -129,8 +129,8 @@ epochs = [10]
 ranges = 4
 
 if A_RUN:
-    import old_autoencoding
-    #import train_autoencoding
+    #import old_autoencoding
+    import train_autoencoding
     logging.info("-" * 100)
     logging.info("Starting Autoencoder training")
     for processed_sample in processed_sample_values:
@@ -141,7 +141,7 @@ if A_RUN:
                         model_name = 'autoencoder_trained_%s_%s_%d.keras' % (time, info, i) #'dina_model_sample_%d_dim_%d_size_%d_epochs_%d_index_%d.keras' % (processed_sample, latent_dim, size, epoch, i)
                         logging.info("Training model %s with latent_dim=%d,\n"" epoch=%d,\n"" processed_sample_num=%d,\n"" matrix_size=%dx%d", model_name, latent_dim, epoch, processed_sample, size, size)
                         try:
-                            encoded_vector, collected_data = old_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_train_path)
+                            encoded_vector, collected_data = train_autoencoding.main(latent_dim, model_name, processed_sample, size, SAVE, epoch, batch_size, auto_model_dir, pickle_train_path)
                             pd_results.append({
                                 "Model": model_name,
                                 "Latent Dimension": latent_dim,
@@ -171,7 +171,7 @@ if A_TEST:
     import test_autoencoder
     logging.info("-" * 100)
     logging.info("Starting Autoencoder testing")
-    pickle_data = [os.path.join(pickle_test_path, file) for file in os.listdir(pickle_test_path) if file.endswith('.pickle')]
+    pickle_data = [os.path.join(pickle_test_path, file) for file in os.listdir      (pickle_test_path) if file.endswith('.pickle')]
     best_model_name = ''
     correlation_best = 0
     df_best = []
@@ -228,7 +228,7 @@ if VECTOR_SAVE:
     
 # BERT Training section
 output_stat_tsv = 'BERT_training_stats_withvectors_%s_%s.tsv' % (time, info)
-train_input_tsv = vectorized_tsv_name  # Define vectorized TSV name
+train_input_tsv = re_output_file  # Define vectorized TSV name
 import itertools
 input_fields = ["Residues", "DSSP Structure", "DSSP Index", "RSA", "Vector"]
 
