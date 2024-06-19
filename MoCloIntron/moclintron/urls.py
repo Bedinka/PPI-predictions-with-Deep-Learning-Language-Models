@@ -3,7 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.insert, name="index"),
     path("example", views.example, name="example"),
     path("results", views.results, name="results"),
     path("description", views.description, name="description"),
@@ -15,7 +15,5 @@ urlpatterns = [
     path("htmx_click", views.htmx_click, name="htmx_click"),
     path("htmx_click_site", views.htmx_click_site, name="htmx_click_site"),
     path("insert", views.insert, name="insert"),
-    path("optimize_codons_axios", views.optimize_codons_axios, name="optimize_codons_axios"),
-    path("calculate_fidelity_axios", views.calculate_fidelity_axios, name="calculate_fidelity_axios"),
-          
+       
 ]

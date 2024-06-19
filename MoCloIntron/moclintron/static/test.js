@@ -2,8 +2,6 @@ let indexList = [];  // This array is assumed to be defined globally or in the s
 //let exonNumDic = {};
 let input_text = "";
 
-window.indexList = indexList;
-
 function dnaToAminoAcid(dnaSequence) {
     const codonToAA = {
         "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
@@ -165,7 +163,7 @@ function findIntronSiteFromAAs(cds) {
 //let output = formatOutput(dnaSequence, aminoAcidSequence);
 //console.log(`Format output: ${output}`);
 
-function setExonNum(indexList, mRNA) {
+function setExonNum(mRNA) {
     let exonNum = 0;
     let exonNumDic = {};
     
@@ -183,51 +181,13 @@ function setExonNum(indexList, mRNA) {
     return exonNumDic;
 }
 
-function update_Exon_Indexlist(newindexList){
-    //alert(index);
-    // Example use
-    //let dnaSequence = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
-    let dnaSequence = parent.mRNA.value;
-    let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
-    console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
-
-    indexList = newindexList;
-    console.log(`update_Exon_Indexlist: Index list: ${indexList}`);
-    if ( indexList.length == 0){
-        indexList.push(dnaSequence.length);
-    }
-
-    //checkIndex(index);
-    update_Exon_Components(dnaSequence);
-    exonNumDic = setExonNum(indexList, dnaSequence);
-
-    let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
-    //output += `<br>from update_Exon_Indexlist: ${indexList}`;
-    //console.log(`Format output: ${output}`);
-    //alert(window.test.innerHTML);
-    
-    
-    //window.test.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-    //window.intron_output.innerHTML = "<pre><h1>" + output + "</h1></pre>";
-    //var scriptBlock = document.createElement('script');
-    //scriptBlock.setAttribute("type","text/javascript");
-    //scriptBlock.setAttribute("src", "/static/test.js");
-    
-    parent.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
-    parent.window.indexList = indexList;
-    parent.window.frames['intron_output4'].indexList = indexList;
-    //window.frames['intron_output4'].document.head.appendChild(scriptBlock);
-}
-
 function htmx_click_site_test(index){
     //alert(index);
     // Example use
     //let dnaSequence = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT";
     let dnaSequence = parent.mRNA.value;
     let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
-    indexList = parent.window.indexList;
     console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
-    console.log(`htmx_click_site_test:Index list: ${indexList}`);
 
     if ( indexList.length == 0){
         indexList.push(dnaSequence.length);
@@ -235,11 +195,10 @@ function htmx_click_site_test(index){
 
     checkIndex(index);
     update_Exon_Components(dnaSequence);
-    exonNumDic = setExonNum(indexList, dnaSequence);
+    exonNumDic = setExonNum(dnaSequence);
 
     let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
-    //output += `<br>from htmx_click_site_test: ${indexList}`;
-    //console.log(`Format output: ${output}`);
+    console.log(`Format output: ${output}`);
     //alert(window.test.innerHTML);
     
     
@@ -250,9 +209,9 @@ function htmx_click_site_test(index){
     //scriptBlock.setAttribute("src", "/static/test.js");
     
     parent.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
-    //console.log(`htmx_click_site_test:Index list: ${indexList}`);
     //window.frames['intron_output4'].document.head.appendChild(scriptBlock);
 }
+
 
 function update_Exon_Components(dnaSequence){
     let exon_element = parent.exons;
@@ -263,7 +222,6 @@ function update_Exon_Components(dnaSequence){
     let first_exon_overhang_5 = parent.overhang_5.value;
     let last_exon_overhang_3 = parent.overhang_3.value;
 
-    console.log(`update_Exon_Components: Index list: ${indexList}`);
     for (i = 0; i < indexList.length; i++) {
         //var input = document.createElement('input'); 
         //input.type = "text"; 
@@ -280,7 +238,7 @@ function update_Exon_Components(dnaSequence){
         } else {
             exon_text += "<font style='background-color: pink'>";
         }
-        exon_text += `&nbsp&nbsp&nbsp<input type="checkbox" class="checkbox_exons" id="exon_${i}" value="${indexList[i]}">&nbsp&nbsp <input type="text" value="Exon ${i}: ${prev_index+1} - ${indexList[i]} : (${exon_len})">`; // "<input type='text' value='test'><br>";
+        exon_text += `&nbsp&nbsp&nbsp<input class="checkbox_exons" type="checkbox" id="exon_${i}">&nbsp&nbsp <input type="text" value="Exon ${i}: ${prev_index+1} - ${indexList[i]} : (${exon_len})">`; // "<input type='text' value='test'><br>";
         exon_text += "</font>";
         //exon_text += `Length: ${exon_len}`; // "<input type='text' value='test'><br>";
         exon_text += "&nbsp&nbsp&nbsp&nbsp";
@@ -304,7 +262,7 @@ function update_Exon_Components(dnaSequence){
     //exon_text += "<input type='checkbox'><br>";
     //exon_text += `<input type="checkbox"><input type="text" value="Exon ${i}: ${prev_index} - END">`; // "<input type='text' value='test'><br>";
     //exon_text += `Length: ${exon_len}<br>`; // "<input type='text' value='test'><br>";
-    //exon_text += `<br>${indexList}`;
+        
     exon_element.innerHTML = exon_text;
 }
 
@@ -340,17 +298,17 @@ function submit_find_intron_site(index) {
     let aminoAcidSequence = dnaToAminoAcid(dnaSequence);
     //console.log(`Translated Amino Acid Sequence: ${aminoAcidSequence}`);
 
-    exonNumDic = setExonNum(indexList, dnaSequence);
+    exonNumDic = setExonNum(dnaSequence);
     update_Exon_Components(dnaSequence);
 
     let output = formatOutput(dnaSequence, aminoAcidSequence, exonNumDic);
-    //console.log(`Format output: ${output}`);
+    console.log(`Format output: ${output}`);
     //alert(window.test.innerHTML);
     //window.intron_output.innerHTML = "<iframe><pre><h1>" + output + "</h1></pre></iframe>";
     //window.intron_output4.document.body.innerHTML = "<pre><h1>" + output + "</h1></pre>";
     var scriptBlock = document.createElement('script');
     scriptBlock.setAttribute("type","text/javascript");
-    scriptBlock.setAttribute("src", "/static/test1.js");
+    scriptBlock.setAttribute("src", "/static/test.js");
     
     window.frames['intron_output4'].document.body.innerHTML = "<pre style='font-size: 12pt;'>" + output + "</pre>";
     window.frames['intron_output4'].document.head.appendChild(scriptBlock);
@@ -369,82 +327,35 @@ function changeMoClo() {
     }
     else if (x =="B3A"){
         document.getElementById("overhang_5").value = "AATG";
-        document.getElementById("overhang_3").value = "ACGA";
+        document.getElementById("overhang_3").value = "CCCC";
     }
     else if (x =="B3B"){
-        document.getElementById("overhang_5").value = "ACGA";
-        document.getElementById("overhang_3").value = "AGGT";
+        document.getElementById("overhang_5").value = "AATG";
+        document.getElementById("overhang_3").value = "DDDD";
     }
     else if (x =="B4"){
-        document.getElementById("overhang_5").value = "AGGT";
-        document.getElementById("overhang_3").value = "TTCG";
+        document.getElementById("overhang_5").value = "AAAA";
+        document.getElementById("overhang_3").value = "TTTT";
     }
     else if (x =="B5"){
-        document.getElementById("overhang_5").value = "TTCG";
-        document.getElementById("overhang_3").value = "GCTT";
+        document.getElementById("overhang_5").value = "BBBB";
+        document.getElementById("overhang_3").value = "YYYY";
     }
     else if (x =="B3-B4"){
         document.getElementById("overhang_5").value = "AATG";
-        document.getElementById("overhang_3").value = "TTCG";
+        document.getElementById("overhang_3").value = "TTTT";
     }
     else if (x =="B3-B5"){
         document.getElementById("overhang_5").value = "AATG";
-        document.getElementById("overhang_3").value = "GCTT";
+        document.getElementById("overhang_3").value = "YYYY";
     }
     else if (x =="B4-B5"){
-        document.getElementById("overhang_5").value = "AGGT";
-        document.getElementById("overhang_3").value = "GCTT";
+        document.getElementById("overhang_5").value = "BBBB";
+        document.getElementById("overhang_3").value = "YYYY";
     }
 }
 
-function reset_exons(){
-    var newindexList = [];
-    newindexList.push(indexList.pop());
-    indexList = newindexList;
-    window.indexList = newindexList;
-    window.frames['intron_output4'].indexList = newindexList;
-    console.log(`newindex list: ${newindexList}`);
-    console.log(`Index list: ${window.frames['intron_output4'].indexList}`);
-    update_Exon_Indexlist(newindexList);
-}
-
-function remove_selected_exons(){
-    var newindexList = [];
-    var checkedValue = null; 
-    var inputElements = document.getElementsByClassName('checkbox_exons');
-    console.log("remove_selected_exons");
-    console.log(`Index list: ${indexList}`);
-    console.log(`inputElements: ${inputElements.length}`);
-    for(var i=0; i < inputElements.length-1; i++){
-          if(inputElements[i].checked){
-               //checkedValue = inputElements[i].value;
-               console.log(`delete: ${i}, ${indexList[0]}, ${inputElements[i].value}`);
-               //console.log(`newindex list: ${newindexList}`);
-          }
-          else{
-               console.log(`no delete: ${i}, ${indexList[i]}, ${inputElements[i].value}`);
-               newindexList.push(parseInt(inputElements[i].value));
-               //console.log(`newindex list: ${newindexList}`);
-          }
-    }
-    if(inputElements[i].checked){
-        //checkedValue = inputElements[i].value;
-        console.log(`delete: ${i}, ${indexList[0]}, ${inputElements[i].value}`);
-        newindexList.pop();
-        newindexList.push(parseInt(inputElements[i].value));
-        //console.log(`newindex list: ${newindexList}`);
-   }else{
-        newindexList.push(parseInt(inputElements[i].value));
-   }
-
-    window.indexList = newindexList;
-    window.frames['intron_output4'].indexList = newindexList;
-    console.log(`newindex list: ${newindexList}`);
-    console.log(`Index list: ${window.frames['intron_output4'].indexList}`);
-    update_Exon_Indexlist(newindexList);
-}
-
-console.log("test1.js loaded 16!");
+console.log("test.js loaded 14!");
 
 
 
