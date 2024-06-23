@@ -504,57 +504,6 @@ def optimize_codons(request):
         }
     return HttpResponse(template.render(context, request))
 
-import json
-
-
-@csrf_exempt
-def calculate_fidelity_axios(request):
-    template = loader.get_template("results.html")
-    print(request.body)
-    print(request.POST.get('data'))
-    body_unicode = request.body.decode('utf-8')
-    body = json.loads(body_unicode)
-    overhangs = body['overhangs']
-    print(overhangs)
-    fidelity_output = calc_fidelity_from_overhangs(overhangs)
-    print(fidelity_output)
-    return HttpResponse(fidelity_output)
-
-@csrf_exempt
-def optimize_codons_axios(request):
-    template = loader.get_template("results.html")
-    print(request.body)
-    print(request.POST.get('data'))
-    print(dir(request))
-    body_unicode = request.body.decode('utf-8')
-    body = json.loads(body_unicode)
-    protein = body['protein']
-    mRNA = getmRNA(protein)
-    context={
-        "current_overhangs": "current_overhangs",
-        "current_output": "current_output"
-    }
-    '''
-    form = Overhang_Form(request.POST, request.FILES)
-    if form.is_valid():
-        print("optimize_codons")
-        print(form.cleaned_data)
-        current_overhangs = form.cleaned_data['overhangs']
-        output = test(current_overhangs)
-        context = {
-            "current_overhangs": current_overhangs, #form.cleaned_data['overhangs'], #request.POST["overhangs"],
-            "current_output": output, #form.cleaned_data['overhangs'], #request.POST["overhangs"],
-        }
-    else:
-        print("False")
-        context = {
-            "current_overhangs": "",
-            "current_output": "",
-        }
-    '''
-    #mRNA = "ATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTTATGTGTGCCGCTGCGGGCTCGGGATCCAGCGGGGGTGGCGGATTCTTCTTTGGAGGCGGCTTCTTT"
-    return HttpResponse(mRNA)
-    return HttpResponse(template.render(context, request))
 
 def rev_compl(st):
     nn = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
@@ -600,7 +549,7 @@ def get_specificity_list(table, overhang_set):
     specificity_list.sort(reverse=True)
     return specificity_list
 
-def specificity_within_group( tableX, Input_overhangs, overhangs, return_fidelity_only = False ):    
+def specificity_within_group( tableX, Input_overhangs, overhangs ):    
     output = ""                 
     unspecific_total = 0
     specific_total = 0
@@ -651,9 +600,6 @@ def specificity_within_group( tableX, Input_overhangs, overhangs, return_fidelit
     
     total = tableX[(overhang, rc)] + cnt 
     '''
-    
-    if return_fidelity_only:
-        return fidelity
     
     return output #specific_total, unspecific_total, specific_total/float(total)
 
@@ -789,61 +735,3 @@ def test(overhangs):
 
     output += specificity_within_group(GoldenGateLigationInfo, Input_overhangs, Final_overhangs)
     return output
-
-
-
-def calc_fidelity_from_overhangs(overhangs):
-    output = "==============================\n"
-    output += "1. Add Overhang Sequences\n"
-    output += "==============================\n\n"
-
-    Input_overhangs = set()
-    OvoA_intron_overhang_set = set()
-    
-    for overhang1 in overhangs:
-        if "," in overhang1:
-            for overhang in overhang1.split(","):
-                overhang = overhang.strip()
-                if len(overhang) != 4: continue
-                Input_overhangs.add(overhang)
-        else:
-            overhang = overhang1.strip()
-            if len(overhang) != 4: continue
-            Input_overhangs.add(overhang)
-        
-    for overhang in Input_overhangs:
-        print(overhang)
-        output += "# Add Overhang Sequence:" + overhang + "\n"
-        OvoA_intron_overhang_set.add(overhang)
-        output += "# Add Reverse Complement Sequence of Overhang: " + rev_compl(overhang) + "\n"
-        OvoA_intron_overhang_set.add(rev_compl(overhang))
-        output += "\n"
-        
-        #else:
-        #    print(overhang1)
-        #    overhang = overhang1.strip()
-        #    if len(overhang) != 4: continue
-        #    Input_overhangs.add(overhang)
-        #    output += "# Add Overhang Sequence:" + overhang + "\n"
-        #    OvoA_intron_overhang_set.add(overhang)
-        #    output += "# Add Reverse Complement Sequence of Overhang: " + rev_compl(overhang) + "\n"
-        #    OvoA_intron_overhang_set.add(rev_compl(overhang))
-        #    output += "\n"
-
-    Final_overhangs = set(OvoA_intron_overhang_set)
-
-    output += "==============================\n"
-    output += "2. Simulating ligation events\n"
-    output += "==============================\n\n"
-    
-    print(output)
-    #for overhang in OvoA_intron_overhang_set:
-    #    Final_overhangs.add(rev_compl(overhang))
-
-    #specificity_list = get_specificity_list( GoldenGateLigationInfo, Final_overhangs)
-    #print(specificity_list)
-    #print( specificity_within_group(GoldenGateLigationInfo, Final_overhangs) )
-
-    fidelity = specificity_within_group(GoldenGateLigationInfo, Input_overhangs, Final_overhangs, True)
-    print("Fidelity: {:0.3f}".format(fidelity))
-    return "{:0.3f}".format(fidelity)
