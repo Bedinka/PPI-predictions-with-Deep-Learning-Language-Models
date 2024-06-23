@@ -10,11 +10,11 @@ import setup_run
 
 # setting what script to run 
 F1_RUN = False
-F2_RUN = True 
-S_REMOVE = True
-PDB2FASTA = True
-A_RUN = True
-A_TEST = True
+F2_RUN = False 
+S_REMOVE = False
+PDB2FASTA = False
+A_RUN = False
+A_TEST = False
 VECTOR = False
 VECTOR_SAVE = True
 B_RUN = True
@@ -22,7 +22,8 @@ B_TEST = False
 
 #Extra valuese for use 
 time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-info = '1300_s_wDataloader_interactom'
+info = '10000_interact'
+
 
 set = True # if true it will set up a new run directory 
 path = ''
@@ -57,7 +58,7 @@ logging.info("Run TEST with pickle directory : %s" , pickle_test_path)
 
 ##############################################################################################
 #Feature extractions attributes: process sample number , sub matrix size (x,x)
-sample = 1400
+sample = 10000
 sub_size = 7
 feature_tsv_output_name  = "%s_%s.tsv" % (time, info)
 
@@ -126,7 +127,7 @@ processed_sample_values = [sample]
 size_values = [7]
 latent_dim_values = [2]
 epochs = [10]
-ranges = 4
+ranges = 2
 
 if A_RUN:
     #import old_autoencoding
@@ -205,11 +206,11 @@ if A_TEST:
         
 
 ################################################
-# Vector append
-#best_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-10_16-53-06_1300_s_wDataloader_interactom_0.keras' 
-input_tsv_for_vec = re_output_file #'/home/dina/Documents/PPI_WDLLM/2024-06-10_16-53-06/bert_train_with_vector_2024-06-10_16-53-06_1300_s_wDataloader_interactom.tsv'   # Define input TSV file for vector
 vectorized_tsv_name = 'bert_train_with_vector_%s_%s.tsv' % (time, info)
+# Vector append
 if VECTOR:
+    best_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-12_22-17-25_1300_s_wDataloader_interactom_2.keras' 
+    input_tsv_for_vec = re_output_file #'/home/dina/Documents/PPI_WDLLM/2024-06-10_16-53-06/bert_train_with_vector_2024-06-10_16-53-06_1300_s_wDataloader_interactom.tsv'   # Define input TSV file for vector
     import adding_vector
     logging.info("-" * 100)
     logging.info("Appending vector with input_tsv_for_vec=%s,\n"" encode_test_model_name=%s,\n"" vectorized_tsv_name=%s", input_tsv_for_vec, best_model_name, vectorized_tsv_name)
@@ -217,7 +218,8 @@ if VECTOR:
 
 ################################################
 # Vector save
-
+best_model_name = '/home/dina/Documents/PPI_WDLLM/autoencoder_dina_models/autoencoder_trained_2024-06-12_22-17-25_1300_s_wDataloader_interactom_2.keras' 
+input_tsv_for_vec = '/home/dina/Documents/PPI_WDLLM/2024-06-20_10-19-23/2024-06-20_10-19-23_10000_interact.tsv'
 vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle'
 if VECTOR_SAVE:
     import save_vector
@@ -225,10 +227,10 @@ if VECTOR_SAVE:
     logging.info("-" * 100)
     logging.info("Saving vectors from pickle files for input_tsv_for_vec=%s,\nvector_pickle_dir=%s,\nvectorized_tsv_name=%s", input_tsv_for_vec, vector_pickle_dir, vectorized_tsv_name)
 
-    
+ ################################################   
 # BERT Training section
 output_stat_tsv = 'BERT_training_stats_withvectors_%s_%s.tsv' % (time, info)
-train_input_tsv = re_output_file  # Define vectorized TSV name
+train_input_tsv = input_tsv_for_vec  # Define vectorized TSV name
 import itertools
 input_fields = ["Residues", "DSSP Structure", "DSSP Index", "RSA", "Vector"]
 
@@ -240,12 +242,10 @@ for r in range(1, len(input_fields) + 1):
 
 if B_RUN:
     import combine_input_bert
-    #combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
     try:
         full_df = pd.read_csv(output_stat_tsv, sep='\t')
     except FileNotFoundError:
         full_df = pd.DataFrame()
-#tesztelni minden opciót és val halmazt 
     for fields_to_combine in field_combinations:
         bert_model_name = 'bert_combined_fields_%s_%s' % (info, '_'.join(fields_to_combine))
         logging.info("-" * 100)

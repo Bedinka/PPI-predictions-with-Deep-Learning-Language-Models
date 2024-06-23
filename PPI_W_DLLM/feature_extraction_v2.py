@@ -56,7 +56,7 @@ class Chain:
         self.interactions_m_mean =[]
         self.int_prots = []
         self.interact = 0
-          
+        self.rsa = []
 
     def addResidue(self, aa, resnum):
         aResidue = Residue( aa, resnum )
@@ -129,6 +129,8 @@ class Residue:
     
     def __str__(self):
         return self.aa + " - " + str(self.resnum) 
+    def addRSA(self, sasa_all):
+        self.rsa_value = sasa_all
 
          
     
@@ -153,27 +155,59 @@ class Matrix:
         return submatrix
 
 # Parsing the PDB files 
-def parsePDB(pdb_file_A, pdb_file_B, sample_counter):
+
+def parsePDB(pdb_file_A, pdb_file_B, prot1_id, prot2_id, chainA_id, chainB_id, sample_counter):
+    
+    from Bio.PDB import PDBParser 
+    from Bio.SeqUtils import seq1
+    def process_pdb_file(pdb_file, prot_id, label, sample_counter):
+        parser = PDBParser()
+        structure = parser.get_structure('structure', pdb_file)
+        for model in structure:
+            for chain in model:
+                chain_id = chain.get_id()
+                chain_label = label if chain_id == label else 'A' if label == 'B' else 'B'
+                chain_obj = Chain(chain_label, sample_counter)
+                chain_obj.prot_id = prot_id
+                sample_counter += 1
+                for residue in chain:
+                    if residue.id[0] == ' ':
+                        resnum = residue.id[1]
+                        aa = seq1(residue.get_resname())
+                        chain_obj.addResidue(aa, resnum)
+                        for atom in residue:
+                            atom_name = atom.get_name()
+                            x, y, z = atom.coord
+                            chain_obj.residues[resnum].addAtom(atom_name, x, y, z)
+                chain_obj.aa = ''.join(seq1(residue.get_resname()) for residue in chain if residue.id[0] == ' ')
+                break  # Assume only one chain of interest per file
+            if chain_obj:
+                break  # Stop after the first model if chain is found
+        return chain_obj
+
+
+    chain_A = process_pdb_file(pdb_file_A, prot1_id, chainA_id, sample_counter)
+    chain_B = process_pdb_file(pdb_file_B, prot2_id, chainB_id, sample_counter)
+
+    if chain_A:
+        chain_A.chain_id = 'A'
+    if chain_B:
+        chain_B.chain_id = 'B'
+
+    chains_CA = {'chainID1': chain_A , 'chainID2': chain_B}
+
+    return chains_CA
+
+'''def parsePDB(pdb_file_A, pdb_file_B, prot1_id , prot2_id ,sample_counter):
     from Bio.PDB import PDBParser 
     from Bio.SeqUtils import seq1
     import warnings
     warnings.filterwarnings("ignore")
     chains = {}
-
-    def extract_protein_id(pdb_file):
-        with open(pdb_file, 'r') as f:
-            title_count = 0
-            for line in f:
-                if line.startswith("TITLE"):
-                    parts = line.split("(")
-                    if len(parts) >= 2:
-                        protein_id = parts[1].split(")")[0]
-                        return protein_id.strip()
-    def process_pdb_file(pdb_file, chain_label, sample_counter):
+    
+    def process_pdb_file(pdb_file, prot_id ,chain_label, sample_counter):
         parser = PDBParser()
         structure = parser.get_structure('structure', pdb_file)
-        prot_id = extract_protein_id(pdb_file)
-        local_counter = sample_counter  # Create a local copy of sample_counter
         with open(pdb_file, 'r') as f:
             for line in f:
                 if line.startswith("ATOM") == False:
@@ -207,10 +241,10 @@ def parsePDB(pdb_file_A, pdb_file_B, sample_counter):
 
 
 
-    process_pdb_file(pdb_file_A, 'A', sample_counter)
-    process_pdb_file(pdb_file_B, 'B', sample_counter)
+    process_pdb_file(pdb_file_A, prot1_id, 'A', sample_counter)
+    process_pdb_file(pdb_file_B, prot2_id,  'B', sample_counter)
 
-    return chains
+    return chains'''
 
 # Calculating distance 
 def calculate_distance(p1, p2):
@@ -303,28 +337,28 @@ def sub_residuses( residues_list, residue_indexes, size ):
                 sub_names.append(subn)
     return sub_residues , sub_names
 
-def rsa(pdb_file, chains_CA, work_dir, rsa_threshold= 0.25): 
+def rsa( chain, pdb_file): 
     try:
         #print(f"run FreeSASA on : {pdb_file}")
         structure = freesasa.Structure(pdb_file)
         result = freesasa.calc(structure)
         area_classes = freesasa.classifyResults(result, structure)
-        result.write_pdb(os.path.basename(pdb_file))
-        for chain in chains_CA.values():
-            if str(pdb_file).endswith(chain.chainID):
-                for residue in chain.residues.values():
-                    all = result.residueAreas()               
-                    residue_sasa = all[chain.chainID][str(residue.resnum)].total
-                    residue.addRSA(residue_sasa)  
-                    if residue_sasa > rsa_threshold:
-                        residue.is_surface = True
-                    else:
-                        residue.is_surface = False      
+        rsa =[]
+        for residue in chain.residues.values():
+            all = result.residueAreas()               
+            residue_sasa = all[chain.chainID][str(residue.resnum)].total
+            residue.addRSA(residue_sasa)  
+            rsa.append(residue_sasa)
+        chain.rsa = rsa 
+        '''if residue_sasa > rsa_threshold:
+                residue.is_surface = True
+            else:
+                residue.is_surface = False '''     
     except Exception as e:
         print(f"An error occurred while processing {pdb_file}: {e}")         
 
-def dssp(chain_CA, pdb):
-    for chain in chain_CA.values():
+def dssp(chain, pdb):
+
     ## atoms should be 4 (N, CA, C, O) or 5 (N, CA, C, O, H)
         coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
     # hydrogene bond matrix
@@ -341,9 +375,7 @@ def dssp(chain_CA, pdb):
         dssp_onhot = pydssp.assign(coord, out_type='onehot')
         chain.dssp_onehot = dssp_onhot
         ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-        output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
-        with open(output_file, 'w') as f:
-            f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
+
 
 def ca_dist_calc(chains_CA, size, overlap ):
     #print("CA DISTANCE CALCULATION") 
@@ -391,12 +423,14 @@ def create_positive_data_tsv(chains_CA, tsv_path):
         aa = f"{chains_CA[chainID1].aa}_{chains_CA[chainID2].aa}" 
         dssp_struct = f"{chains_CA[chainID1].dssp_struct}_{chains_CA[chainID2].dssp_struct}" 
         dssp_index = f"{chains_CA[chainID1].dssp_index}_{chains_CA[chainID2].dssp_index}" 
+        rsa = f"{chains_CA[chainID1].rsa}_{chains_CA[chainID2].rsa}" 
         data.append({
         'Protein ID': prot_id,
         'Interact': interact,
         'Residues' : aa,
         'DSSP Structure': dssp_struct,
-        'DSSP Index': dssp_index
+        'DSSP Index': dssp_index,
+        'RSA' : rsa
         })
 
     df = pd.DataFrame(data)
@@ -405,34 +439,45 @@ def create_positive_data_tsv(chains_CA, tsv_path):
     else:
         df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
 
-def create_negative_data_tsv(interacting_proteins, tsv_path):
+def load_positive_pairs(file_path):
+    positive_pairs = set()
+    with open(file_path, 'r') as file:
+        for line in file:
+            protein1, protein2 = line.strip().split()
+            positive_pairs.add((protein1, protein2))
+            positive_pairs.add((protein2, protein1))
+    return positive_pairs
+
+def create_negative_data_tsv(interacting_proteins, positive_pairs, tsv_path):
     data = []
     import random
-    chains_CA = random.sample(interacting_proteins, 2)
-    if chains_CA[1].prot_id in chains_CA[0].int_prots.key:
-        interact = 1
-    else:
-        interact = 0 
-        prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}" 
-        aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}" 
-        dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}" 
-        dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}" 
-        #rsa = f"{chains_CA[0].rsa_value}_{chains_CA[1].rsa_value}" 
-        
-        data.append({
-            'Protein ID': prot_id,
-            'Interact': interact,
-            'Residues' : aa,
-            'DSSP Structure': dssp_struct,
-            'DSSP Index': dssp_index,
-            #'RSA' : rsa
-        })
-        
+    while len(data) < len(interacting_proteins):
+        chains_CA = random.sample(interacting_proteins, 2)
+        pair = (chains_CA[0].prot_id, chains_CA[1].prot_id)
+        reverse_pair = (chains_CA[1].prot_id, chains_CA[0].prot_id)
+
+        if pair not in positive_pairs and reverse_pair not in positive_pairs:
+            prot_id = f"{chains_CA[0].prot_id}_{chains_CA[1].prot_id}"
+            aa = f"{chains_CA[0].aa}_{chains_CA[1].aa}"
+            dssp_struct = f"{chains_CA[0].dssp_struct}_{chains_CA[1].dssp_struct}"
+            dssp_index = f"{chains_CA[0].dssp_index}_{chains_CA[1].dssp_index}"
+            rsa = f"{chains_CA[0].rsa}_{chains_CA[1].rsa}"
+
+            data.append({
+                'Protein ID': prot_id,
+                'Interact': 0,
+                'Residues': aa,
+                'DSSP Structure': dssp_struct,
+                'DSSP Index': dssp_index,
+                'RSA': rsa
+            })
+    
     df = pd.DataFrame(data)
     if not os.path.isfile(tsv_path):
-            df.to_csv(tsv_path, sep='\t', index=False)
+        df.to_csv(tsv_path, sep='\t', index=False)
     else:
-            df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
+        df.to_csv(tsv_path, sep='\t', index=False, header=False, mode='a')
+
 
 def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
     import pickle
@@ -443,7 +488,7 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
         if not os.path.exists(ca):
             with open(ca, 'wb') as f:
                 pickle.dump(chain_CA[i].ca_submatrices, f)
-            print(f"Created CA pickle file for {chain_CA[i].prot_id}")
+            #print(f"Created CA pickle file for {chain_CA[i].prot_id}")
         else:
             print(f"CA pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
 
@@ -453,21 +498,20 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
         if not os.path.exists(mean):
             with open(mean, 'wb') as k:
                 pickle.dump(chain_CA[i].mean_submatrices, k)
-            print(f"Created mean pickle file for {chain_CA[i].prot_id}")
+            #print(f"Created mean pickle file for {chain_CA[i].prot_id}")
         else:
             print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
         # Delete the values in the Chain object
         chain_CA[i].ca_submatrices = None
         chain_CA[i].mean_submatrices = None
-        print(f"Deleted ca_submatrices and mean_submatrices for {chain_CA[i].prot_id}")
+        #print(f"Deleted ca_submatrices and mean_submatrices for {chain_CA[i].prot_id}")
 
 
 def find_pdb_file(protein_id, pdb_dir):
     dir = os.path.join(work_dir, pdb_dir)
     for file in os.listdir(dir):
         if protein_id in file:
-            return os.path.join(dir, file)
-    return None
+           return os.path.join(dir, file)
 
 sample_counter = 1
 
@@ -478,16 +522,20 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
     start_index = load_progress()
     i = start_index
     interacting_proteins = []
+    positive_pairs = load_positive_pairs(positive_pairs_txt)
+
     with open(positive_pairs_txt, 'r') as f:
         for line in f:
             pair = line.strip().split('\t')
             pdb1_protein_id = pair[0]
             pdb2_protein_id = pair[1]
-
+            print(pdb1_protein_id , pdb2_protein_id )
             pdb1_file = find_pdb_file(pdb1_protein_id, pdb)
             pdb2_file = find_pdb_file(pdb2_protein_id, pdb)
+            chainA_id = 'A' 
+            chainB_id = 'B'
             if pdb1_file and pdb2_file:
-                chains_CA = parsePDB(pdb1_file,pdb2_file, sample_counter) 
+                chains_CA = parsePDB(pdb1_file,pdb2_file, pdb1_protein_id, pdb2_protein_id, chainA_id, chainB_id, sample_counter) 
                 #print(pdb_files)
                 overlap = 1 
                 print(pdb1_file, pdb2_file)
@@ -505,12 +553,16 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
                 
                 import traceback
                 try:
-                    #rsa(pdb1_file, chains_CA, work_dir)
-                    #rsa(pdb2_file, chains_CA, work_dir)
-                    dssp(chains_CA, pdb1_file)
-                    dssp(chains_CA, pdb2_file)
+                    rsa( chains_CA[chainID1], pdb1_file)
+                    dssp(chains_CA[chainID1], pdb1_file)
                 except Exception as e:
-                    print(f"Error processing file : {e}")
+                    print(f"Error processing file {pdb1_file}: {e}")
+                    print(traceback.format_exc())
+                try:
+                    rsa( chains_CA[chainID2], pdb2_file)
+                    dssp(chains_CA[chainID2], pdb2_file)
+                except Exception as e:
+                    print(f"Error processing file {pdb2_file}: {e}")
                     print(traceback.format_exc())
                 
                 for chain in chains_CA.values():
@@ -529,14 +581,14 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
                 save_progress(i, chains_CA, pickle_ca_path, pickle_mean_path)  # Save progress after each sample
         
     for k in range(processed_sample):
-        create_negative_data_tsv(interacting_proteins, tsv_path)
+        create_negative_data_tsv(interacting_proteins, positive_pairs,tsv_path)
     print('Featur extraction : Done...')
     
 
 if __name__ == "__main__":
-    processed_sample = 4000
+    processed_sample = 1000
     size= 7
-    tsv_path = 'bert_train_HuRI.tsv'
+    tsv_path = 'bert_train_HuRI_test.tsv'
     pickle_ca_path= '/home/dina/Documents/PPI_WDLLM/Matrices_CA/new/'
     pickle_mean_path = '/home/dina/Documents/PPI_WDLLM/Matrices_Mean/new/'
     pdb = '/home/dina/Documents/PPI_WDLLM/workdir/Alpha_pdb'

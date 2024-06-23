@@ -13,6 +13,7 @@ import os
 import sys
 import datetime
 import logging
+import itertools
 
 class LoggerWriter:
     def __init__(self, level):
@@ -54,7 +55,7 @@ def load_vectors_for_bert(input_tsv, vector_pickle_dir):
     return df
 
 set = False 
-path = './2024-06-11_12-36-28'
+path = './2024-06-13_15-03-02'
 run_directory = setup_run.setup_run_directory(set, path)
 
 # Logger 
@@ -62,14 +63,14 @@ time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 
 # Load data
-vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle'
-tsv_path = '/home/dina/Documents/PPI_WDLLM/2024-06-10_09-29-35/filtered_file_train_2024-06-10_09-29-35_2000_s_wDataloader_interactom.tsv'
+vector_pickle_dir = '/home/dina/Documents/PPI_WDLLM/Matrices_CA/Vector_pickle_test'
+tsv_path = '/home/dina/Documents/PPI_WDLLM/2024-06-13_13-00-08/2024-06-13_13-00-08_TEST_dataset.tsv'
 #data_df = pd.read_csv(tsv_path, sep='\t')
 data_df = load_vectors_for_bert(tsv_path, vector_pickle_dir)
 data_df = data_df.fillna("")
 
-# Model choice
-combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "Vector"]
+'''# Model choice
+combined_fields = ["Residues", "DSSP Structure", "DSSP Index", "RSA", "Vector"]
 logging.info('Testing BERT with %s , in path %s and with pickle load' , tsv_path, path)
 
 for i in range(1, len(combined_fields) + 1):
@@ -86,7 +87,30 @@ for i in range(1, len(combined_fields) + 1):
         fields = [str(row[field]) for field in fields_to_combine]
         combined = '[SEP]'.join(fields)
         sen_w_feats.append(combined)
-        labels.append(row["Interact"])  
+        labels.append(row["Interact"])  '''
+# Model choice
+input_fields = ["Residues", "DSSP Structure", "DSSP Index", "RSA", "Vector"]
+logging.info('Testing BERT with %s, in path %s and with pickle load', tsv_path, vector_pickle_dir)
+# Generate all combinations of input fields
+field_combinations = []
+for r in range(1, len(input_fields) + 1):
+    field_combinations.extend(itertools.combinations(input_fields, r))
+
+for fields_to_combine in field_combinations:
+    fields_to_combine = list(fields_to_combine)
+    sen_w_feats = []
+    labels = []
+    bert_dir = '/home/dina/Documents/PPI_WDLLM/2024-06-13_15-03-02/BERT/'
+    model_name = 'bert_combined_fields_%s_%s' % ('1500s_allcombinations', '_'.join(fields_to_combine))
+    logging.info("#" * 50)
+    logging.info("# BERT TESTING \n%s", model_name)
+    logging.info(" With combined fields: %s", fields_to_combine)
+    
+    for index, row in data_df.iterrows():
+        fields = [str(row[field]) for field in fields_to_combine]
+        combined = '[SEP]'.join(fields)
+        sen_w_feats.append(combined)
+        labels.append(row["Interact"])
 
     # Load tokenizer and model
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")

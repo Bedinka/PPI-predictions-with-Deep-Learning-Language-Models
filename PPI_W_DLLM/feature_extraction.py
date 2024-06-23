@@ -179,8 +179,6 @@ class Residue:
     
     def addRSA(self, sasa_all):
         self.rsa_value = sasa_all
-        print(f"Added one rsa to {self.resnum}")
-        print(self.rsa_value)
          
     
 class Matrix:
@@ -396,9 +394,9 @@ def dssp(pdb,chain):
     dssp_onhot = pydssp.assign(coord, out_type='onehot')
     chain.dssp_onehot = dssp_onhot
     ## dim-0: loop,  dim-1: alpha-helix,  dim-2: beta-strand
-    output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
+'''    output_file =  work_dir + "/dssp/" + str(chain.prot_id) + ".dssp.txt"
     with open(output_file, 'w') as f:
-        f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")
+        f.write(f"{hbond_matrix}\n{dssp_struct}\n{dssp_index}\n{dssp_onhot}\n")'''
 
 def ca_dist_calc(chains_CA, size, overlap ):
     #print("CA DISTANCE CALCULATION") 
@@ -526,7 +524,7 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
         if not os.path.exists(ca):
             with open(ca, 'wb') as f:
                 pickle.dump(chain_CA[i].ca_submatrices, f)
-            print(f"Created CA pickle file for {chain_CA[i].prot_id}")
+            #print(f"Created CA pickle file for {chain_CA[i].prot_id}")
         else:
             print(f"CA pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
 
@@ -536,12 +534,12 @@ def matrix_pickle(chain_CA, pickle_ca_path, pickle_mean_path):
         if not os.path.exists(mean):
             with open(mean, 'wb') as k:
                 pickle.dump(chain_CA[i].mean_submatrices, k)
-            print(f"Created mean pickle file for {chain_CA[i].prot_id}")
+            #print(f"Created mean pickle file for {chain_CA[i].prot_id}")
         else:
             print(f"Mean pickle file for {chain_CA[i].prot_id} already exists. Skipping.")
         chain_CA[i].ca_submatrices = None
         chain_CA[i].mean_submatrices = None
-        print(f"Deleted ca_submatrices and mean_submatrices for {chain_CA[i].prot_id}")
+        #print(f"Deleted ca_submatrices and mean_submatrices for {chain_CA[i].prot_id}")
 
 sample_counter = 1
 
@@ -576,14 +574,14 @@ def main(processed_sample, size, tsv_path, pickle_ca_path, pickle_mean_path, pdb
         prot1, prot2 = splitPDBbyChain(pdb_file, dir_name)
         import traceback
         try:
-            rsa( prot1,chains_CA[chainID1])
-            dssp(prot1,chains_CA[chainID1])
+            rsa( prot1,chains_CA[0])
+            dssp(prot1,chains_CA[0])
         except Exception as e:
             print(f"Error processing file {prot1}: {e}")
             print(traceback.format_exc())
         try:
-            rsa( prot1,chains_CA[chainID2])
-            dssp(prot1,chains_CA[chainID2])
+            rsa( prot2,chains_CA[1])
+            dssp(prot2,chains_CA[1])
         except Exception as e:
             print(f"Error processing file {prot2}: {e}")
             print(traceback.format_exc())
