@@ -12,6 +12,7 @@ from scipy import stats
 import freesasa
 import torch 
 import pydssp
+import traceback
 
 
 
@@ -149,8 +150,8 @@ class Residue:
     
     def addRSA(self, sasa_all):
         self.rsa_value = sasa_all
-        print(f"Added one rsa to {self.resnum}")
-        print(self.rsa_value)
+        #print(f"Added one rsa to {self.resnum}")
+        #print(self.rsa_value)
          
 
 # Parsing the PDB files 
@@ -303,39 +304,29 @@ def create_fixedsize_submatrix(distmat, sub_size, overlap):
     
 def rsa(pdb_file, chain):
     try:
-        # Load the structure
         structure = freesasa.Structure(pdb_file)
-        # Calculate the SASA
         result = freesasa.calc(structure)
-        
-        # Lists to store RSA values and surface residues
         rsa_values = []
         surface_residues = []
         surface_rsa=[]
-        # Threshold for surface accessibility (25% of the maximum possible RSA)
         threshold = 0.25  # This is a percentage value (25%)
         
         # Iterate through residues in the chain
         for residue in chain.residues.values():
             chain_id = chain.chainID
-            
-            # Check if the residue is in the result from FreeSASA
             if chain_id in result.residueAreas() and str(residue.resnum) in result.residueAreas()[chain_id]:
                 # Get the RSA value for the residue
                 residue_sasa = result.residueAreas()[chain_id][str(residue.resnum)].total
                 residue.addRSA(residue_sasa)
                 rsa_values.append(residue_sasa)
                 
-                # Check if RSA is above the threshold
-                if residue_sasa > threshold * 100:  # Adjust threshold comparison based on your needs
+                if residue_sasa > threshold * 100:  
                     surface_residues.append(residue)
                     surface_rsa.append(residue_sasa)
                 else:
                     print(f"not surface: {residue.resnum}")
             else:
                 print(f"Chain {chain_id} or residue {residue.resnum} not found in the structure.")
-        
-        # Add RSA and surface residues to the chain
         chain.rsa = rsa_values
         chain.surface_residues = surface_residues
         chain.surface_rsa = surface_rsa
@@ -344,34 +335,49 @@ def rsa(pdb_file, chain):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def dssp(pdb, chain):
-    coord = torch.tensor(pydssp.read_pdbtext(open(pdb, 'r').read()))
-    hbond_matrix = pydssp.get_hbond_map(coord)
-    dssp_struct = pydssp.assign(coord, out_type='c3')
-    dssp_index = pydssp.assign(coord, out_type='index')
-    dssp_onehot = pydssp.assign(coord, out_type='onehot')
-    print( dssp_index, dssp_onehot, dssp_struct)
-    surface_residue_indices = [res.resnum - 1 for res in chain.surface_residues]  # Adjust index if necessary
-    
-    # Filter indices that are within bounds
-    valid_surface_residue_indices = [idx for idx in surface_residue_indices if 0 <= idx < len(dssp_struct)]
-    
-    surface_dssp_struct = [dssp_struct[idx] for idx in valid_surface_residue_indices]
-    surface_dssp_index = [dssp_index[idx] for idx in valid_surface_residue_indices]
-    surface_dssp_onehot = dssp_onehot[valid_surface_residue_indices]
+def dssp(pdb_file, chain):
+    try:
+        with open(pdb_file, 'r') as pdb:
+            coord = torch.tensor(pydssp.read_pdbtext(pdb.read()))
+
+        hbond_matrix = pydssp.get_hbond_map(coord)
+        dssp_struct = pydssp.assign(coord, out_type='c3')
+        dssp_index = pydssp.assign(coord, out_type='index')
+        dssp_onehot = pydssp.assign(coord, out_type='onehot')
         
-    '''# Filter DSSP data for surface residues
-    surface_residues = chain.surface_residues
-    if surface_residues is None:
-        print("Surface residues are None. Skipping DSSP assignment.")
-        return
-    surface_dssp_struct = [dssp_struct[res.resnum] for res in surface_residues if res.resnum in dssp_struct]
-    surface_dssp_index = [dssp_index[res.resnum] for res in surface_residues if res.resnum in dssp_index]
-    surface_dssp_onehot = [dssp_onehot[res.resnum] for res in surface_residues if res.resnum in dssp_onehot]'''
-    
-    chain.dssp_struct = surface_dssp_struct
-    chain.dssp_index = surface_dssp_index
-    chain.dssp_onehot = surface_dssp_onehot
+        
+        print(f"DSSP struct length: {len(dssp_struct)}, DSSP index length: {len(dssp_index)}")
+        
+        surface_residue_indices = [res.resnum - 1 for res in chain.surface_residues]
+        print(f"Surface residue indices (0-based): {surface_residue_indices}")
+
+        # Ensure indices are within bounds
+        valid_surface_residue_indices = [idx for idx in surface_residue_indices if 0 <= idx < len(dssp_struct)]
+        print(f"Valid surface residue indices: {valid_surface_residue_indices}")
+
+        # Check for invalid indices
+        invalid_indices = [idx for idx in surface_residue_indices if idx < 0 or idx >= len(dssp_struct)]
+        if invalid_indices:
+            print(f"Invalid surface residue indices: {invalid_indices}")
+
+        surface_dssp_struct = [dssp_struct[idx] for idx in valid_surface_residue_indices]
+        surface_dssp_index = [dssp_index[idx] for idx in valid_surface_residue_indices]
+        surface_dssp_onehot = dssp_onehot[valid_surface_residue_indices]
+        
+        chain.dssp_struct = surface_dssp_struct
+        chain.dssp_index = surface_dssp_index
+        chain.dssp_onehot = surface_dssp_onehot
+        
+        # Detailed log of DSSP data for surface residues
+        for idx in valid_surface_residue_indices:
+            print(f"Index: {idx}, DSSP struct: {dssp_struct[idx]}, DSSP index: {dssp_index[idx]}")
+        
+    except IndexError as e:
+        print(f"Index error in DSSP processing: {e}")
+        print(traceback.format_exc())
+    except Exception as e:
+        print(f"An unexpected error occurred in DSSP processing: {e}")
+        print(traceback.format_exc())
 
 
 def ca_dist_calc(chains_CA, size, overlap ):
