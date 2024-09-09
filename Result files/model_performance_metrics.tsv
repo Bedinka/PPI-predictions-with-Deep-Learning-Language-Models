@@ -1,0 +1,32 @@
+model_name	Percentage of 1s labeled as 0	Percentage of 0s labeled as 1	TP	TN	FP	FN
+bert_combined_fields_more_interact_test_filtered_Residues	11.799999999999999	70.56451612903226	441	146	350	59
+bert_combined_fields_more_interact_test_filtered_DSSP Structure	45.0	34.274193548387096	275	326	170	225
+bert_combined_fields_more_interact_test_filtered_DSSP Index	41.199999999999996	31.451612903225808	294	340	156	206
+bert_combined_fields_more_interact_test_filtered_RSA	46.6	38.91129032258064	267	303	193	233
+bert_combined_fields_more_interact_test_filtered_Vector	25.8	36.693548387096776	371	314	182	129
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure	28.799999999999997	51.41129032258065	356	241	255	144
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Index	9.6	71.57258064516128	452	141	355	48
+bert_combined_fields_more_interact_test_filtered_Residues_RSA	20.8	63.50806451612904	396	181	315	104
+bert_combined_fields_more_interact_test_filtered_Residues_Vector	10.6	65.7258064516129	447	170	326	53
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_DSSP Index	52.0	26.008064516129032	240	367	129	260
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_RSA	43.6	32.056451612903224	282	337	159	218
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_Vector	56.00000000000001	15.120967741935484	220	421	75	280
+bert_combined_fields_more_interact_test_filtered_DSSP Index_RSA	25.2	51.20967741935484	374	242	254	126
+bert_combined_fields_more_interact_test_filtered_DSSP Index_Vector	66.0	32.056451612903224	170	337	159	330
+bert_combined_fields_more_interact_test_filtered_RSA_Vector	48.4	40.32258064516129	258	296	200	242
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_DSSP Index	12.2	68.95161290322581	439	154	342	61
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_RSA	24.8	55.846774193548384	376	219	277	124
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_Vector	30.0	53.62903225806451	350	230	266	150
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Index_RSA	10.2	71.37096774193549	449	142	354	51
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Index_Vector	24.4	61.693548387096776	378	190	306	122
+bert_combined_fields_more_interact_test_filtered_Residues_RSA_Vector	10.2	75.20161290322581	449	123	373	51
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_DSSP Index_RSA	43.0	37.096774193548384	285	312	184	215
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_DSSP Index_Vector	47.4	35.88709677419355	263	318	178	237
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_RSA_Vector	42.8	33.66935483870967	286	329	167	214
+bert_combined_fields_more_interact_test_filtered_DSSP Index_RSA_Vector	10.4	69.35483870967742	448	152	344	52
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_DSSP Index_RSA	13.8	67.13709677419355	431	163	333	69
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_DSSP Index_Vector	16.400000000000002	61.693548387096776	418	190	306	82
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_RSA_Vector	16.6	62.5	417	186	310	83
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Index_RSA_Vector	11.200000000000001	70.76612903225806	444	145	351	56
+bert_combined_fields_more_interact_test_filtered_DSSP Structure_DSSP Index_RSA_Vector	43.0	37.29838709677419	285	311	185	215
+bert_combined_fields_more_interact_test_filtered_Residues_DSSP Structure_DSSP Index_RSA_Vector	13.8	67.13709677419355	431	163	333	69
